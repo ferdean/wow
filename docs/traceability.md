@@ -109,7 +109,7 @@
 | APP-816 | T-WEB-01 passed, T-WEB-02 passed | D-01 pending, I-07 pending | passed |
 | APP-817 | T-SET-07 due SL-10, T-SET-08 due SL-10, T-SYS-05 due SL-10 | I-08 pending | not yet due |
 | APP-818 | T-TOOL-02 passed | I-09 pending | passed |
-| APP-819 | T-SIM-01 failed, T-SIM-02 passed, T-SIM-03 due SL-06, T-SIM-04 due SL-12, T-TOOL-02 passed, T-TOOL-03 passed | I-10 pending | open |
+| APP-819 | T-SIM-01 passed, T-SIM-02 passed, T-SIM-03 due SL-06, T-SIM-04 due SL-12, T-TOOL-02 passed, T-TOOL-03 passed | I-10 pending | passed so far |
 | APP-820 | T-LOG-02 due SL-06, T-LOG-03 due SL-06, T-LOG-04 due SL-06, T-LOG-05 due SL-12 | — | not yet due |
 | APP-821 | — | I-11 pending | no automated test |
 | APP-822 | T-TOOL-04 passed | I-12 pending | passed |
