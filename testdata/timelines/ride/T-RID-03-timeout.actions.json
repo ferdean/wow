@@ -1,0 +1,11 @@
+{"case": "T-RID-03", "machine": "ride",
+ "actions": [
+  {"at": 0, "action": {"type": "journal", "event": "command", "t_ride": null, "data": {"name": "start"}}},
+  {"at": 0, "action": {"type": "journal", "event": "armed", "t_ride": null, "data": {"workout_ref": "test:w3030", "plan_id": "test:w3030@250", "ftp": 250, "lead_time": 1.5}}},
+  {"at": 0, "action": {"type": "set_trainer", "command": {"type": "erg", "power": 140}}},
+  {"at": 0, "action": {"type": "journal", "event": "trainer_command", "t_ride": null, "data": {"mode": "erg", "power": 140, "due_mono_ms": 0}}},
+  {"at": 1800, "action": {"type": "journal", "event": "cancelled", "t_ride": null, "data": {"cause": "timeout"}}},
+  {"at": 1800, "action": {"type": "set_trainer", "command": {"type": "resistance", "level_raw": 0}}},
+  {"at": 1800, "action": {"type": "journal", "event": "trainer_command", "t_ride": null, "data": {"mode": "resistance", "level_raw": 0, "due_mono_ms": 1800000.0}}},
+  {"at": 1800, "action": {"type": "ended", "cause": "cancelled"}}
+ ]}

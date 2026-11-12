@@ -1,0 +1,7 @@
+{"case": "T-SES-05", "machine": "ftms_session",
+ "actions": [
+  {"at": 0.0, "action": {"type": "write", "data": "00"}},
+  {"at": 0.2, "action": {"type": "write", "data": "07"}},
+  {"at": 10.0, "action": {"type": "write", "data": "054a01"}},
+  {"at": 10.3, "action": {"type": "write", "data": "055401"}}
+ ]}

@@ -1,0 +1,57 @@
+{
+  "description": "Fitness Machine Feature, range characteristics, control point responses, statuses and encoded commands (ICD 4.1.3, 4.1.4). Ranges are minimum, maximum and step in the characteristic's units: W for power, raw for resistance, 0.1 % for inclination. Band speeds in km/h.",
+  "features": [
+    {"case": "T-COD-06", "name": "D100: 0x00004001 and 0x0000A00C", "hex": "014000000ca00000",
+     "expect": {"cadence_supported": false, "power_measurement": true, "resistance_target": true, "power_target": true, "spin_down_control": true}},
+    {"case": "T-COD-06", "name": "cadence declared", "hex": "034000000ca00000",
+     "expect": {"cadence_supported": true, "power_measurement": true, "resistance_target": true, "power_target": true, "spin_down_control": true}},
+    {"case": "T-COD-06", "name": "no power target", "hex": "0140000004a00000",
+     "expect": {"cadence_supported": false, "power_measurement": true, "resistance_target": true, "power_target": false, "spin_down_control": true}},
+    {"case": "T-COD-06", "name": "no resistance target", "hex": "0140000008a00000",
+     "expect": {"cadence_supported": false, "power_measurement": true, "resistance_target": false, "power_target": true, "spin_down_control": true}},
+    {"case": "T-COD-06", "name": "no spin-down control", "hex": "014000000c200000",
+     "expect": {"cadence_supported": false, "power_measurement": true, "resistance_target": true, "power_target": true, "spin_down_control": false}},
+    {"case": "T-COD-05", "name": "too short", "hex": "01400000", "drop": true}
+  ],
+  "power_ranges": [
+    {"case": "T-COD-06", "name": "D100 50 to 600 W in 1 W steps", "hex": "320058020100", "expect": {"minimum": 50, "maximum": 600, "step": 1}},
+    {"case": "T-COD-06", "name": "5 bytes", "hex": "3200580201", "drop": true},
+    {"case": "T-COD-06", "name": "step 0", "hex": "320058020000", "drop": true}
+  ],
+  "inclination_ranges": [
+    {"case": "T-COD-06", "name": "D100 0 to 6.0 %", "hex": "00003c000100", "expect": {"minimum": 0, "maximum": 60, "step": 1}}
+  ],
+  "resistance_ranges": [
+    {"case": "T-COD-06", "name": "6-byte FTMS 1.0 layout, as the D100 sends it", "hex": "000064000100", "expect": {"minimum": 0, "maximum": 100, "step": 1, "data_width": 2}},
+    {"case": "T-COD-06", "name": "3-byte current GSS layout", "hex": "006401", "expect": {"minimum": 0, "maximum": 100, "step": 1, "data_width": 1}},
+    {"case": "T-COD-06", "name": "4 bytes: resistance mode disabled", "hex": "00640100", "drop": true}
+  ],
+  "capabilities": [
+    {"case": "T-COD-06", "name": "D100", "features": "014000000ca00000", "power_range": "320058020100", "resistance_range": "000064000100",
+     "expect": {"power": {"minimum": 50, "maximum": 600, "step": 1}, "resistance": {"minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}},
+    {"case": "T-COD-06", "name": "D100 with a 4-byte resistance range", "features": "014000000ca00000", "power_range": "320058020100", "resistance_range": "00640100",
+     "expect": {"power": {"minimum": 50, "maximum": 600, "step": 1}, "resistance": null, "spin_down": true, "cadence": false}}
+  ],
+  "commands": [
+    {"case": "T-COD-07", "name": "Request Control", "command": "request_control", "hex": "00"},
+    {"case": "T-COD-07", "name": "Set Target Resistance Level, raw 50", "command": {"type": "resistance", "level_raw": 50}, "hex": "0432"},
+    {"case": "T-COD-07", "name": "Set Target Power 200 W", "command": {"type": "erg", "power": 200}, "hex": "05c800"},
+    {"case": "T-COD-07", "name": "Set Target Power 330 W", "command": {"type": "erg", "power": 330}, "hex": "054a01"},
+    {"case": "T-COD-07", "name": "Start or Resume", "command": "start_or_resume", "hex": "07"},
+    {"case": "T-COD-07", "name": "Spin Down Control, start", "command": "spin_down_start", "hex": "1301"}
+  ],
+  "responses": [
+    {"case": "T-COD-08", "name": "Set Target Power succeeded", "hex": "800501", "expect": {"request_op": 5, "result": 1, "parameter": ""}},
+    {"case": "T-COD-08", "name": "Request Control not permitted", "hex": "800005", "expect": {"request_op": 0, "result": 5, "parameter": ""}},
+    {"case": "T-COD-08", "name": "Spin-down start with the band 0 to 40 km/h (F-30)", "hex": "8013010000a00f", "expect": {"request_op": 19, "result": 1, "parameter": "0000a00f"}, "band_kmh": [0.0, 40.0]},
+    {"case": "T-COD-08", "name": "not a response", "hex": "010501", "drop": true},
+    {"case": "T-COD-08", "name": "too short", "hex": "8005", "drop": true}
+  ],
+  "statuses": [
+    {"case": "T-COD-08", "name": "Reset", "hex": "01", "expect": {"code": 1, "parameter": ""}},
+    {"case": "T-COD-08", "name": "Spin-down Stop Pedaling", "hex": "1404", "expect": {"code": 20, "parameter": "04"}},
+    {"case": "T-COD-08", "name": "Spin-down Success with the D100's 2 extra bytes (F-37)", "hex": "1402976c", "expect": {"code": 20, "parameter": "02976c"}},
+    {"case": "T-COD-08", "name": "Control Permission Lost", "hex": "ff", "expect": {"code": 255, "parameter": ""}},
+    {"case": "T-COD-08", "name": "empty", "hex": "", "drop": true}
+  ]
+}

@@ -1,0 +1,15 @@
+{"case": "T-SES-07", "machine": "ftms_session", "title": "Result 03: logged with the bytes; the last good command is kept and sent again after a reconnect", "until": 10.0,
+ "events": [
+  {"at": 0.0, "event": {"type": "link_up", "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": {"type": "range", "minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}}},
+  {"at": 0.2, "event": {"type": "indication", "data": "800001"}},
+  {"at": 0.4, "event": {"type": "indication", "data": "800701"}},
+  {"at": 5.0, "event": {"type": "set_command", "command": {"type": "resistance", "level_raw": 50}}},
+  {"at": 5.2, "event": {"type": "indication", "data": "800401"}},
+  {"at": 6.0, "event": {"type": "set_command", "command": {"type": "resistance", "level_raw": 200}}},
+  {"at": 6.2, "event": {"type": "indication", "data": "800403"}},
+  {"at": 7.0, "event": {"type": "link_down"}},
+  {"at": 8.0, "event": {"type": "link_up", "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": {"type": "range", "minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}}},
+  {"at": 8.2, "event": {"type": "indication", "data": "800001"}},
+  {"at": 8.4, "event": {"type": "indication", "data": "800701"}},
+  {"at": 8.6, "event": {"type": "indication", "data": "800401"}}
+ ]}

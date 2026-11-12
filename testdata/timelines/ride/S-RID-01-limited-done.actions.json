@@ -1,0 +1,14 @@
+{"case": "S-RID-01", "machine": "ride",
+ "actions": [
+  {"at": 0, "action": {"type": "journal", "event": "command", "t_ride": null, "data": {"name": "start"}}},
+  {"at": 0, "action": {"type": "journal", "event": "armed", "t_ride": null, "data": {"workout_ref": "test:short", "plan_id": "test:short@250", "ftp": 250, "lead_time": 1.5}}},
+  {"at": 0, "action": {"type": "set_trainer", "command": {"type": "erg", "power": 600}}},
+  {"at": 0, "action": {"type": "journal", "event": "trainer_command", "t_ride": null, "data": {"mode": "erg", "power": 600, "due_mono_ms": 0.0}}},
+  {"at": 0, "action": {"type": "journal", "event": "target_limited", "t_ride": null, "data": {"requested_power": 650, "sent_power": 600}}},
+  {"at": 1, "action": {"type": "journal", "event": "ride_started", "t_ride": 0.0, "data": {"power": 1}}},
+  {"at": 1, "action": {"type": "journal", "event": "step_started", "t_ride": 0.0, "data": {"index": 0, "cause": "schedule", "scheduled": 0.0}}},
+  {"at": 11, "action": {"type": "journal", "event": "workout_done", "t_ride": 10.0, "data": {}}},
+  {"at": 15, "action": {"type": "journal", "event": "command", "t_ride": 14.0, "data": {"name": "finish"}}},
+  {"at": 15, "action": {"type": "journal", "event": "finished", "t_ride": 14.0, "data": {"cause": "rider"}}},
+  {"at": 15, "action": {"type": "ended", "cause": "finished"}}
+ ]}

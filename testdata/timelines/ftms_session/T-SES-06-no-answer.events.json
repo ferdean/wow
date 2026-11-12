@@ -1,0 +1,8 @@
+{"case": "T-SES-06", "machine": "ftms_session", "title": "No answer to a write for 10 min: warning at 3.0 s, the current command again at 30 s and every 30 s; the first answer clears the warning", "until": 620.0,
+ "events": [
+  {"at": 0.0, "event": {"type": "link_up", "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": {"type": "range", "minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}}},
+  {"at": 0.2, "event": {"type": "indication", "data": "800001"}},
+  {"at": 0.4, "event": {"type": "indication", "data": "800701"}},
+  {"at": 10.0, "event": {"type": "set_command", "command": {"type": "erg", "power": 200}}},
+  {"at": 610.05, "event": {"type": "indication", "data": "800501"}}
+ ]}

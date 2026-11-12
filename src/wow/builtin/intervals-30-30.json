@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "id": "intervals-30-30",
+  "name": "30/30 and a surge",
+  "description": "The Phase 2 S2 session: 5 min at 150 W, 6 x (30 s at 330 W, 30 s at 140 W), 2 min at 220 W, 1 min at 325 W (130 % FTP), 2 min at 220 W, 3 min at 140 W.",
+  "protocol_source": "Phase 2, spike S2 (6 Nov 2026)",
+  "workout_doc": {
+    "steps": [
+      {"duration": 300, "power": {"units": "w", "value": 150}, "warmup": true, "text": "Warm-up"},
+      {"reps": 6, "text": "30/30", "steps": [
+        {"duration": 30, "power": {"units": "w", "value": 330}},
+        {"duration": 30, "power": {"units": "w", "value": 140}}
+      ]},
+      {"duration": 120, "power": {"units": "w", "value": 220}},
+      {"duration": 60, "power": {"units": "w", "value": 325}, "text": "Surge"},
+      {"duration": 120, "power": {"units": "w", "value": 220}},
+      {"duration": 180, "power": {"units": "w", "value": 140}, "cooldown": true, "text": "Cool-down"}
+    ]
+  }
+}

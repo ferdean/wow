@@ -1,0 +1,22 @@
+{"case": "T-SES-03", "machine": "ftms_session", "title": "A Reset 1.01 s after the grant, and again mid-ride: control requested again, Start or Resume, then the current command", "until": 70.0,
+ "events": [
+  {"at": 0.0, "event": {"type": "link_up", "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": {"type": "range", "minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}}},
+  {"at": 0.0, "event": {"type": "set_command", "command": {"type": "erg", "power": 150}}},
+  {"at": 0.2, "event": {"type": "indication", "data": "800001"}},
+  {"at": 0.4, "event": {"type": "indication", "data": "800701"}},
+  {"at": 0.6, "event": {"type": "indication", "data": "800501"}},
+  {"at": 1.21, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 1.5, "event": {"type": "indication", "data": "800001"}},
+  {"at": 1.75, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 1.8, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 1.85, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 1.9, "event": {"type": "indication", "data": "800701"}},
+  {"at": 2.1, "event": {"type": "indication", "data": "800501"}},
+  {"at": 60.0, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 60.2, "event": {"type": "indication", "data": "800001"}},
+  {"at": 60.45, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 60.5, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 60.55, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 60.6, "event": {"type": "indication", "data": "800701"}},
+  {"at": 60.8, "event": {"type": "indication", "data": "800501"}}
+ ]}

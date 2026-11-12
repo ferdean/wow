@@ -1,0 +1,10 @@
+{"case": "T-SES-02", "machine": "ftms_session", "title": "The Reset after a granted Request Control, three copies 0.2 to 0.3 s later and one 0.95 s later, is ignored", "until": 5.0,
+ "events": [
+  {"at": 0.0, "event": {"type": "link_up", "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": {"type": "range", "minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}}},
+  {"at": 0.2, "event": {"type": "indication", "data": "800001"}},
+  {"at": 0.4, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 0.45, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 0.5, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 0.6, "event": {"type": "indication", "data": "800701"}},
+  {"at": 1.15, "event": {"type": "status_notification", "data": "01"}}
+ ]}

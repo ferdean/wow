@@ -1,0 +1,23 @@
+# The installation's configuration (ICD IF-10). Paths are relative to the
+# directory wow starts in, or absolute.
+
+[bluetooth]
+adapter = "hci0"
+simulate = false
+
+[web]
+host = "wow.local"
+# Address to listen on; all addresses when left out.
+# listen = "0.0.0.0"
+# Ports above 1024 run without root. 443 and 80 come with the systemd unit
+# and CAP_NET_BIND_SERVICE in SL-07.
+https_port = 8443
+http_port = 8080
+# The pair from Phase 2's spike_certs.py: the server certificate for
+# wow.local, its key, and the root the iPhone trusts. Never the root's key.
+cert = "tls/server.crt"
+key = "tls/server.key"
+root_cert = "tls/root.crt"
+
+[paths]
+data = "wow-data"

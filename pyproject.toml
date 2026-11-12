@@ -1,0 +1,58 @@
+[project]
+name = "witchesonwheels"
+version = "0.2.0"
+description = "WitchesOnWheels: runs structured workouts on a smart trainer from a Raspberry Pi."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "aiohttp==3.14.5",
+    "bleak==3.0.2",
+]
+
+[project.scripts]
+wow = "wow.app.main:main"
+wow-probe = "wow.app.probe:main"
+
+[dependency-groups]
+dev = [
+    "flake8==7.5.0",
+    "flake8-docstrings==1.7.0",
+    "hypothesis==6.170.15",
+    "mypy==2.4.1",
+    "pytest==9.2.0",
+    "pytest-asyncio==1.4.1.post1",
+    "pytest-cov==7.1.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "wow"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--strict-markers", "-ra"]
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "case(*ids): catalogue IDs of the Phase 4 test plan (T-..., S-...)",
+    "req(*ids): requirements the test verifies (APP-...)",
+    "slow: real-time test, not part of the gate",
+    "pi: needs the installed service on the Raspberry Pi",
+    "posix: needs POSIX file modes",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["wow"]
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+files = ["src", "tests", "tools"]
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = ["dbus_fast", "dbus_fast.*"]
+ignore_missing_imports = true

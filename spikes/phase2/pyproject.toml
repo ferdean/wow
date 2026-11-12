@@ -1,0 +1,15 @@
+[project]
+name = "wow-spikes"
+version = "0.1.0"
+description = "WitchesOnWheels Phase 2 risk spikes (throwaway)"
+requires-python = ">=3.11"
+dependencies = ["bleak==3.0.2", "garmin-fit-sdk==21.221.0", "tzdata==2026.6"]
+
+[dependency-groups]
+dev = ["flake8==7.5.0", "pytest==9.2.0"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["."]

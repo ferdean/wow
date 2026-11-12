@@ -1,0 +1,45 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": 119950.0,
+ "links": {
+  "trainer": "connected",
+  "hrm": "connected"
+ },
+ "hrm_battery_pct": 80,
+ "warnings": [
+  {
+   "kind": "trainer_not_responding"
+  },
+  {
+   "kind": "target_limited",
+   "requested_power": 650,
+   "sent_power": 600
+  }
+ ],
+ "screen": {
+  "name": "ride",
+  "waiting_for_power": false,
+  "mode": "erg",
+  "paused": false,
+  "workout_done": false,
+  "elapsed": 10.0,
+  "remaining": 50.0,
+  "step": {
+   "index": 0,
+   "count": 1,
+   "left": 50.0,
+   "text": "Too much"
+  },
+  "target": 600,
+  "target_zone": 6,
+  "target_limited": true,
+  "power": 598,
+  "hr_bpm": 170,
+  "next": null,
+  "intensity_pct": 100,
+  "resistance_pct": null,
+  "free_ride_target": null
+ }
+}

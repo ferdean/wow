@@ -1,0 +1,152 @@
+/* Night ride (Phase 3C): tokens, type and sizes. */
+:root {
+  --night: #1f1830;
+  --dusk: #2c2342;
+  --rise: #3b3057;
+  --line: #8375b3;
+  --mist: #bfb6d3;
+  --moon: #f4efe6;
+  --ink: #1a1326;
+  --zone-1: #a29bbd;
+  --zone-2: #4fb6e3;
+  --zone-3: #5fc88c;
+  --zone-4: #f2cb4a;
+  --zone-5: #f59545;
+  --zone-6: #f26d78;
+  --ok: var(--zone-3);
+  --warning: var(--zone-4);
+  --fault: var(--zone-6);
+  --sans: "Sofia Sans Variable", system-ui, sans-serif;
+  --condensed: "Sofia Sans Condensed Variable", "Sofia Sans Variable", system-ui, sans-serif;
+  --margin: 16px;
+  --gap: 8px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--night);
+  color: var(--moon);
+  font-family: var(--sans);
+  font-size: 17px;
+  font-weight: 520;
+  -webkit-text-size-adjust: 100%;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+#app {
+  min-height: 100dvh;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 100dvh;
+  padding: max(var(--margin), env(safe-area-inset-top)) max(var(--margin), env(safe-area-inset-right))
+    max(var(--margin), env(safe-area-inset-bottom)) max(var(--margin), env(safe-area-inset-left));
+}
+
+.page.fixed {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 780;
+}
+
+h2 {
+  margin: 12px 0 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--mist);
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--mist);
+}
+
+.number {
+  font-family: var(--condensed);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.86;
+}
+
+.unit {
+  font-family: var(--sans);
+  font-size: 18px;
+  font-weight: 650;
+  margin-left: 4px;
+}
+
+button {
+  font: inherit;
+  font-size: 20px;
+  font-weight: 650;
+  min-height: 62px;
+  min-width: 62px;
+  padding: 0 18px;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  background: var(--rise);
+  color: var(--moon);
+  touch-action: manipulation;
+}
+
+button.primary {
+  background: var(--moon);
+  color: var(--ink);
+}
+
+button.secondary {
+  background: transparent;
+  border-color: var(--line);
+}
+
+button:disabled {
+  opacity: 0.38;
+}
+
+button.small {
+  min-height: 44px;
+  font-size: 18px;
+}
+
+.panel {
+  background: var(--dusk);
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+
+.row {
+  display: flex;
+  gap: var(--gap);
+  align-items: center;
+}
+
+.grow {
+  flex: 1 1 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

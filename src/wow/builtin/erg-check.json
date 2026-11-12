@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "id": "erg-check",
+  "name": "ERG check",
+  "description": "6 minutes to check the trainer follows its targets: easy, two short efforts, easy. Slice SL-02 check workout.",
+  "protocol_source": "Claude, 12 Nov 2026, for the first ride of slice SL-02",
+  "workout_doc": {
+    "steps": [
+      {"duration": 120, "power": {"units": "w", "value": 120}, "warmup": true, "text": "Easy"},
+      {"reps": 2, "text": "Two short efforts", "steps": [
+        {"duration": 30, "power": {"units": "w", "value": 220}},
+        {"duration": 60, "power": {"units": "w", "value": 130}}
+      ]},
+      {"duration": 60, "power": {"units": "w", "value": 120}, "cooldown": true, "text": "Easy"}
+    ]
+  }
+}

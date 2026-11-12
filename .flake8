@@ -1,0 +1,5 @@
+[flake8]
+exclude = .git,.venv,build,spikes,display/node_modules
+docstring-convention = pep257
+extend-ignore = D105,D107
+per-file-ignores = tests/*:D

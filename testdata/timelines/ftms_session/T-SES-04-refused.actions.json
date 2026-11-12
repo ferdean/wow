@@ -1,0 +1,18 @@
+{"case": "T-SES-04", "machine": "ftms_session",
+ "actions": [
+  {"at": 0.0, "action": {"type": "write", "data": "00"}},
+  {"at": 0.2, "action": {"type": "write", "data": "07"}},
+  {"at": 0.4, "action": {"type": "write", "data": "059600"}},
+  {"at": 10.0, "action": {"type": "warning_changed", "kind": "control_refused", "active": true}},
+  {"at": 10.0, "action": {"type": "write", "data": "00"}},
+  {"at": 12.0, "action": {"type": "write", "data": "00"}, "every": 2.0, "count": 300},
+  {"at": 610.2, "action": {"type": "warning_changed", "kind": "control_refused", "active": false}},
+  {"at": 610.2, "action": {"type": "write", "data": "07"}},
+  {"at": 610.6, "action": {"type": "write", "data": "059600"}},
+  {"at": 700.0, "action": {"type": "write", "data": "05c800"}},
+  {"at": 700.2, "action": {"type": "warning_changed", "kind": "control_refused", "active": true}},
+  {"at": 700.2, "action": {"type": "write", "data": "00"}},
+  {"at": 700.4, "action": {"type": "warning_changed", "kind": "control_refused", "active": false}},
+  {"at": 700.4, "action": {"type": "write", "data": "07"}},
+  {"at": 700.6, "action": {"type": "write", "data": "05c800"}}
+ ]}

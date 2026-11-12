@@ -1,0 +1,7 @@
+{"case": "S-RID-01", "machine": "ride", "title": "A target above the trainer's range is limited and journaled; after the last step the workout is done; no resistance range means no lowest-level write", "until": 20.0,
+ "events": [
+  {"at": 0, "event": {"type": "trainer_link", "up": true}},
+  {"at": 0, "event": {"type": "start", "workout": {"type": "workout", "ref": "test:short", "name": "One step above the range", "description": null, "blocks": [{"type": "block", "label": null, "repeats": 1, "steps": [{"type": "step", "duration": 10, "target": {"type": "power_target", "value": 650, "units": "w"}, "text": null}]}]}, "ftp": 250, "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": null, "spin_down": false, "cadence": false}, "lead_time": 1.5, "intensity_pct": 100}},
+  {"at": 1, "event": {"type": "power_seen", "power": 1}},
+  {"at": 15, "event": {"type": "finish"}}
+ ]}

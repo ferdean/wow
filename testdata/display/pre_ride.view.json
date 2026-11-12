@@ -1,0 +1,26 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "connected",
+  "hrm": "searching"
+ },
+ "hrm_battery_pct": null,
+ "warnings": [],
+ "screen": {
+  "name": "pre_ride",
+  "title": "Warm-up and 3 x 30/30",
+  "free_ride": false,
+  "ftp": 250,
+  "duration": 240.0,
+  "plan_id": "builtin:test-3030@250",
+  "block_modes": [
+   "erg",
+   "erg"
+  ],
+  "can_start": true,
+  "blocked": null
+ }
+}

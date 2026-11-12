@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WoW display spike</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 16px; background: #111; color: #eee;
+         font: 18px/1.4 -apple-system, system-ui, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px;
+       margin: 0 0 20px; }
+  dt { color: #999; }
+  dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .big { font-size: 44px; font-weight: 600; }
+  .ok { color: #6c6; }
+  .bad { color: #e66; }
+  button { font: inherit; font-size: 22px; padding: 14px 0; width: 48%;
+           border: 0; border-radius: 10px; color: #fff; }
+  #start { background: #c8102e; }
+  #stop { background: #444; float: right; }
+  button:disabled { opacity: 0.35; }
+  #hint { margin-top: 18px; color: #bbb; }
+</style>
+</head>
+<body>
+<h1>WitchesOnWheels · S8 display spike</h1>
+<dl>
+  <dt>Elapsed</dt><dd id="elapsed" class="big">00:00</dd>
+  <dt>Secure page</dt><dd id="secure">–</dd>
+  <dt>Wake lock</dt><dd id="lock">not requested</dd>
+  <dt>Round trips</dt><dd id="trips">0</dd>
+  <dt>p95 here</dt><dd id="p95">–</dd>
+  <dt>Failed</dt><dd id="failed">0</dd>
+  <dt>Server</dt><dd id="server">–</dd>
+</dl>
+<button id="start">Start</button>
+<button id="stop" disabled>Stop</button>
+<p id="hint">Set Auto-Lock to 30 seconds and Low Power Mode off, then tap
+Start and leave the phone untouched.</p>
+<script>
+"use strict";
+const TARGET_MINUTES = __TARGET_MINUTES__;
+const BEAT_MS = 5000;
+const PING_MS = 250;
+const PING_TIMEOUT_MS = 2000;
+
+let sentinel = null;
+let wanted = false;
+let running = false;
+let startedAt = 0;
+let pending = [];
+let failed = 0;
+let failedTotal = 0;
+let seen = [];
+let sequence = 0;
+let beatTimer = null;
+
+const element = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function show(id, text, mood) {
+  const target = element(id);
+  target.textContent = text;
+  target.className = (id === "elapsed" ? "big " : "") + (mood || "");
+}
+
+function minutesSeconds(ms) {
+  const whole = Math.floor(ms / 1000);
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${pad(Math.floor(whole / 60))}:${pad(whole % 60)}`;
+}
+
+async function post(message) {
+  try {
+    const response = await fetch("/event", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({...message, page_ms: Math.round(performance.now())}),
+      cache: "no-store",
+      signal: AbortSignal.timeout(PING_TIMEOUT_MS * 2),
+    });
+    show("server", response.ok ? "reached" : `HTTP ${response.status}`,
+         response.ok ? "ok" : "bad");
+    return response.ok;
+  } catch (error) {
+    show("server", `unreachable (${error.name})`, "bad");
+    return false;
+  }
+}
+
+function lockApi() {
+  return "wakeLock" in navigator;
+}
+
+async function probeWithoutTap() {
+  if (!lockApi()) {
+    return;
+  }
+  try {
+    const probe = await navigator.wakeLock.request("screen");
+    await probe.release();
+    post({type: "lock", trigger: "load", ok: true});
+  } catch (error) {
+    post({type: "lock", trigger: "load", ok: false,
+          error: `${error.name}: ${error.message}`});
+  }
+}
+
+async function acquire(trigger) {
+  if (!lockApi()) {
+    show("lock", "no API in this browser", "bad");
+    post({type: "lock", trigger, ok: false, error: "navigator.wakeLock missing"});
+    return;
+  }
+  try {
+    sentinel = await navigator.wakeLock.request("screen");
+    sentinel.addEventListener("release", () => {
+      show("lock", "released", "bad");
+      post({type: "release", visibility: document.visibilityState});
+    });
+    show("lock", `held (${trigger})`, "ok");
+    post({type: "lock", trigger, ok: true});
+  } catch (error) {
+    show("lock", `refused: ${error.name}`, "bad");
+    post({type: "lock", trigger, ok: false,
+          error: `${error.name}: ${error.message}`});
+  }
+}
+
+function held() {
+  return sentinel !== null && !sentinel.released;
+}
+
+async function pingLoop() {
+  while (running) {
+    const begun = performance.now();
+    try {
+      const response = await fetch(`/ping?n=${sequence++}`, {
+        cache: "no-store", signal: AbortSignal.timeout(PING_TIMEOUT_MS)});
+      await response.text();
+      const ms = performance.now() - begun;
+      pending.push(Math.round(ms * 10) / 10);
+      seen.push(ms);
+    } catch (error) {
+      failed += 1;
+      failedTotal += 1;
+    }
+    const rest = PING_MS - (performance.now() - begun);
+    if (rest > 0) {
+      await sleep(rest);
+    }
+  }
+}
+
+async function beat() {
+  const batch = pending;
+  const lost = failed;
+  pending = [];
+  failed = 0;
+  const delivered = await post({
+    type: "beat",
+    elapsed_s: Math.round((performance.now() - startedAt) / 100) / 10,
+    lock: held(),
+    visibility: document.visibilityState,
+    rtt: batch,
+    failed: lost,
+  });
+  if (!delivered) {
+    pending = batch.concat(pending);
+    failed += lost;
+  }
+}
+
+function refresh() {
+  if (!running) {
+    return;
+  }
+  const elapsed = performance.now() - startedAt;
+  const done = elapsed >= TARGET_MINUTES * 60000;
+  show("elapsed", minutesSeconds(elapsed), done ? "ok" : "");
+  show("trips", String(seen.length + failedTotal));
+  show("failed", String(failedTotal), failedTotal ? "bad" : "");
+  if (seen.length) {
+    const ordered = [...seen].sort((a, b) => a - b);
+    const rank = Math.max(1, Math.ceil(0.95 * ordered.length));
+    show("p95", `${ordered[rank - 1].toFixed(0)} ms`);
+  }
+  if (done) {
+    element("hint").textContent = `${TARGET_MINUTES} min reached: tap Stop.`;
+  }
+}
+
+element("start").addEventListener("click", async () => {
+  element("start").disabled = true;
+  element("stop").disabled = false;
+  wanted = true;
+  running = true;
+  startedAt = performance.now();
+  pending = [];
+  failed = 0;
+  failedTotal = 0;
+  seen = [];
+  element("hint").textContent =
+    `Leave the phone untouched for ${TARGET_MINUTES} min, then tap Stop.`;
+  await post({type: "start"});
+  await acquire("tap");
+  beatTimer = setInterval(beat, BEAT_MS);
+  pingLoop();
+});
+
+element("stop").addEventListener("click", async () => {
+  element("stop").disabled = true;
+  running = false;
+  clearInterval(beatTimer);
+  await beat();
+  await post({type: "stop"});
+  element("hint").textContent =
+    "Now switch to another app for about 10 s, then come back here.";
+});
+
+document.addEventListener("visibilitychange", () => {
+  post({type: "visibility", state: document.visibilityState});
+  if (document.visibilityState === "visible" && wanted && !held()) {
+    acquire("visible");
+  }
+});
+
+setInterval(refresh, 1000);
+show("secure", window.isSecureContext ? "yes" : "no",
+     window.isSecureContext ? "ok" : "bad");
+post({type: "load", secure: window.isSecureContext, api: lockApi(),
+      agent: navigator.userAgent}).then(probeWithoutTap);
+</script>
+</body>
+</html>

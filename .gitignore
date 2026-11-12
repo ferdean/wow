@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+.coverage
+build/
+src/wow/web/static/
+display/node_modules/
+wow-data/
+logs/

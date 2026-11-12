@@ -1,0 +1,10 @@
+{"case": "T-SES-10", "machine": "ftms_session", "title": "S-6: lowest raw level written, link closed after 80 04 01", "until": 10.0,
+ "events": [
+  {"at": 0.0, "event": {"type": "set_command", "command": {"type": "erg", "power": 150}}},
+  {"at": 0.0, "event": {"type": "link_up", "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": {"type": "range", "minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}}},
+  {"at": 0.2, "event": {"type": "indication", "data": "800001"}},
+  {"at": 0.4, "event": {"type": "indication", "data": "800701"}},
+  {"at": 0.6, "event": {"type": "indication", "data": "800501"}},
+  {"at": 5.0, "event": {"type": "release"}},
+  {"at": 5.2, "event": {"type": "indication", "data": "800401"}}
+ ]}

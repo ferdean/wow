@@ -1,0 +1,31 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": 399950.0,
+ "links": {
+  "trainer": "connected",
+  "hrm": "connected"
+ },
+ "hrm_battery_pct": 80,
+ "warnings": [],
+ "screen": {
+  "name": "ride",
+  "waiting_for_power": false,
+  "mode": "erg",
+  "paused": false,
+  "workout_done": true,
+  "elapsed": 290.0,
+  "remaining": null,
+  "step": null,
+  "target": null,
+  "target_zone": null,
+  "target_limited": false,
+  "power": 101,
+  "hr_bpm": 120,
+  "next": null,
+  "intensity_pct": 100,
+  "resistance_pct": null,
+  "free_ride_target": null
+ }
+}

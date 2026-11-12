@@ -1,0 +1,9 @@
+{"case": "T-SES-07", "machine": "ftms_session",
+ "actions": [
+  {"at": 0.0, "action": {"type": "write", "data": "00"}},
+  {"at": 0.2, "action": {"type": "write", "data": "07"}},
+  {"at": 5.0, "action": {"type": "write", "data": "05c800"}},
+  {"at": 5.2, "action": {"type": "logged", "event": "not_supported", "data": "800502"}},
+  {"at": 5.2, "action": {"type": "mode_unavailable", "mode": "erg"}},
+  {"at": 7.0, "action": {"type": "write", "data": "041e"}}
+ ]}

@@ -1,0 +1,16 @@
+{"case": "T-SES-03", "machine": "ftms_session",
+ "actions": [
+  {"at": 0.0, "action": {"type": "write", "data": "00"}},
+  {"at": 0.2, "action": {"type": "write", "data": "07"}},
+  {"at": 0.4, "action": {"type": "write", "data": "059600"}},
+  {"at": 1.21, "action": {"type": "warning_changed", "kind": "control_refused", "active": true}},
+  {"at": 1.21, "action": {"type": "write", "data": "00"}},
+  {"at": 1.5, "action": {"type": "warning_changed", "kind": "control_refused", "active": false}},
+  {"at": 1.5, "action": {"type": "write", "data": "07"}},
+  {"at": 1.9, "action": {"type": "write", "data": "059600"}},
+  {"at": 60.0, "action": {"type": "warning_changed", "kind": "control_refused", "active": true}},
+  {"at": 60.0, "action": {"type": "write", "data": "00"}},
+  {"at": 60.2, "action": {"type": "warning_changed", "kind": "control_refused", "active": false}},
+  {"at": 60.2, "action": {"type": "write", "data": "07"}},
+  {"at": 60.6, "action": {"type": "write", "data": "059600"}}
+ ]}

@@ -1,0 +1,7 @@
+{"case": "T-SES-08", "machine": "ftms_session",
+ "actions": [
+  {"at": 0.0, "action": {"type": "write", "data": "00"}},
+  {"at": 0.2, "action": {"type": "write", "data": "07"}},
+  {"at": 5.0, "action": {"type": "status_forwarded", "data": "1404"}},
+  {"at": 10.0, "action": {"type": "status_forwarded", "data": "1404"}, "every": 0.5, "count": 5}
+ ]}

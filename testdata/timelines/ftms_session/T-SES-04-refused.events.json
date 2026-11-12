@@ -1,0 +1,20 @@
+{"case": "T-SES-04", "machine": "ftms_session", "title": "Control Permission Lost, then refused for 10 min: Request Control every 2.0 s; on the grant Start or Resume and the current command; a target answered with Control Not Permitted does the same", "until": 800.0,
+ "events": [
+  {"at": 0.0, "event": {"type": "set_command", "command": {"type": "erg", "power": 150}}},
+  {"at": 0.0, "event": {"type": "link_up", "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": {"type": "range", "minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}}},
+  {"at": 0.2, "event": {"type": "indication", "data": "800001"}},
+  {"at": 0.4, "event": {"type": "indication", "data": "800701"}},
+  {"at": 0.6, "event": {"type": "indication", "data": "800501"}},
+  {"at": 10.0, "event": {"type": "status_notification", "data": "ff"}},
+  {"at": 10.2, "event": {"type": "indication", "data": "800005"}, "every": 2.0, "count": 300},
+  {"at": 610.2, "event": {"type": "indication", "data": "800001"}},
+  {"at": 610.45, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 610.5, "event": {"type": "status_notification", "data": "01"}},
+  {"at": 610.6, "event": {"type": "indication", "data": "800701"}},
+  {"at": 610.8, "event": {"type": "indication", "data": "800501"}},
+  {"at": 700.0, "event": {"type": "set_command", "command": {"type": "erg", "power": 200}}},
+  {"at": 700.2, "event": {"type": "indication", "data": "800505"}},
+  {"at": 700.4, "event": {"type": "indication", "data": "800001"}},
+  {"at": 700.6, "event": {"type": "indication", "data": "800701"}},
+  {"at": 700.8, "event": {"type": "indication", "data": "800501"}}
+ ]}

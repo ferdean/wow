@@ -1,0 +1,6 @@
+{"case": "T-RID-06", "machine": "ride", "title": "Lead time 0: each target goes out at the boundary, just before the step starts", "until": 250.0,
+ "events": [
+  {"at": 0, "event": {"type": "trainer_link", "up": true}},
+  {"at": 0, "event": {"type": "start", "workout": {"type": "workout", "ref": "test:w3030", "name": "Warm-up and 3 x 30/30", "description": null, "blocks": [{"type": "block", "label": null, "repeats": 1, "steps": [{"type": "step", "duration": 60, "target": {"type": "power_target", "value": 140, "units": "w"}, "text": "Warm-up"}]}, {"type": "block", "label": "30/30", "repeats": 3, "steps": [{"type": "step", "duration": 30, "target": {"type": "power_target", "value": 330, "units": "w"}, "text": null}, {"type": "step", "duration": 30, "target": {"type": "power_target", "value": 140, "units": "w"}, "text": null}]}]}, "ftp": 250, "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": {"type": "range", "minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}, "lead_time": 0.0, "intensity_pct": 100}},
+  {"at": 0.5, "event": {"type": "power_seen", "power": 1}}
+ ]}

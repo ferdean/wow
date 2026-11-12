@@ -1,0 +1,20 @@
+{
+  "description": "Heart Rate Measurement (0x2A37) and Battery Level (0x2A19), ICD 4.2.2. heart_rate_bpm in bpm (0 is missing, null), rr in s (1/1024 s on the wire), battery_pct in % (null when the raw value is outside 0 to 100).",
+  "heart_rate": [
+    {"case": "T-COD-10", "name": "HRM 200 form: 8-bit value, one RR interval (F-15)", "hex": "10489a03", "expect": {"heart_rate_bpm": 72, "rr": [0.900390625]}},
+    {"case": "T-COD-10", "name": "16-bit value", "hex": "01a000", "expect": {"heart_rate_bpm": 160, "rr": []}},
+    {"case": "T-COD-10", "name": "energy field before the RR intervals", "hex": "1850e8030004", "expect": {"heart_rate_bpm": 80, "rr": [1.0]}},
+    {"case": "T-COD-10", "name": "three RR intervals", "hex": "1078000400020000", "expect": {"heart_rate_bpm": 120, "rr": [1.0, 0.5, 0.0]}},
+    {"case": "T-COD-10", "name": "value 0 is missing", "hex": "10009a03", "expect": {"heart_rate_bpm": null, "rr": [0.900390625]}},
+    {"case": "T-COD-10", "name": "flags only", "hex": "10", "drop": true},
+    {"case": "T-COD-10", "name": "16-bit value cut short", "hex": "01a0", "drop": true}
+  ],
+  "battery": [
+    {"case": "T-COD-11", "name": "0 %", "hex": "00", "expect": {"battery_pct": 0, "raw": 0}},
+    {"case": "T-COD-11", "name": "80 %, as the HRM 200 sends it (F-15)", "hex": "50", "expect": {"battery_pct": 80, "raw": 80}},
+    {"case": "T-COD-11", "name": "100 %", "hex": "64", "expect": {"battery_pct": 100, "raw": 100}},
+    {"case": "T-COD-11", "name": "101 is reserved", "hex": "65", "expect": {"battery_pct": null, "raw": 101}},
+    {"case": "T-COD-11", "name": "255 is reserved", "hex": "ff", "expect": {"battery_pct": null, "raw": 255}},
+    {"case": "T-COD-11", "name": "empty", "hex": "", "drop": true}
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "ftp": 250,
+  "zones_pct": [55, 75, 90, 105, 120],
+  "lead_time": 1.5,
+  "battery_warn_pct": 20,
+  "free_ride_level_pct": 0,
+  "upload_on": true,
+  "trainer": {"address": "94:05:BB:03:5D:9D", "name": "VANRYSEL-HT-9d5d"},
+  "hrm": {"address": "E0:E2:EF:63:14:BC", "name": "HRM200:739158"}
+}

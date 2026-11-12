@@ -1,0 +1,11 @@
+{"case": "T-SES-07", "machine": "ftms_session",
+ "actions": [
+  {"at": 0.0, "action": {"type": "write", "data": "00"}},
+  {"at": 0.2, "action": {"type": "write", "data": "07"}},
+  {"at": 5.0, "action": {"type": "write", "data": "0432"}},
+  {"at": 6.0, "action": {"type": "write", "data": "04c8"}},
+  {"at": 6.2, "action": {"type": "logged", "event": "invalid_parameter", "data": "80040304c8"}},
+  {"at": 8.0, "action": {"type": "write", "data": "00"}},
+  {"at": 8.2, "action": {"type": "write", "data": "07"}},
+  {"at": 8.4, "action": {"type": "write", "data": "0432"}}
+ ]}

@@ -1,0 +1,12 @@
+{"case": "T-SES-07", "machine": "ftms_session",
+ "actions": [
+  {"at": 0.0, "action": {"type": "write", "data": "00"}},
+  {"at": 0.2, "action": {"type": "write", "data": "07"}},
+  {"at": 5.0, "action": {"type": "write", "data": "05c800"}},
+  {"at": 5.2, "action": {"type": "logged", "event": "operation_failed", "data": "800504"}},
+  {"at": 7.2, "action": {"type": "write", "data": "05c800"}},
+  {"at": 7.4, "action": {"type": "logged", "event": "operation_failed", "data": "800504"}},
+  {"at": 7.4, "action": {"type": "warning_changed", "kind": "trainer_not_responding", "active": true}},
+  {"at": 37.4, "action": {"type": "write", "data": "05c800"}},
+  {"at": 37.6, "action": {"type": "warning_changed", "kind": "trainer_not_responding", "active": false}}
+ ]}

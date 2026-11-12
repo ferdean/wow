@@ -1,0 +1,12 @@
+{"case": "T-SES-09", "machine": "ftms_session", "title": "A command due in Ready is written at the same instant; one due while a procedure is pending is written at the indication that completes it", "until": 10.0,
+ "events": [
+  {"at": 0.0, "event": {"type": "link_up", "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": {"type": "range", "minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}}},
+  {"at": 0.2, "event": {"type": "indication", "data": "800001"}},
+  {"at": 0.4, "event": {"type": "indication", "data": "800701"}},
+  {"at": 5.0, "event": {"type": "set_command", "command": {"type": "erg", "power": 200}}},
+  {"at": 5.3, "event": {"type": "indication", "data": "800501"}},
+  {"at": 6.0, "event": {"type": "set_command", "command": {"type": "erg", "power": 250}}},
+  {"at": 6.1, "event": {"type": "set_command", "command": {"type": "erg", "power": 260}}},
+  {"at": 6.35, "event": {"type": "indication", "data": "800501"}},
+  {"at": 6.6, "event": {"type": "indication", "data": "800501"}}
+ ]}

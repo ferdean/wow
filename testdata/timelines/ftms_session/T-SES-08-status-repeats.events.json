@@ -1,0 +1,10 @@
+{"case": "T-SES-08", "machine": "ftms_session", "title": "The same status three times within 0.5 s, and Stop Pedaling every 0.25 s: acted on once per 0.5 s", "until": 15.0,
+ "events": [
+  {"at": 0.0, "event": {"type": "link_up", "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": {"type": "range", "minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}}},
+  {"at": 0.2, "event": {"type": "indication", "data": "800001"}},
+  {"at": 0.4, "event": {"type": "indication", "data": "800701"}},
+  {"at": 5.0, "event": {"type": "status_notification", "data": "1404"}},
+  {"at": 5.1, "event": {"type": "status_notification", "data": "1404"}},
+  {"at": 5.2, "event": {"type": "status_notification", "data": "1404"}},
+  {"at": 10.0, "event": {"type": "status_notification", "data": "1404"}, "every": 0.25, "count": 9}
+ ]}

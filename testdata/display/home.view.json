@@ -1,0 +1,72 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "connected",
+  "hrm": "connected"
+ },
+ "hrm_battery_pct": 80,
+ "warnings": [],
+ "screen": {
+  "name": "home",
+  "today": [],
+  "library": [],
+  "builtin": [
+   {
+    "ref": "builtin:test-3030",
+    "source": "builtin",
+    "name": "Warm-up and 3 x 30/30",
+    "duration": 240.0,
+    "rideable": true,
+    "max_power": 220,
+    "sketch": [
+     {
+      "duration": 60.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 220,
+      "end_power": 220,
+      "zone": 3
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 220,
+      "end_power": 220,
+      "zone": 3
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 220,
+      "end_power": 220,
+      "zone": 3
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     }
+    ]
+   }
+  ],
+  "recovery": null
+ }
+}
