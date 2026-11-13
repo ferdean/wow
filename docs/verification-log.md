@@ -8,3 +8,4 @@ One line per ride check run, demonstration step and inspection (test plan, secti
 | 2026-11-12 | 0.2.0 | 2026-11-12T162426Z | RR-02 | pass | `check_ride.py` | 7 commands written, worst 0.8 ms; 0 replaced before writing; 1 equal to the one before |
 | 2026-11-12 | 0.2.0 | 2026-11-12T162426Z | RR-03 | pass | `check_ride.py` | 6 steps, worst +1.0 ms |
 | 2026-11-12 | 0.2.0 | 2026-11-12T162426Z | RR-04 | pass | `check_ride.py` | 5 target changes, worst +1.0 ms from one lead time (1.5 s) before the boundary; 0 boundaries without a change |
+| 2026-11-13 | 0.2.0 | - | T-SYS-01 | pass | `pytest -m "pi and slow" tests/system`, 60 min | RR-02 pass: 121 commands written, worst 2.8 ms; loop lag worst 40.4 ms |
