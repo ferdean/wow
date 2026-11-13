@@ -9,7 +9,7 @@
   {"at": 4, "action": {"type": "journal", "event": "trainer_command", "t_ride": null, "data": {"mode": "erg", "power": 140, "due_mono_ms": 4000}}},
   {"at": 5, "action": {"type": "refused", "reason": "ride_running"}},
   {"at": 6, "action": {"type": "journal", "event": "ride_started", "t_ride": 0.0, "data": {"power": 1}}},
-  {"at": 6, "action": {"type": "journal", "event": "step_started", "t_ride": 0.0, "data": {"index": 0, "cause": "schedule", "scheduled": 0.0}}},
+  {"at": 6, "action": {"type": "journal", "event": "step_started", "t_ride": 0.0, "data": {"index": 0, "cause": "schedule", "scheduled": 0.0, "kind": "erg", "target": 140}}},
   {"at": 7, "action": {"type": "refused", "reason": "not_armed"}},
   {"at": 20, "action": {"type": "journal", "event": "command", "t_ride": 14.0, "data": {"name": "finish"}}},
   {"at": 20, "action": {"type": "journal", "event": "finished", "t_ride": 14.0, "data": {"cause": "rider"}}},

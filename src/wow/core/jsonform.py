@@ -50,7 +50,7 @@ class Registry:
         hints = get_type_hints(cls)
         values = {
             item.name: self._value(hints[item.name], form[item.name])
-            for item in dataclasses.fields(cls)
+            for item in dataclasses.fields(cls) if item.name in form
         }
         return cls(**values)
 

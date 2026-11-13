@@ -1,0 +1,29 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "connected",
+  "hrm": "connected"
+ },
+ "hrm_battery_pct": 80,
+ "warnings": [],
+ "screen": {
+  "name": "pre_ride",
+  "title": "Ramp test",
+  "free_ride": false,
+  "ftp": 250,
+  "duration": 2700.0,
+  "plan_id": "builtin:ramp-test@250",
+  "block_modes": [
+   "erg",
+   "erg",
+   "erg",
+   "erg",
+   "erg"
+  ],
+  "can_start": true,
+  "blocked": null
+ }
+}

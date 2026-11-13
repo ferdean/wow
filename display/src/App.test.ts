@@ -58,3 +58,35 @@ describe("S-DSP-01 golden views", () => {
     expect(dom.getByText("Cancel")).toBeTruthy();
   });
 });
+
+function golden(name: string): View {
+  return JSON.parse(readFileSync(join(GOLDEN, `${name}.view.json`), "utf-8")) as View;
+}
+
+describe("S-DSP-01 SL-03 and SL-04 screens", () => {
+  it("lists today, the library and the built-ins with the offline banner", () => {
+    render(App, { props: { link: fakeLink(golden("home_offline_with_lists")) } });
+    expect(dom.getByText("Today")).toBeTruthy();
+    expect(dom.getByText("Library")).toBeTruthy();
+    expect(dom.getByText(/intervals.icu out of reach/)).toBeTruthy();
+    const notes = dom.getByText("Notes only").closest("button");
+    expect(notes?.disabled).toBe(true);
+    expect(dom.getByText("Can't be ridden here")).toBeTruthy();
+  });
+
+  it("shows the summary with the upload state", () => {
+    const link = fakeLink(golden("summary"));
+    render(App, { props: { link } });
+    expect(dom.getByText("Normalized power")).toBeTruthy();
+    expect(dom.getByText("219 W")).toBeTruthy();
+    expect(dom.getByText("0.88")).toBeTruthy();
+    expect(dom.getByText("Waiting to upload")).toBeTruthy();
+    dom.getByText("Done").click();
+    expect(link.sent).toEqual(["back"]);
+  });
+
+  it("shows a free-ride step without a watt target", () => {
+    render(App, { props: { link: fakeLink(golden("ride_free_ride_step")) } });
+    expect(dom.getByText("Free")).toBeTruthy();
+  });
+});

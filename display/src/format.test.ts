@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clock, countdown, listDuration, percent, watts, zoneColour } from "./format";
+import { clock, countdown, listDuration, percent, shape, stepText, watts, zoneColour } from "./format";
 import { best, sample } from "./link/offset";
 
 describe("formatting (3C)", () => {
@@ -27,5 +27,15 @@ describe("formatting (3C)", () => {
     expect(fast.offset_ms).toBe(72_000 - 71_010);
     expect(best([old, slow, fast], 72_000)).toEqual(fast);
     expect(best([old], 72_000)).toBeNull();
+  });
+});
+
+describe("step text and shapes (SL-04)", () => {
+  it("writes ramps, free ride and unsupported steps", () => {
+    expect(stepText({ duration: 60, kind: "erg", start_power: 120, end_power: 120 })).toBe("1 min at 120 W");
+    expect(stepText({ duration: 90, kind: "erg", start_power: 120, end_power: 200 })).toBe("90 s 120→200 W");
+    expect(stepText({ duration: 300, kind: "free_ride", start_power: null, end_power: null })).toBe("5 min free ride");
+    expect(stepText({ duration: 30, kind: "unsupported", start_power: null, end_power: null })).toBe("30 s not supported");
+    expect(shape(10, 20, 40, 80, 100)).toBe("10,100 10,60 30,20 30,100");
   });
 });

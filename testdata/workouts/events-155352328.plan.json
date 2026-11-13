@@ -1,0 +1,10 @@
+{"source": "intervals/events.json",
+ "id": 155352328,
+ "name": "Test workout",
+ "ftp": 250,
+ "duration_intervals_icu": 900,
+ "steps": [
+  [0.0, 300.0, 225, null, "erg"],
+  [300.0, 600.0, 160, null, "erg"],
+  [600.0, 900.0, 125, 188, "erg"]
+ ]}

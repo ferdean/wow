@@ -1,0 +1,38 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "connected",
+  "hrm": "connected"
+ },
+ "hrm_battery_pct": 80,
+ "warnings": [],
+ "screen": {
+  "name": "summary",
+  "ride_id": "2026-11-14T071500Z",
+  "title": "Ramp test",
+  "start_utc": "2026-11-14T07:15:00.000Z",
+  "metrics": {
+   "duration": 1200,
+   "avg_power": 180,
+   "max_power": 300,
+   "np": 219,
+   "intensity_factor": 0.878,
+   "tss": 25.69,
+   "work_kj": 215.4,
+   "time_in_zone": [
+    295,
+    600,
+    0,
+    0,
+    300,
+    0
+   ],
+   "avg_hr_bpm": 130,
+   "max_hr_bpm": 130
+  },
+  "upload": "pending"
+ }
+}

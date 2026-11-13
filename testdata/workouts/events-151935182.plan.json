@@ -1,0 +1,12 @@
+{"source": "intervals/events.json",
+ "id": 151935182,
+ "name": "Long ride + SS",
+ "ftp": 250,
+ "duration_intervals_icu": 6300,
+ "steps": [
+  [0.0, 600.0, 140, 165, "erg"],
+  [600.0, 3300.0, 170, null, "erg"],
+  [3300.0, 4500.0, 225, null, "erg"],
+  [4500.0, 6000.0, 165, null, "erg"],
+  [6000.0, 6300.0, 150, 120, "erg"]
+ ]}

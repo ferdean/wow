@@ -82,7 +82,7 @@
       </div>
       <div class="target">
         <span class="label">Target</span>
-        <span class="number key">{watts(screen.target)}</span>
+        <span class="number key">{screen.mode === "resistance" && screen.target === null ? "Free" : watts(screen.target)}</span>
         {#if screen.target_limited}<span class="limit">limit</span>{/if}
       </div>
     </div>
@@ -100,7 +100,7 @@
     {#if screen.next}
       <div class="next">
         <span class="label">Next</span>
-        <span class="chip" style:background={zoneColour(screen.next.zone)}>{watts(screen.next.target)} W</span>
+        <span class="chip" style:background={zoneColour(screen.next.zone)}>{screen.next.kind === "free_ride" ? "Free ride" : `${watts(screen.next.target)} W`}</span>
         <span class="label">for {clock(screen.next.duration)}</span>
       </div>
     {/if}

@@ -1,0 +1,36 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "connected",
+  "hrm": "connected"
+ },
+ "hrm_battery_pct": 80,
+ "warnings": [],
+ "screen": {
+  "name": "ride",
+  "waiting_for_power": false,
+  "mode": "resistance",
+  "paused": false,
+  "workout_done": false,
+  "elapsed": 2410.0,
+  "remaining": 290.0,
+  "step": {
+   "index": 28,
+   "count": 29,
+   "left": 290.0,
+   "text": "Cool-down"
+  },
+  "target": null,
+  "target_zone": null,
+  "target_limited": false,
+  "power": 140,
+  "hr_bpm": 150,
+  "next": null,
+  "intensity_pct": 100,
+  "resistance_pct": null,
+  "free_ride_target": null
+ }
+}

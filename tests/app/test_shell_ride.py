@@ -27,6 +27,8 @@ async def test_a_short_ride_from_home_to_finish(tmp_path: Path) -> None:
     armed = next(e for e in events if e["type"] == "armed")
     assert started["mono_ms"] - armed["mono_ms"] >= 3000.0
     assert {e["boot_id"] for e in events} == {app.recorder.boot_id}
+    assert app.console.screen == "summary"
+    assert app.console.command("back", {}) is None
     assert app.console.screen == "home"
 
 

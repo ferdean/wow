@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Plan } from "../types/protocol";
+  import { FREE_RIDE_SHARE, shape } from "../format";
 
   interface Props {
     plan: Plan | null;
@@ -15,11 +16,14 @@
 {#if plan && total > 0}
   <svg class="profile" viewBox="0 0 1000 100" preserveAspectRatio="none" role="img" aria-label="Workout profile">
     {#each plan.segments as s (s.step)}
-      <rect
-        x={(s.start / total) * 1000}
-        width={Math.max(1, ((s.end - s.start) / total) * 1000 - 1.5)}
-        y={100 - ((s.start_power ?? 0) / top) * 96}
-        height={((s.start_power ?? 0) / top) * 96}
+      <polygon
+        points={shape(
+          (s.start / total) * 1000,
+          ((s.end - s.start) / total) * 1000 - 1.5,
+          s.kind === "erg" ? ((s.start_power ?? 0) / top) * 96 : FREE_RIDE_SHARE * 96,
+          s.kind === "erg" ? ((s.end_power ?? s.start_power ?? 0) / top) * 96 : FREE_RIDE_SHARE * 96,
+          100,
+        )}
         fill={s.zone ? `var(--zone-${s.zone})` : "var(--rise)"}
         opacity={position !== null && (s.end / total) * 1000 <= position ? 0.35 : 1}
       />

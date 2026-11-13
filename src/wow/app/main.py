@@ -17,6 +17,7 @@ import signal
 import sys
 from collections.abc import Coroutine, Sequence
 from importlib import metadata
+from datetime import tzinfo
 from pathlib import Path
 from typing import Any, Final
 
@@ -28,7 +29,11 @@ from wow.adapters.ble_sim import (
 )
 from wow.adapters.clock_system import SystemClock, default_sync_marker
 from wow.app.boot import boot_id
-from wow.app.config import Config, RideSettings, load_config, load_settings
+from wow.adapters.fit_garmin import GarminFitWriter
+from wow.adapters.intervals_icu import IntervalsIcu
+from wow.app.config import (
+    Config, RideSettings, load_config, load_secrets, load_settings,
+)
 from wow.app.console import Console
 from wow.app.device_manager import DeviceChoice, DeviceManager
 from wow.app.ftms_trainer import FtmsTrainer
@@ -36,10 +41,13 @@ from wow.app.hrm_link import HrmLink
 from wow.app.loop_lag import LoopLagMonitor
 from wow.app.recorder import Recorder
 from wow.app.ride_controller import RideController
-from wow.app.workout_catalog import load_builtin
+from wow.app.workout_catalog import (
+    Entry, Source, WorkoutCatalog, builtin_entries,
+)
 from wow.core.workout import Workout
 from wow.ports.clock import Clock
 from wow.ports.gatt import GattConnector
+from wow.ports.workouts import WorkoutProvider
 from wow.web.hub import Hub
 from wow.web.server import WebServer, http_app, https_app, tls_context
 
@@ -63,26 +71,36 @@ class App:
 
     def __init__(self, config: Config, clock: Clock,
                  sim_pedal_after: float = SIM_PEDAL_AFTER,
-                 workouts: Sequence[Workout] | None = None) -> None:
+                 workouts: Sequence[Workout] | None = None,
+                 provider: WorkoutProvider | None = None,
+                 zone: tzinfo | None = None) -> None:
         self.config = config
         self.clock = clock
         settings = load_settings(config.data)
         self.recorder = Recorder(config.data, boot_id())
         self.scheduler: SimScheduler | None = None
         self.d100: SimD100Server | None = None
+        self.sim: SimConnector | None = None
         connector, choice = self._bluetooth(settings, sim_pedal_after)
         self.trainer = FtmsTrainer(clock)
         self.hrm = HrmLink(clock)
         self.devices = DeviceManager(connector, clock, self.trainer,
                                      self.hrm, choice)
         self.rides = RideController(clock, self.trainer, self.recorder,
-                                    self._changed)
-        self.console = Console(clock, self.devices, self.rides,
-                               load_builtin() if workouts is None
-                               else workouts, settings.ftp,
-                               settings.lead_time, self._changed)
+                                    self._changed, GarminFitWriter(),
+                                    app_version())
+        builtin = (builtin_entries() if workouts is None else
+                   [Entry(w.ref, Source.BUILTIN, w.name, w, None)
+                    for w in workouts])
+        self.catalog = WorkoutCatalog(
+            clock, provider or self._provider(), config.data / "cache" /
+            "intervals.json", builtin, self._changed, zone)
+        self.console = Console(clock, self.devices, self.rides, self.catalog,
+                               settings, self._changed)
         self.trainer.on_sample = self.console.trainer_sample
         self.hrm.on_sample = self.console.hr_sample
+        self.trainer.on_link = self.console.link_changed
+        self.hrm.on_link = self.console.link_changed
         self.hub = Hub(clock, self.console, app_version())
         self.lag = LoopLagMonitor(clock)
         self.web = WebServer()
@@ -102,6 +120,7 @@ class App:
         self.ports = (https, http)
         self._spawn(self.hub.run())
         self._spawn(self.lag.run())
+        self.console.open_home()
         logger.info("wow %s started%s", app_version(),
                     " with simulated devices" if config.simulate else "")
 
@@ -109,6 +128,7 @@ class App:
         """Stop in order, the trainer at its lowest level first."""
         await self.devices.close()
         await self.rides.close()
+        await self.catalog.close()
         await self.hub.close()
         await self.web.stop()
         for task in self._tasks:
@@ -119,6 +139,13 @@ class App:
         self.recorder.stop()
         logger.info("wow stopped; worst event-loop lag %.0f ms, %d late",
                     self.lag.worst * 1000, self.lag.late)
+
+    def _provider(self) -> WorkoutProvider | None:
+        secrets = load_secrets(self.config.data)
+        if secrets is None:
+            logger.info("no intervals.icu account: built-in workouts only")
+            return None
+        return IntervalsIcu(secrets.athlete_id, secrets.api_key)
 
     def _changed(self) -> None:
         self.hub.changed()
@@ -132,8 +159,9 @@ class App:
             self.scheduler = SimScheduler(self.clock)
             self.d100 = SimD100Server(self.scheduler,
                                       pedal_after_erg=sim_pedal_after)
-            inner: GattConnector = SimConnector(
+            self.sim = SimConnector(
                 self.clock, [self.d100, SimHrm200Server(self.scheduler)])
+            inner: GattConnector = self.sim
             choice = DeviceChoice(D100_ADDRESS, HRM_ADDRESS)
             return self._logged(inner, choice), choice
         choice = DeviceChoice(settings.trainer, settings.hrm)
@@ -185,3 +213,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         config = dataclasses.replace(config, simulate=True)
     clock = SystemClock(default_sync_marker())
     sys.exit(asyncio.run(serve(App(config, clock))))
+
+
+if __name__ == "__main__":
+    main()

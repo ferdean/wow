@@ -21,12 +21,58 @@ def _results(ride: Path, system: Path) -> dict[str, str]:
 
 @pytest.mark.case("S-RR-01")
 @pytest.mark.asyncio
-async def test_a_simulated_ride_passes_rr01_to_rr04(tmp_path: Path) -> None:
+async def test_a_simulated_ride_passes_every_check(tmp_path: Path) -> None:
     app, ride = await ride_erg_check(tmp_path)
     system = app.config.data / "logs" / "ble-system.jsonl"
     assert _results(ride, system) == {
-        "RR-01": "pass", "RR-02": "pass", "RR-03": "pass", "RR-04": "pass"}
+        check: "pass" for check in ("RR-01", "RR-02", "RR-03", "RR-04",
+                                    "RR-05", "RR-12", "RR-13", "RR-14")}
     assert check_ride.main([str(ride)]) == 0
+
+
+@pytest.mark.case("S-RR-01")
+@pytest.mark.asyncio
+async def test_samples_files_and_versions_that_do_not_hold_fail(
+        tmp_path: Path) -> None:
+    app, ride = await ride_erg_check(tmp_path)
+    system = app.config.data / "logs" / "ble-system.jsonl"
+    samples = read_jsonl(ride / "samples.jsonl")
+    samples[100]["power"] = None
+    _rewrite(ride / "samples.jsonl", samples[:-1])
+    meta = json.loads((ride / "meta.json").read_text("utf-8"))
+    meta["files_mono_ms"] += 11000.0
+    meta["app_version"] = "9.9.9"
+    (ride / "meta.json").write_text(json.dumps(meta), "utf-8")
+    results = _results(ride, system)
+    assert [results[c] for c in ("RR-05", "RR-12", "RR-13", "RR-14")] == [
+        "fail"] * 4
+
+
+@pytest.mark.case("S-RR-01")
+@pytest.mark.asyncio
+async def test_missing_values_pass_inside_a_dropout_only(
+        tmp_path: Path) -> None:
+    app, ride = await ride_erg_check(tmp_path)
+    system = app.config.data / "logs" / "ble-system.jsonl"
+    samples = read_jsonl(ride / "samples.jsonl")
+    for sample in samples[100:110]:
+        sample["power"] = None
+    _rewrite(ride / "samples.jsonl", samples)
+    started = next(e for e in read_jsonl(ride / "events.jsonl")
+                   if e["type"] == "ride_started")["mono_ms"]
+    log = [r for r in read_jsonl(ride / "ble.jsonl")
+           if not (r["op"] == "notify" and r["dev"] == "trainer"
+                   and 99_000 < r["mono_ms"] - started < 110_000)]
+    _rewrite(ride / "ble.jsonl", log)
+    assert _results(ride, system)["RR-05"] == "fail"
+    events = read_jsonl(ride / "events.jsonl")
+    events += [{"type": "dropout_start", "device": "trainer", "t_ride": 99.5},
+               {"type": "dropout_end", "device": "trainer", "t_ride": 109.5}]
+    _rewrite(ride / "events.jsonl", events)
+    assert _results(ride, system)["RR-05"] == "pass"
+    samples[105]["power"] = 0
+    _rewrite(ride / "samples.jsonl", samples)
+    assert _results(ride, system)["RR-05"] == "fail"
 
 
 @pytest.mark.case("S-RR-01")

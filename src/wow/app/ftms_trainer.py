@@ -50,6 +50,7 @@ class FtmsTrainer:
         self._closing = False
         self._tasks: set[asyncio.Task[None]] = set()
         self.on_sample = on_sample or (lambda _sample: None)
+        self.on_link: Callable[[LinkState], None] = lambda _state: None
         self.on_status = on_status or (lambda _data: None)
 
     def capabilities(self) -> TrainerCapabilities | None:
@@ -63,8 +64,9 @@ class FtmsTrainer:
         return self._link
 
     def set_link(self, state: LinkState) -> None:
-        """Set the link state."""
+        """Set the link state and tell on_link."""
         self._link = state
+        self.on_link(state)
 
     def set_command(self, command: TrainerCommand) -> None:
         """Set the command the trainer should hold."""

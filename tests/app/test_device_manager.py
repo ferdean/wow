@@ -4,6 +4,7 @@ import pytest
 
 from tests.support.rig import make_rig
 from wow.adapters.ble_sim import D100_ADDRESS, HRM_ADDRESS, SimD100Server
+from wow.adapters.ble_sim.connector import CONNECT_TIME
 from wow.app.device_manager import CONNECT_TIMEOUT, DeviceChoice
 from wow.core import uuids
 from wow.core.devices import Range
@@ -24,9 +25,10 @@ async def test_pre_ride_connects_and_reports_an_absent_strap() -> None:
     await rig.clock.run_until(opened + 3.0)
     assert rig.trainer.link() == "connected"
     assert rig.trainer.in_control()
-    await rig.clock.run_until(opened + CONNECT_TIMEOUT - 0.01)
+    strap_tries = opened + CONNECT_TIME
+    await rig.clock.run_until(strap_tries + CONNECT_TIMEOUT - 0.01)
     assert rig.strap.link() == "searching"
-    await rig.clock.run_until(opened + CONNECT_TIMEOUT)
+    await rig.clock.run_until(strap_tries + CONNECT_TIMEOUT)
     assert rig.strap.link() == "not_found"
     await rig.clock.run_until(opened + 30.0)
     assert rig.strap.link() == "not_found"
@@ -78,7 +80,7 @@ async def test_undeclared_modes_are_not_offered(
 async def test_strap_battery_read_once_and_both_subscribed() -> None:
     rig = make_rig(with_d100=False)
     rig.manager.open_pre_ride()
-    await rig.clock.advance(20.0)
+    await rig.clock.advance(CONNECT_TIMEOUT + 20.0)
     assert rig.hrm is not None
     traffic = rig.hrm.traffic
     assert traffic.reads == [(uuids.BATTERY_LEVEL, bytes([80]))]
@@ -110,7 +112,7 @@ async def test_missing_power_range_hides_erg() -> None:
 async def test_unreadable_features_offer_nothing_and_retry() -> None:
     rig = make_rig(with_hrm=False, features=b"\x01")
     rig.manager.open_pre_ride()
-    await rig.clock.advance(20.0)
+    await rig.clock.advance(40.0)
     assert rig.trainer.capabilities() is None
     assert rig.trainer.link() == "not_found"
     assert rig.d100 is not None and not rig.d100.linked()

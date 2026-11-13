@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { CommandName, LinkState, Plan, PreRideScreen } from "../types/protocol";
-  import { listDuration, percent } from "../format";
+  import { listDuration, percent, stepText } from "../format";
   import Profile from "../ui/Profile.svelte";
   import { holdScreen } from "../device/wake";
 
@@ -45,10 +45,10 @@
         <div class="panel">
           <div class="row">
             <span class="grow">{block.label || `Block ${block.index + 1}`}{block.repeats > 1 ? ` × ${block.repeats}` : ""}</span>
-            <span class="label">{listDuration(block.duration)} · ERG</span>
+            <span class="label">{listDuration(block.duration)} · {block.steps.every((s) => s.kind === "free_ride") ? "Free ride" : "ERG"}</span>
           </div>
           <div class="steps label">
-            {block.steps.map((s) => `${Math.round(s.duration)} s at ${s.start_power ?? "––"} W`).join(", ")}
+            {block.steps.map(stepText).join(", ")}
           </div>
         </div>
       {/each}

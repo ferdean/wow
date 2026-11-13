@@ -3,19 +3,22 @@
 The domain view state the Pi sends to the display (ICD IF-06, 4.6.3;
 AD-18). Values only, no formatting.
 
-Slice SL-02: Home with the built-in workouts, Pre-ride, and the ride
-screen while armed, in ERG and after the last step.
+Home with planned, library and built-in workouts, Pre-ride, the ride
+screen while armed, during steps and after the last one, and the
+Summary.
 """
 
 from collections import deque
 from collections.abc import Sequence
+from fractions import Fraction
 from typing import Any, Final
 
 from wow.core.devices import LinkState
-from wow.core.numbers import DEFAULT_ZONES_PCT, round_half_up, zone_of
+from wow.core.metrics import Metrics
+from wow.core.numbers import DEFAULT_ZONES_PCT, exact, round_half_up, zone_of
 from wow.core.plan import Plan
 from wow.core.ride import Ride, RidePhase
-from wow.core.workout import Workout
+from wow.core.workout import StepKind, Workout
 from wow.core.vocab import Mode, Problem, Screen
 
 AVERAGE_WINDOW: Final[float] = 3.0
@@ -65,31 +68,51 @@ class Latest:
         return self._value
 
 
-def _watts(plan: Plan, step: int) -> int:
-    return round_half_up(plan.steps[step].power)
+def _watts(power: Fraction | None) -> int | None:
+    return None if power is None else round_half_up(power)
 
 
 def _ms(value: float) -> float:
     return round(value, 3)
 
 
-def workout_card(workout: Workout, plan: Plan, source: str) -> Json:
-    """Return the Home card of a workout."""
-    powers = [_watts(plan, s.index) for s in plan.steps]
+def _zone(power: int | None, ftp: int, zones_pct: Sequence[int]
+          ) -> int | None:
+    return None if power is None else zone_of(power, ftp, zones_pct)
+
+
+def _mode(kind: StepKind) -> Mode:
+    return Mode.ERG if kind == StepKind.ERG else Mode.RESISTANCE
+
+
+def workout_card(workout: Workout | None, plan: Plan | None, source: str,
+                 ref: str, name: str) -> Json:
+    """Return the Home card of a workout; None for one not rideable."""
+    if workout is None or plan is None:
+        return {"ref": ref, "source": source, "name": name,
+                "duration": None, "rideable": False, "max_power": None,
+                "sketch": None}
+    sketch = []
+    for step in plan.steps:
+        start, end = _watts(step.power), _watts(step.end_power)
+        sketch.append({
+            "duration": _ms(step.duration), "start_power": start or 0,
+            "end_power": end if end is not None else start or 0,
+            "zone": _zone(start, plan.ftp, DEFAULT_ZONES_PCT) or 0})
+    peaks = [max(s["start_power"], s["end_power"]) for s in sketch]
     return {
-        "ref": workout.ref, "source": source, "name": workout.name,
+        "ref": ref, "source": source, "name": name,
         "duration": _ms(plan.duration), "rideable": True,
-        "max_power": max(powers),
-        "sketch": [{"duration": _ms(s.duration), "start_power": power,
-                    "end_power": power, "zone": zone_of(power, plan.ftp)}
-                   for s, power in zip(plan.steps, powers)],
+        "max_power": max(peaks), "sketch": sketch,
     }
 
 
-def home_screen(builtin: Sequence[Json]) -> Json:
+def home_screen(builtin: Sequence[Json], today: Sequence[Json] = (),
+                library: Sequence[Json] = ()) -> Json:
     """Return the Home screen."""
-    return {"name": Screen.HOME, "today": [], "library": [],
-            "builtin": list(builtin), "recovery": None}
+    return {"name": Screen.HOME, "today": list(today),
+            "library": list(library), "builtin": list(builtin),
+            "recovery": None}
 
 
 def pre_ride_screen(plan: Plan, trainer: LinkState) -> Json:
@@ -111,25 +134,32 @@ def plan_message(plan: Plan,
     """Return the plan message of a ride."""
     segments = []
     for step in plan.steps:
-        power = _watts(plan, step.index)
+        start, end = _watts(step.power), _watts(step.end_power)
         segments.append({
             "start": _ms(step.start), "end": _ms(step.end),
-            "block": step.block, "step": step.index, "mode": Mode.ERG,
-            "kind": Mode.ERG, "start_power": power, "end_power": power,
-            "zone": zone_of(power, plan.ftp, zones_pct), "text": step.text})
+            "block": step.block, "step": step.index,
+            "mode": _mode(step.kind), "kind": step.kind,
+            "start_power": start,
+            "end_power": end if end is not None else start,
+            "zone": _zone(start, plan.ftp, zones_pct), "text": step.text})
     blocks = []
     for index, block in enumerate(plan.workout.blocks):
-        steps = [{"duration": _ms(step.duration), "kind": Mode.ERG,
-                  "start_power": round_half_up(step.target.watts(plan.ftp)),
-                  "end_power": round_half_up(step.target.watts(plan.ftp)),
-                  "zone": zone_of(step.target.watts(plan.ftp), plan.ftp,
-                                  zones_pct)}
-                 for step in block.steps]
+        steps = []
+        for item in block.steps:
+            start = _watts(None if item.target is None
+                           else item.target.watts(plan.ftp))
+            end = _watts(None if item.end is None
+                         else item.end.watts(plan.ftp))
+            kind = (item.kind if item.target is not None or
+                    item.kind != StepKind.ERG else StepKind.UNSUPPORTED)
+            steps.append({
+                "duration": _ms(item.duration), "kind": kind,
+                "start_power": start,
+                "end_power": end if end is not None else start,
+                "zone": _zone(start, plan.ftp, zones_pct)})
         blocks.append({
             "index": index, "label": block.label or "",
-            "repeats": block.repeats,
-            "duration": _ms(sum(s.duration for s in block.steps)
-                            * block.repeats),
+            "repeats": block.repeats, "duration": _ms(block.duration),
             "mode": Mode.ERG, "steps": steps})
     return {"type": "plan", "plan_id": plan.plan_id, "segments": segments,
             "blocks": blocks}
@@ -151,26 +181,58 @@ def ride_screen(ride: Ride, now: float, power: int | None,
         "intensity_pct": ride.intensity_pct, "resistance_pct": None,
         "free_ride_target": None,
     }
-    target = ride.step_target()
+    target = ride.current_target(now)
     if plan is None or target is None:
         return screen
     step = plan.steps[ride.step]
     screen.update({
+        "mode": _mode(step.kind),
         "remaining": _ms(max(0.0, plan.duration - elapsed)),
         "step": {"index": step.index, "count": len(plan.steps),
                  "left": _ms(max(0.0, step.end - elapsed)),
                  "text": step.text},
-        "target": target.command.power,
-        "target_zone": zone_of(target.command.power, plan.ftp),
+        "target": target.power,
+        "target_zone": _zone(target.power, plan.ftp, DEFAULT_ZONES_PCT),
         Problem.TARGET_LIMITED: target.limited,
     })
     following = ride.step_target(ride.step + 1)
     if following is not None:
+        kind = plan.steps[ride.step + 1].kind
         screen["next"] = {
-            "kind": Mode.ERG, "target": following.command.power,
-            "zone": zone_of(following.command.power, plan.ftp),
+            "kind": (StepKind.ERG if kind == StepKind.ERG
+                     else StepKind.FREE_RIDE),
+            "target": following.power,
+            "zone": _zone(following.power, plan.ftp, DEFAULT_ZONES_PCT),
             "duration": _ms(plan.steps[ride.step + 1].duration)}
     return screen
+
+
+def summary_screen(ride_id: str, title: str, start_utc: str,
+                   metrics: Metrics, upload: str) -> Json:
+    """Return the Summary screen of a finished ride."""
+    return {"name": Screen.SUMMARY, "ride_id": ride_id, "title": title,
+            "start_utc": start_utc, "metrics": metrics_view(metrics),
+            "upload": upload}
+
+
+def metrics_view(metrics: Metrics) -> Json:
+    """Return the metrics as the display shows them."""
+    def whole(value: float | None) -> int | None:
+        return None if value is None else round_half_up(exact(value))
+
+    def fine(value: float | None) -> float | None:
+        return None if value is None else round(value, 3)
+
+    return {
+        "duration": metrics.duration,
+        "avg_power": whole(metrics.avg_power),
+        "max_power": metrics.max_power, "np": whole(metrics.np),
+        "intensity_factor": fine(metrics.intensity_factor),
+        "tss": fine(metrics.tss), "work_kj": fine(metrics.work_kj),
+        "time_in_zone": list(metrics.time_in_zone),
+        "avg_hr_bpm": whole(metrics.avg_hr_bpm),
+        "max_hr_bpm": metrics.max_hr_bpm,
+    }
 
 
 def ride_warnings(ride: Ride, trainer_warnings: Sequence[str]) -> list[Json]:
@@ -180,7 +242,7 @@ def ride_warnings(ride: Ride, trainer_warnings: Sequence[str]) -> list[Json]:
     if ride.phase == RidePhase.RUNNING and target and target.limited:
         warnings.append({"kind": Problem.TARGET_LIMITED,
                          "requested_power": target.requested_power,
-                         "sent_power": target.command.power})
+                         "sent_power": target.power})
     return warnings
 
 

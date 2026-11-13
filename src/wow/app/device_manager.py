@@ -72,12 +72,14 @@ class DeviceManager:
         self.hrm = hrm
         self._trainer = _Slot(DeviceKind.TRAINER, choice.trainer, trainer)
         self._hrm = _Slot(DeviceKind.HRM, choice.hrm, hrm)
+        self._one_at_a_time = asyncio.Lock()
 
     def open_pre_ride(self) -> None:
         """Start connecting both devices."""
         for slot in (self._trainer, self._hrm):
             busy = slot.task is not None and not slot.task.done()
             if slot.address is not None and slot.client is None and not busy:
+                slot.device.set_link(LinkState.SEARCHING)
                 slot.task = asyncio.get_running_loop().create_task(
                     self._connect(slot, slot.address))
 
@@ -111,9 +113,10 @@ class DeviceManager:
 
     async def _attempt(self, slot: _Slot, address: str) -> GattClient | None:
         try:
-            client = await self._connector.connect(
-                address, CONNECT_TIMEOUT,
-                lambda generation: self._lost(slot, generation))
+            async with self._one_at_a_time:
+                client = await self._connector.connect(
+                    address, CONNECT_TIMEOUT,
+                    lambda generation: self._lost(slot, generation))
         except GattError as error:
             logger.info("%s not found: %r", slot.name, error)
             return None

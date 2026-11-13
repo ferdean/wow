@@ -5,6 +5,7 @@
   import LaterScreen from "./screens/LaterScreen.svelte";
   import PreRideScreen from "./screens/PreRideScreen.svelte";
   import RideScreen from "./screens/RideScreen.svelte";
+  import SummaryScreen from "./screens/SummaryScreen.svelte";
   import { holdScreen } from "./device/wake";
 
   interface Props {
@@ -36,13 +37,15 @@
   {#if view === null}
     <div class="page"><p class="label">Connecting to the Pi…</p></div>
   {:else if view.screen.name === "home"}
-    <HomeScreen screen={view.screen} send={(n, a) => link.send(n, a)} />
+    <HomeScreen screen={view.screen} warnings={view.warnings} send={(n, a) => link.send(n, a)} />
   {:else if view.screen.name === "pre_ride"}
     <PreRideScreen screen={view.screen} plan={link.plan} links={view.links} battery={view.hrm_battery_pct}
       send={(n, a) => link.send(n, a)} />
   {:else if view.screen.name === "ride"}
     <RideScreen screen={view.screen} plan={link.plan} links={view.links} battery={view.hrm_battery_pct}
       warnings={view.warnings} since={link.live ? since : 0} send={(n, a) => link.send(n, a)} />
+  {:else if view.screen.name === "summary"}
+    <SummaryScreen screen={view.screen} send={(n, a) => link.send(n, a)} />
   {:else}
     <LaterScreen name={view.screen.name} send={(n, a) => link.send(n, a)} />
   {/if}

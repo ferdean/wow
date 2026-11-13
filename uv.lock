@@ -261,6 +261,15 @@ wheels = [
 ]
 
 [[package]]
+name = "garmin-fit-sdk"
+version = "21.221.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4b/f0/550ad8a2de0c6c324596d421c31b4d141157fa2281ca982b513bf74a4f5b/garmin_fit_sdk-21.221.0.tar.gz", hash = "sha256:2e9cf380176be6cdae25185eea279b43919f592799fd9cd5fe14cd59e151b6e4", size = 219010, upload-time = "2026-11-03T21:03:31.358Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b6/ed/8bdda9d17b416757ae4707f8b66631d55f75bc60a6cfcdb471883364742c/garmin_fit_sdk-21.221.0-py3-none-any.whl", hash = "sha256:7918af718bc350951e9ca7f1fa9f03aa8b2e8b756d0a3fa57920538b5a78cb79", size = 240881, upload-time = "2026-11-03T21:03:29.844Z" },
+]
+
+[[package]]
 name = "hypothesis"
 version = "6.170.15"
 source = { registry = "https://pypi.org/simple" }
@@ -770,11 +779,12 @@ wheels = [
 
 [[package]]
 name = "witchesonwheels"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "bleak" },
+    { name = "garmin-fit-sdk" },
 ]
 
 [package.dev-dependencies]
@@ -792,6 +802,7 @@ dev = [
 requires-dist = [
     { name = "aiohttp", specifier = "==3.14.5" },
     { name = "bleak", specifier = "==3.0.2" },
+    { name = "garmin-fit-sdk", specifier = "==21.221.0" },
 ]
 
 [package.metadata.requires-dev]

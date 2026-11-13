@@ -1,14 +1,12 @@
 """Define workout value types.
 
-Workout value types (3A, core/workout).
-
-Slice SL-02: power targets in watts or percent of FTP; ranges, zones,
-ramps, free ride and unsupported targets follow in SL-04.
+Workout value types (3A, core/workout): steps hold one power, a ramp
+from one power to another, free ride, or a target the app can't apply.
 """
 
 from dataclasses import dataclass
-from fractions import Fraction
 from enum import StrEnum
+from fractions import Fraction
 
 from wow.core.numbers import exact
 
@@ -18,6 +16,14 @@ class PowerUnit(StrEnum):
 
     WATTS = "w"
     PERCENT_FTP = "%ftp"
+
+
+class StepKind(StrEnum):
+    """What a step asks of the trainer."""
+
+    ERG = "erg"
+    FREE_RIDE = "free_ride"
+    UNSUPPORTED = "unsupported"
 
 
 @dataclass(frozen=True)
@@ -36,11 +42,13 @@ class PowerTarget:
 
 @dataclass(frozen=True)
 class Step:
-    """A timed power step."""
+    """A timed step; a ramp has an end target."""
 
     duration: float
-    target: PowerTarget
+    target: PowerTarget | None
     text: str | None
+    end: PowerTarget | None = None
+    kind: StepKind = StepKind.ERG
 
 
 @dataclass(frozen=True)
@@ -50,6 +58,11 @@ class Block:
     label: str | None
     repeats: int
     steps: tuple[Step, ...]
+
+    @property
+    def duration(self) -> float:
+        """Return the length of the block in seconds."""
+        return sum(step.duration for step in self.steps) * self.repeats
 
 
 @dataclass(frozen=True)

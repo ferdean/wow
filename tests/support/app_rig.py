@@ -3,12 +3,14 @@ with the simulated D100 and HRM 200, the test certificate and a data
 directory of the test's own."""
 
 import json
+from datetime import date, tzinfo
 from pathlib import Path
 from typing import Any
 
 from wow.adapters.clock_stepped import SteppedClock
 from wow.app.config import Config
 from wow.app.main import App
+from wow.ports.workouts import ProviderError, WorkoutProvider
 
 ROOT = Path(__file__).resolve().parents[2]
 TLS = ROOT / "testdata" / "tls"
@@ -43,11 +45,22 @@ async def ride_erg_check(tmp: Path, finish_after: float = 400.0
                          ) -> tuple[App, Path]:
     """Opens the ERG check, starts, pedals 3 s later, finishes, shuts
     down: the files of a short ride, on the stepped clock."""
-    clock = SteppedClock()
-    app = App(app_config(tmp), clock)
+    return await ride_ref(tmp, ERG_CHECK, finish_after)
+
+
+async def ride_ref(tmp: Path, ref: str, finish_after: float,
+                   provider: WorkoutProvider | None = None,
+                   clock: SteppedClock | None = None,
+                   zone: tzinfo | None = None) -> tuple[App, Path]:
+    """Rides a workout of the catalog from Home to Finish on the stepped
+    clock and shuts down: the files of the ride."""
+    clock = clock or SteppedClock()
+    app = App(app_config(tmp), clock, provider=provider, zone=zone)
     app.recorder.start()
     try:
-        assert app.console.command("open_workout", {"ref": ERG_CHECK}) is None
+        if provider is not None:
+            await clock.drive(app.catalog.refresh(), limit=60.0)
+        assert app.console.command("open_workout", {"ref": ref}) is None
         await clock.advance(15.0)
         assert app.console.command("start", {}) is None
         await clock.advance(finish_after)
@@ -61,3 +74,23 @@ async def ride_erg_check(tmp: Path, finish_after: float = 400.0
         app.recorder.stop()
     (ride,) = ride_dirs(app.config)
     return app, ride
+
+
+class RecordedProvider:
+    """Workout provider that answers with recorded files, or fails."""
+
+    def __init__(self, events: list[Any], workouts: list[Any]) -> None:
+        self.events, self.workouts = events, workouts
+        self.failing = False
+        self.asked: list[tuple[date, date]] = []
+
+    async def planned(self, oldest: date, newest: date) -> list[Any]:
+        self.asked.append((oldest, newest))
+        if self.failing:
+            raise ProviderError("offline")
+        return self.events
+
+    async def library(self) -> list[Any]:
+        if self.failing:
+            raise ProviderError("offline")
+        return self.workouts

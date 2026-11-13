@@ -3,7 +3,10 @@ tests and the golden views in testdata/display/."""
 
 from typing import Any
 
+from tests.support.timeline import load_json
+from wow.app.workout_catalog import load_builtin, rides_of
 from wow.core.devices import LinkState, Range, TrainerCapabilities
+from wow.core.metrics import ride_metrics
 from wow.core.plan import make_plan
 from wow.core.ride import PowerSeen, Ride, Start, Tick, TrainerLink
 from wow.core.view import (
@@ -11,9 +14,11 @@ from wow.core.view import (
     pre_ride_screen,
     ride_screen,
     ride_warnings,
+    summary_screen,
     view_state,
     workout_card,
 )
+from wow.core.vocab import UploadState, WarningKind
 from wow.core.workout import Block, PowerTarget, PowerUnit, Step, Workout
 
 D100 = TrainerCapabilities(Range(50, 600, 1), Range(0, 100, 1), True, False)
@@ -77,9 +82,55 @@ def envelope(view: dict[str, Any]) -> dict[str, Any]:
     return {"type": "view", "seq": 1, "sent_mono_ms": 0.0, **view}
 
 
+def card_of(workout: Workout, source: str = "builtin") -> dict[str, Any]:
+    return workout_card(workout, make_plan(workout, 250), source,
+                        workout.ref, workout.name)
+
+
+def ramp_test() -> Workout:
+    (ramp,) = [w for w in load_builtin() if w.ref == "builtin:ramp-test"]
+    return ramp
+
+
+def sl04_scenes() -> dict[str, dict[str, Any]]:
+    library = rides_of(load_json("intervals/workouts.json"))
+    cards = [card_of(e.workout, "library") if e.workout else workout_card(
+        None, None, "library", e.ref, e.name) for e in library]
+    ramp = ramp_test()
+    plan = make_plan(ramp, 250)
+    free = Ride()
+    free.handle(TrainerLink(True), 100.0)
+    free.handle(Start(ramp, 250, D100, 1.0, free_ride_level_pct=20), 100.0)
+    free.handle(PowerSeen(1), 101.0)
+    advance(free, 101.0 + plan.steps[-1].start + 10.0)
+    power = [150] * 600 + [300] * 300 + [None] * 5 + [120] * 295
+    hr = [130] * 900 + [None] * 300
+    metrics = ride_metrics(power, hr, 250)
+    return {
+        "home_offline_with_lists": envelope(view_state(
+            home_screen([card_of(ramp)], cards[:1], cards),
+            LinkState.NOT_FOUND, LinkState.NOT_FOUND, None,
+            [{"kind": WarningKind.WORKOUTS_OFFLINE,
+              "downloaded_utc": "2026-11-14T07:00:00.000Z"}], None)),
+        "pre_ride_ramp_test": envelope(view_state(
+            pre_ride_screen(plan, LinkState.CONNECTED),
+            LinkState.CONNECTED, LinkState.CONNECTED, 80, [], None)),
+        "ride_free_ride_step": envelope(view_state(
+            ride_screen(free, 101.0 + plan.steps[-1].start + 10.0, 140, 150),
+            LinkState.CONNECTED, LinkState.CONNECTED, 80,
+            ride_warnings(free, []), None)),
+        "summary": envelope(view_state(
+            summary_screen("2026-11-14T071500Z", ramp.name,
+                           "2026-11-14T07:15:00.000Z", metrics,
+                           UploadState.PENDING),
+            LinkState.CONNECTED, LinkState.CONNECTED, 80, [], None)),
+    }
+
+
 def scenes() -> dict[str, dict[str, Any]]:
     plan = make_plan(THIRTY_THIRTY, 250)
-    card = workout_card(THIRTY_THIRTY, plan, "builtin")
+    card = workout_card(THIRTY_THIRTY, plan, "builtin", THIRTY_THIRTY.ref,
+                        THIRTY_THIRTY.name)
     armed = started_ride(first_power=None)
     erg = started_ride()
     advance(erg, 180.0)
@@ -177,4 +228,5 @@ def scenes() -> dict[str, dict[str, Any]]:
                 399950.0,
             )
         ),
+        **sl04_scenes(),
     }

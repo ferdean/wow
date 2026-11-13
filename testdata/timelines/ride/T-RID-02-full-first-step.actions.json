@@ -5,8 +5,8 @@
   {"at": 0, "action": {"type": "set_trainer", "command": {"type": "erg", "power": 140}}},
   {"at": 0, "action": {"type": "journal", "event": "trainer_command", "t_ride": null, "data": {"mode": "erg", "power": 140, "due_mono_ms": 0}}},
   {"at": 40, "action": {"type": "journal", "event": "ride_started", "t_ride": 0.0, "data": {"power": 1}}},
-  {"at": 40, "action": {"type": "journal", "event": "step_started", "t_ride": 0.0, "data": {"index": 0, "cause": "schedule", "scheduled": 0.0}}},
+  {"at": 40, "action": {"type": "journal", "event": "step_started", "t_ride": 0.0, "data": {"index": 0, "cause": "schedule", "scheduled": 0.0, "kind": "erg", "target": 140}}},
   {"at": 98.5, "action": {"type": "set_trainer", "command": {"type": "erg", "power": 330}}},
   {"at": 98.5, "action": {"type": "journal", "event": "trainer_command", "t_ride": 58.5, "data": {"mode": "erg", "power": 330, "due_mono_ms": 98500.0}}},
-  {"at": 100, "action": {"type": "journal", "event": "step_started", "t_ride": 60.0, "data": {"index": 1, "cause": "schedule", "scheduled": 60.0}}}
+  {"at": 100, "action": {"type": "journal", "event": "step_started", "t_ride": 60.0, "data": {"index": 1, "cause": "schedule", "scheduled": 60.0, "kind": "erg", "target": 330}}}
  ]}

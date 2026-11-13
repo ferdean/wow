@@ -29,14 +29,16 @@ class HrmLink:
         self._link: LinkState = LinkState.NOT_CONFIGURED
         self._battery_pct: int | None = None
         self.on_sample = on_sample or (lambda _sample: None)
+        self.on_link: Callable[[LinkState], None] = lambda _state: None
 
     def link(self) -> LinkState:
         """Return the link state."""
         return self._link
 
     def set_link(self, state: LinkState) -> None:
-        """Set the link state."""
+        """Set the link state and tell on_link."""
         self._link = state
+        self.on_link(state)
 
     def battery_pct(self) -> int | None:
         """Return the battery level, if known."""

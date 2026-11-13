@@ -15,7 +15,8 @@ def plan_rows(ftp: int) -> list[dict[str, Any]]:
     workout = parse_workout("test:plain", "Plain", None, PLAIN["workout_doc"])
     plan = make_plan(workout, ftp)
     return [{"start": s.start, "end": s.end, "block": s.block,
-             "power": float(s.power)} for s in plan.steps]
+             "power": None if s.power is None else float(s.power)}
+            for s in plan.steps]
 
 
 @pytest.mark.case("T-WKO-01")
@@ -55,20 +56,14 @@ def test_builtin_workouts_parse(name: str) -> None:
 @pytest.mark.case("S-WKO-01")
 @pytest.mark.parametrize("doc", [
     {"steps": []},
-    {"steps": [{"duration": 60, "power": {"units": "%ftp", "start": 88,
-                                          "end": 92}}]},
-    {"steps": [{"duration": 60, "power": {"units": "power_zone",
-                                          "value": 2}}]},
-    {"steps": [{"duration": 300, "ramp": True,
-                "power": {"units": "%ftp", "value": 50}}]},
-    {"steps": [{"duration": 300, "freeride": True}]},
     {"steps": [{"power": {"units": "w", "value": 100}}]},
     {"steps": [{"reps": 0, "steps": [{"duration": 1, "power": {
         "units": "w", "value": 1}}]}]},
     {"steps": ["text"]},
-], ids=["empty", "range", "zone", "ramp", "freeride", "no-duration",
-        "zero-reps", "not-an-object"])
-def test_steps_beyond_sl02_are_refused_by_name(doc: dict[str, Any]) -> None:
+    {"steps": [{"reps": 2, "steps": ["text"]}]},
+], ids=["empty", "no-duration", "zero-reps", "not-an-object",
+        "inner-not-an-object"])
+def test_malformed_documents_are_refused(doc: dict[str, Any]) -> None:
     with pytest.raises(WorkoutError):
         parse_workout("test:x", "X", None, doc)
 

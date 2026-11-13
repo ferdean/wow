@@ -5,11 +5,17 @@ brings the settings screen, the few settings a ride needs (ICD IF-10).
 """
 
 import json
+import logging
+import stat
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib import resources
 from pathlib import Path
 from typing import Any, Final
+
+from wow.core.numbers import DEFAULT_ZONES_PCT
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_FTP: Final[int] = 250
 DEFAULT_LEAD_TIME: Final[float] = 1.0
@@ -40,6 +46,17 @@ class RideSettings:
     lead_time: float
     trainer: str | None
     hrm: str | None
+    zones_pct: tuple[int, ...] = DEFAULT_ZONES_PCT
+    free_ride_level_pct: int = 0
+    upload_on: bool = True
+
+
+@dataclass(frozen=True)
+class Secrets:
+    """The intervals.icu account (APP-706, APP-817)."""
+
+    athlete_id: str
+    api_key: str = field(repr=False)
 
 
 def default_static() -> Path:
@@ -83,4 +100,24 @@ def load_settings(data: Path) -> RideSettings:
         lead_time=float(raw.get("lead_time", DEFAULT_LEAD_TIME)),
         trainer=_address(raw.get("trainer")),
         hrm=_address(raw.get("hrm")),
+        zones_pct=tuple(int(z) for z in raw.get("zones_pct",
+                                                DEFAULT_ZONES_PCT)),
+        free_ride_level_pct=int(raw.get("free_ride_level_pct", 0)),
+        upload_on=bool(raw.get("upload_on", True)),
     )
+
+
+def load_secrets(data: Path) -> Secrets | None:
+    """Load the intervals.icu account, if one is stored."""
+    path = data / "secrets.json"
+    if not path.exists():
+        return None
+    if path.stat().st_mode & (stat.S_IRWXG | stat.S_IRWXO):
+        logger.warning("%s is readable by others: chmod 600 it", path)
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    athlete, key = raw.get("intervals_athlete_id"), raw.get(
+        "intervals_api_key")
+    if not isinstance(athlete, str) or not isinstance(key, str):
+        logger.warning("%s lacks the athlete ID or the API key", path)
+        return None
+    return Secrets(athlete, key)

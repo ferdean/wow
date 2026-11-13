@@ -1,6 +1,6 @@
 # Phase 5 — Implementation
 
-**Status:** revision 2, 12 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) planned and built. Both pass the laptop gate except for SL-01's two log-based tests, which wait for the Phase 2 logs (section 5.4). SL-02 still needs its Pi part: T-SYS-01 and a first real ride with RR-01 to RR-04 (section 11). Waiting for Ferran's approval of both slices after tonight's test. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
+**Status:** revision 5, 13 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built and gated on the laptop (sections 14 to 17); next: their test on the Pi (section 18). Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
 
 ## 1 How Phase 5 works
 
@@ -481,8 +481,10 @@ If the screen is off from what 3C shows, a screenshot per screen is enough; layo
 8. SL-02 was built before SL-01's approval, at Ferran's request, so both are tested together on the Pi (section 7).
 9. SL-02 is built with decisions IM-21 to IM-40 (section 8): among them a new `app/console` module, the recorder's journal and Bluetooth log pulled from SL-03, two built-in workouts, TypeScript 6.0.3, and L6 tests recorded in the verification log.
 10. The changes of 9.5 to 3A, the ICD and the test plan are proposed, to be applied when approved; findings SF-1 to SF-3 are recorded.
-
-The approval question is in section 13.5.
+11. Both slices were tested on the Pi (section 13), with changes IM-41 to IM-47 and findings SF-4 to SF-7; A-51 and A-60 are confirmed.
+12. SL-01 and SL-02 are approved (13 Nov 2026). The approved document changes are recorded in 13.6 and applied in each document's next revision.
+13. SL-03 and SL-04 are built together with decisions IM-48 to IM-65 (section 15); A-55 is confirmed; findings SF-8 to SF-11 and four test-plan deviations are recorded (16.4).
+14. The changes of 16.5 are proposed, to be applied when approved.
 
 ## 13 First test on the Pi, 12 Nov 2026
 
@@ -495,7 +497,7 @@ The approval question is in section 13.5.
 | Ride "ERG check" 2026-11-12T162426Z | RR-01 to RR-04 pass | `docs/verification-log.md` |
 | A-60, no ride before the first stroke | confirmed by Ferran | rider report |
 | A-56, the page in Safari on the iPhone | works; three changes asked (13.3) | rider report |
-| T-SYS-01, A-51 | open | — |
+| T-SYS-01, A-51 | pass, 13 Nov: RR-02 pass with 121 commands written, worst 2.8 ms; event-loop lag worst 40.4 ms over 60 min. A-51 confirmed. | `docs/verification-log.md` |
 
 ### 13.2 Findings
 
@@ -503,7 +505,7 @@ The approval question is in section 13.5.
 |----|---------|--------|
 | SF-4 | With a lead time of 1.5 s, the reported power starts to change about 0.75 s before the boundary and reaches 90 % of the step at +0.02 s going up and at +1.0 to +1.2 s going down. Ferran felt the change too early. | Default lead time 1.0 s (IM-41). |
 | SF-5 | BlueZ refused the strap's first connect with `InProgress` while the trainer was connecting, in the probe and in the app. The retry 2 s later worked. | SL-03: connect one device after the other, or retry `InProgress` at once. |
-| SF-6 | One event-loop delay of 61 ms during the first connect, over the 50 ms of A-51; none during the ride. | T-SYS-01 decides. |
+| SF-6 | One event-loop delay of 61 ms during the first connect, over the 50 ms of A-51; none during the ride. | T-SYS-01 stayed under 50 ms for 60 min (worst 40.4 ms): the delay belongs to the first connect, not to a ride. Watched by the loop-lag monitor. |
 | SF-7 | During the ride: trainer data every 250 ms (longest gap 585 ms), strap every 500 ms (longest gap 813 ms), control point answers in 243 to 377 ms, no link loss. | None. |
 
 ### 13.3 Changes after the test
@@ -530,6 +532,179 @@ The approval question is in section 13.5.
 
 Do you approve SL-01 as built, SL-02 as built with the changes of 13.3 (closing when T-SYS-01 passes on the Pi), and the proposed document changes of 5.5, 9.5 and 13.4?
 
+**Approved by Ferran on 13 Nov 2026**, after T-SYS-01 passed. SL-01 and SL-02 are closed.
+
+### 13.6 Approved changes to earlier documents
+
+The changes of 5.5, 9.5 and 13.4 are approved. They are applied together in the next revision of each document, with the changes later slices bring, rather than one revision per slice. Until then this section is the record:
+
+| Document | Changes |
+|----------|---------|
+| Requirements (Phase 1), Table S | Lead time default 1.0 s (13.4). |
+| 3A architecture | Tech choices: bleak 3.0.2 with 3.1.0 to try in SL-06; test tool versions of IM-02; display versions of IM-21 with TypeScript 6.0.3 and its reason (5.5, 9.5). Modules: `app/console`; `app/workout_catalog` and `app/recorder` begin in SL-02 (9.5). Repository layout: `src/wow/{core,ports,app,web,adapters}/` (5.5). |
+| ICD | 4.1.5 Request Control every 2 s from the previous request; 4.1.6 result 04, result 03 and release (5.5). 4.3.1 simulator `GattServer` methods (5.5). 4.6.6 `invalid_state` for commands not built yet (9.5). 4.7 redirect port and 503 without a built display (9.5). 4.9.2 `armed.lead_time`, `step_started.scheduled`, later `step_started.target` (9.5). 4.11 `outcome` on `released_stale`, `dev` may be `other` (5.5). IF-10 optional `[web] listen` (13.4). |
+| 3C display | Heart symbol by the heart rate and in the battery symbol; fixed header and footer on scrolling screens (13.4). |
+| Test plan | 2.4 Vitest 5.1.0; 5.3 T-WKO-01's fixture; 5.17 L6 results in the verification log by test ID (9.5). |
+
+## 14 SL-03 and SL-04 plan
+
+Built together at Ferran's request (13 Nov 2026), on top of the approved SL-01 and SL-02.
+
+### 14.1 Scope
+
+| Slice | Requirements | Tests |
+|-------|--------------|-------|
+| SL-03 recording, FIT | APP-208, APP-315 (files), APP-411, APP-601 to APP-606, APP-808, APP-814, APP-815 | T-SMP-01 to -04, T-MET-01 to -07, T-FIT-01 to -06, T-REC-01 to -04, T-VIEW-06; RR-05, RR-12 to RR-14 in `tools/check_ride.py` |
+| SL-04 workouts | APP-102, APP-201 to APP-206, APP-209 to APP-211 | T-WKO-01 to -09, -11, -12, T-CAT-01 to -05, T-VIEW-11; pulled forward from SL-05: T-TGT-03, T-RID-07 |
+
+### 14.2 Modules
+
+| Module | New or changed | What it does |
+|--------|----------------|--------------|
+| `core/sampler` | new | One sample per ride second from the newest trainer and strap values (IM-49) |
+| `core/metrics` | new | Table M (IM-50) |
+| `core/activity` | new | The finished ride as the FIT writer needs it: samples, lap starts, pauses, metrics |
+| `core/intervals_doc` | rewritten | intervals.icu `workout_doc` and the built-in format to `Workout` (IM-56) |
+| `core/workout`, `core/plan`, `core/target_policy`, `core/ride` | changed | Step kinds (ERG, free ride, unsupported), ramps, free-ride level, link dropouts in the journal |
+| `core/view` | changed | Home with today, library and built-ins; Summary; free-ride steps |
+| `ports/workouts`, `ports/fit` | new | `WorkoutProvider` (planned, library), `FitWriter` |
+| `adapters/fit_garmin` | new | FIT encoding with Garmin's SDK (IM-48) |
+| `adapters/intervals_icu` | new | Read the calendar and the library (IM-54) |
+| `adapters/store_files` | new | Atomic file writes (IM-51) |
+| `app/recorder`, `app/ride_controller` | changed | `samples.jsonl`, `workout.json`, `meta.json`, `ride.fit` (IM-51, IM-52) |
+| `app/workout_catalog` | rewritten | Today, library, cache, built-ins (IM-55) |
+| `app/console`, `app/main`, `app/config` | changed | Summary screen, catalog on Home, `secrets.json` (IM-57) |
+| `tools/check_ride.py` | changed | RR-05, RR-12, RR-13, RR-14 (IM-60) |
+| Display | changed | Home sections and offline banner, Summary, ramps and free ride in the profile and the step list (IM-59) |
+
+### 14.3 Exit criteria
+
+Gate green through SL-04; on the Pi: S-FIT-01 and T-REC-03, a recorded ride with RR-01 to RR-05 and RR-12 to RR-14 passing, the FIT file imported into Garmin Connect and intervals.icu (D-25, A-28), DS-1 with today's workout from intervals.icu.
+
+## 15 Decisions taken while building SL-03 and SL-04
+
+| ID | Decision | Why |
+|----|----------|-----|
+| IM-48 | FIT with `garmin-fit-sdk` 21.221.0 (Garmin's Python SDK, its `Encoder`). Messages in order: `file_id`, `file_creator` (software version = major × 100 + minor), `device_info` of the creator with product name "WitchesOnWheels \<version\>", `developer_data_id` and `field_description`, timer start, one `record` per sample, timer stop and start around each pause, timer stop, one `lap` per lap start, `session` (NP, IF, TSS, threshold power, work), `activity` with the local time. Target power is developer field 0 `target_power`, uint16, W. FIT time has whole seconds, so a lap starting at 200.5 s starts at 200 s in the file. | AD-12; A-28 (OP-6); Garmin's activity file recipe. |
+| IM-49 | `core/sampler`: one sample per ride second from the first pedal stroke to Finish. Each channel takes its newest value if it is at most 2.0 s old, else the sample has none; heart rate 0 counts as none. Trainer values reach the sampler before the ride sees the first power, so the first sample has it. Ride time stands still in a pause. | APP-602, APP-603, APP-604 |
+| IM-50 | `core/metrics`, table M: missing power is left out, not counted as 0. NP is the fourth root of the mean fourth power of 30-sample rolling means over the samples with power (none under 30); IF = NP / FTP; TSS = duration × NP × IF / (FTP × 3600) × 100 with duration in ride seconds; work is the sum of the samples' watts; time in zone counts samples with power by the zones of the ride's FTP. | APP-606, APP-603 |
+| IM-51 | Ride files: `workout.json` at Start (the built-in's bytes; for an intervals.icu entry its JSON written again, so not the HTTP body byte for byte), `meta.json` written whole at Start, at the first pedal stroke and at the end, `samples.jsonl` one line per sample (`t`, `utc`, `power`, `hr_bpm`, `cadence_rpm`, `target`, `mode`). Whole files go through a temporary file, `fsync`, rename and a directory `fsync`. The journal is synced at once on `paused`, `dropout_start`, `dropout_end`, `finished` and `discarded`, otherwise at most every 2 s. | APP-808, APP-814; ICD 4.9 |
+| IM-52 | At Finish the controller computes the metrics and the Summary at once; the recorder's worker writes `ride.fit`, then the final `meta.json` with `finished_mono_ms` and `files_mono_ms`. A cancelled ride keeps `meta.json` with state `cancelled`. The journal's `armed` record carries `app_version`. | APP-315 (10 s), APP-815; RR-12 and RR-13 read these fields |
+| IM-53 | Summary after Finish: the metrics of table M, the upload state in words, Done back to Home. The upload state is `pending` (upload on) or `off` until SL-08; Download FIT file comes with SL-08. | 3C Figure 10 |
+| IM-54 | `adapters/intervals_icu`: `GET /api/v1/athlete/{id}/events?oldest&newest` for 7 days from the local today, and `GET /api/v1/athlete/{id}/workouts`; basic authentication with user `API_KEY`, written as an `Authorization` header with `aiohttp.encode_basic_auth`; one 20 s timeout per call; any error becomes `ProviderError`. | ICD 4.8.2. aiohttp 3.14.5 warns that `BasicAuth` and the session's `auth` go in aiohttp 4 (SF-9). |
+| IM-55 | `app/workout_catalog`: today = events of category WORKOUT and type Ride whose `start_date_local` falls on the Pi's local day; library = workouts of type Ride; an entry without a `workout_doc`, or one that fails to parse, is listed and not rideable. Download when Home opens, at most once a minute; the answers go to `data/cache/intervals.json` with `downloaded_utc`. Offline: lists from the cache and the warning `workouts_offline`; with no cache, only the built-ins and no warning, because the ICD's warning needs a download time. | APP-201, APP-202, APP-210, APP-211 |
+| IM-56 | `workout_doc`: `%ftp` and `w` targets; a range rides at its midpoint; `power_zone` at the middle of the zone from `zoneTimes` (bottom = the previous zone's top); a zone whose top is 999 % or more, an unknown unit, and heart-rate or pace targets are unsupported; `ramp` keeps both ends; `freeride` has no target; a `reps` block takes its text without the trailing "3x" as label; `warmup` and `cooldown` become the cues "Warm-up" and "Cool-down" when the step has no text. Free-ride and unsupported steps ride at the free-ride level. | APP-204 to APP-206, APP-209; A-55 |
+| IM-57 | `secrets.json` in the data directory holds `intervals_athlete_id` and `intervals_api_key`; the app warns in its log when group or others can read it. Without it the catalog has built-ins only. Not in git, never in a log line. | APP-818 until Settings (SL-10) |
+| IM-58 | Built-in "Ramp test": 10 min at 120 W, 3 min at 150 W, 2 min at 100 W, then 1-minute steps from 120 W up by 20 W to 600 W, then 5 min free ride. | Ferran's ramp test, 11 Nov; APP-211 |
+| IM-59 | Display: Home lists Today, Library and Built in, a not-rideable card disabled with "Can't be ridden here", the offline banner with the download time; Free ride, Past rides and Settings drawn and disabled until their slices. Profile and Home sketch draw ramps as slopes and free ride as a grey bar at a quarter height. Pre-ride step lists read "1 min at 120 W", "90 s 120→200 W", "5 min free ride", "30 s not supported". A free-ride step shows "Free" as target on the ERG layout until SL-05's resistance layout. | 3C Home, Pre-ride; APP-203 |
+| IM-60 | `tools/check_ride.py`: RR-05 from `samples.jsonl`, the journal's dropouts and the Bluetooth log's notifications (a value counts as older than 2 s when no notification of its device arrived in the 3 s before its ride second, 1 s for the whole-second sample times); RR-12 from `finished` to `files_mono_ms`; RR-13 from `meta.json`, the journal's `armed` and the FIT's `device_info`; RR-14 from the decoded FIT. | Test plan 6 |
+| IM-61 | When Pre-ride opens, each configured device shows `searching` at once, before its connect task first runs. | SF-8 |
+| IM-62 | T-REC-03 runs the app as a child process (`python -m tests.support.kill_ride`) with the ride started from the console, kills it 6 to 30 s into the ride, 20 times; `WOW_KILL_RUNS` shortens it. | APP-808; the display plays no part in what is written |
+| IM-63 | Supporting tests S-ICU-01 (the adapter against a local HTTP server), S-FIT-01 (4-hour encode on the Pi, `WOW_FIT_HOURS`), S-RID-02 (free-ride steps in the ride), S-REC-02 (a torn last line is dropped by the reader). | Trace rule: every test has an ID |
+| IM-64 | The device manager connects one device at a time (an `asyncio.Lock` around `connect`). | SF-5: BlueZ answered `InProgress` to a second connect. |
+| IM-65 | `step_started` carries `kind` and `target` (W, or null for free ride); every ramp tick is journalled as a `trainer_command`. | SF-2; RR-04 can tell an unchanged target from a lost one. |
+
+## 16 SL-03 and SL-04 result
+
+### 16.1 What was built
+
+App version 0.3.0. The modules of 14.2. `wow --sim` now records a ride with its samples, journal, Bluetooth log, workout, meta and FIT file, shows the Summary, and lists today's and the library's workouts from intervals.icu when `secrets.json` is there.
+
+### 16.2 Test results
+
+| Gate step | Result (laptop, 13 Nov 2026) |
+|-----------|------------------------------|
+| flake8, mypy strict | clean, 109 files |
+| pytest without `pi` and `slow` | 323 passed, 3 deselected (T-SYS-01, T-REC-03 kill runs, S-FIT-01) |
+| Coverage | core 95.9 % branches; app and web 93.9 % lines; testable adapters 97.0 % lines |
+| Vitest | 22 passed, the four new golden views included |
+| `tools/trace.py --through SL-04` | 0 problems |
+| T-REC-03 kill runs on the laptop | 20 of 20 passed (6 min 47 s); a kill 11.4 s into the ride left samples up to second 11 on disk. Counts once run on the Pi. |
+| S-FIT-01 on the laptop | a 4-hour ride encoded in 0.3 s |
+
+### 16.3 Assumptions
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A-55 `workout_doc` keys | Confirmed | T-WKO-01 to T-WKO-07 pass on Ferran's downloads of 13 Nov 2026 (`testdata/intervals/`) |
+| A-28 target power in the FIT file | Open | T-FIT-01 passes; D-25 (import) on the Pi |
+| A-52 4-hour FIT in 10 s | Open | 0.3 s on the laptop; S-FIT-01 on the Pi now, T-SYS-02 in SL-12 |
+| A-54 pauses as timer events | Open | T-FIT-02 passes; D-26 with SL-05's pause |
+
+### 16.4 Findings
+
+| ID | Finding | What changed |
+|----|---------|--------------|
+| SF-8 | Between opening a workout and the first run of the connect task, both devices showed `not_found`, so Pre-ride flashed "Trainer not connected" (T-VIEW-11). | IM-61 |
+| SF-9 | aiohttp 3.14.5 marks `BasicAuth` and `ClientSession(auth=...)` deprecated, to go in aiohttp 4. | IM-54 |
+| SF-10 | The type stubs of `garmin-fit-sdk` 21.221.0 give `event_type` values such as `stopAll`, the decoder returns `stop_all`. | `tools/check_ride.py` compares the decoder's strings |
+| SF-11 | Connections one at a time (SF-5) mean a missing trainer delays the strap by up to 10 s on Pre-ride. | None; noted for SL-06 |
+
+Deviations from the test plan, to accept or correct:
+
+1. T-SMP-01 and T-MET-07 use Phase 2's S2 log: S5's log is not in the repository.
+2. T-REC-01 covers what exists now; pause records come with SL-05, the system log's start and stop with SL-07.
+3. T-CAT-04: Free ride is drawn and disabled until SL-05.
+4. T-TGT-03 and T-RID-07 were done in SL-04, not SL-05: ramps and free-ride steps need them.
+
+### 16.5 Proposed changes to approved documents
+
+| Document | Change |
+|----------|--------|
+| 3A architecture | `core/activity` (finished ride for the writer); `ports/workouts`; `secrets.json` in the storage layout (IM-57). |
+| ICD | 4.9 `meta.json` fields `finished_mono_ms`, `files_mono_ms`; `armed.app_version`; `step_started.kind` and `.target` (IM-65); `samples.jsonl` fields of IM-51. 4.8.2 header-based basic authentication (IM-54). IF-10 `secrets.json` (IM-57). |
+| Test plan | RR-05's age rule with the 1 s of whole-second samples (IM-60); the deviations of 16.4. |
+
+## 17 Traceability notes SL-03 and SL-04
+
+From `tools/trace.py --through SL-04`, 13 Nov 2026.
+
+### 17.1 SL-03
+
+| Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
+|---|---|---|---|
+| APP-208 | T-REC-02 passed | I-02 pending | passed |
+| APP-315 | T-E2E-01 due SL-05, T-REC-04 passed, T-RID-13 due SL-05, T-SYS-02 due SL-12 | D-13 pending, RR-12 pending | passed so far |
+| APP-411 | T-VIEW-06 passed | D-13 pending, I-20 pending | passed |
+| APP-601 | T-FIT-01 passed | D-25 pending, D-26 pending, RR-14 pending | passed |
+| APP-602 | T-SMP-01 passed, T-SMP-02 passed | RR-05 pending | passed |
+| APP-603 | T-COD-10 passed, T-E2E-03 due SL-06, T-FIT-04 passed, T-MET-04 passed, T-SMP-03 passed | RR-05 pending | passed so far |
+| APP-604 | T-FIT-02 passed, T-RID-09 due SL-05, T-SMP-04 passed | RR-14 pending | passed so far |
+| APP-605 | T-FIT-03 passed, T-RID-06 passed, T-RID-10 due SL-05 | RR-14 pending | passed so far |
+| APP-606 | T-FIT-06 passed, T-MET-01 passed, T-MET-02 passed, T-MET-03 passed, T-MET-04 passed, T-MET-05 passed, T-MET-06 passed, T-MET-07 passed | — | passed |
+| APP-702 | T-MET-05 passed, T-SET-03 due SL-10 | — | passed so far |
+| APP-808 | T-REC-03 due on the Pi | D-22 pending | not yet due |
+| APP-814 | T-REC-01 passed | I-05 pending | passed |
+| APP-815 | T-FIT-05 passed, T-REC-02 passed | I-06 pending, RR-13 pending | passed |
+
+### 17.2 SL-04
+
+| Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
+|---|---|---|---|
+| APP-102 | T-DEV-01 passed, T-VIEW-11 passed | D-04 pending, I-15 pending | passed |
+| APP-201 | T-CAT-01 passed, T-CAT-02 passed | D-03 pending | passed |
+| APP-202 | T-CAT-03 passed, T-CAT-04 passed | D-31 pending, I-14 pending | passed |
+| APP-203 | T-WKO-09 passed | D-04 pending, I-15 pending | passed |
+| APP-204 | T-E2E-01 due SL-05, T-WKO-01 passed, T-WKO-03 passed, T-WKO-05 passed, T-WKO-06 passed, T-WKO-07 passed | — | passed so far |
+| APP-205 | T-WKO-02 passed, T-WKO-03 passed, T-WKO-04 passed, T-WKO-05 passed | — | passed |
+| APP-206 | T-RID-07 passed, T-WKO-04 passed | I-15 pending | passed |
+| APP-209 | T-WKO-08 passed | D-07 pending, I-16 pending | passed |
+| APP-210 | T-CAT-05 passed, T-WKO-12 passed | D-03 pending, I-14 pending | passed |
+| APP-211 | T-CAT-04 passed, T-E2E-05 due SL-05, T-WKO-11 passed | D-03 pending, D-29 pending, I-14 pending | passed so far |
+
+## 18 On the Pi: SL-03 and SL-04
+
+1. Update the code and the display (as for SL-02), `uv sync`, `secrets.json` with mode 600.
+2. `uv run pytest -m "pi and slow" tests/adapters/test_fit.py tests/system/test_kill.py`: S-FIT-01 and T-REC-03.
+3. Ride the ERG check with `wow` on the real trainer; `tools/check_ride.py` on the ride: RR-01 to RR-05 and RR-12 to RR-14 pass.
+4. Import `ride.fit` into Garmin Connect and intervals.icu: D-25, A-28.
+5. DS-1: today's workout from intervals.icu on Home, Pre-ride with its steps, a ride of it.
+6. Results into `docs/verification-log.md` by test ID.
+
+### 18.1 Approval question
+
+Do you approve SL-03 and SL-04 as built (decisions IM-48 to IM-65, the four deviations of 16.4), closing when the Pi steps of section 18 pass, and the proposed document changes of 16.5?
+
 ## Change log
 
 | Rev. | Date | Change |
@@ -537,6 +712,8 @@ Do you approve SL-01 as built, SL-02 as built with the changes of 13.3 (closing 
 | 1 | 11 Nov 2026 | Slice plan; SL-01 planned, built and gated; SL-02 plan. |
 | 2 | 12 Nov 2026 | SL-02 built and gated on the laptop (sections 7 to 11); decisions IM-21 to IM-40; findings SF-1 to SF-3; steps for testing SL-01 and SL-02 on the Pi. |
 | 3 | 12 Nov 2026 | First test on the Pi (section 13): results, findings SF-4 to SF-7, changes IM-41 to IM-47. |
+| 4 | 13 Nov 2026 | T-SYS-01 passed (A-51 confirmed); SL-01 and SL-02 approved by Ferran; approved document changes listed in 13.6. |
+| 5 | 13 Nov 2026 | SL-03 and SL-04 planned, built and gated on the laptop (sections 14 to 18); decisions IM-48 to IM-65; findings SF-8 to SF-11; A-55 confirmed. |
 
 ## Sources
 
@@ -548,6 +725,10 @@ Do you approve SL-01 as built, SL-02 as built with the changes of 13.3 (closing 
 - npm registry, versions and peer dependencies read on 12 Nov 2026 (`npm view <package> version`, `npm view typescript-eslint@8.72.2 peerDependencies` → `typescript >=4.8.4 <6.1.0`, `npm view svelte-check@4.7.8 peerDependencies` → `typescript ^5.0.0 || ^6.0.0`, `npm view vitest@5.1.0 engines` → `node ^22.12.0 || ^24.0.0 || >=26.0.0`): https://registry.npmjs.org
 - aiohttp 3.14.5 as installed: `web.WebSocketResponse(heartbeat=...)`, `web.TCPSite(runner, host, port, ssl_context=...)`, `UrlDispatcher.add_static`, `Application.on_response_prepare`, `AppRunner.addresses`: https://docs.aiohttp.org/en/stable/web_reference.html
 - Fontsource variable packages 5.3.0: family names `Sofia Sans Variable` and `Sofia Sans Condensed Variable`, from the installed CSS
+- garmin-fit-sdk 21.221.0 on PyPI (Garmin's FIT SDK for Python), its `Encoder`, `Decoder` and type stubs as installed: https://pypi.org/project/garmin-fit-sdk/
+- Garmin FIT SDK cookbook, topic "Encoding FIT Activity Files" (message order, timer events, laps, session): https://developer.garmin.com/fit/cookbook/encoding-activity-files/
+- intervals.icu developer's post "API access to Intervals.icu": basic authentication with user `API_KEY`; `GET /api/v1/athlete/{id}/events` with `oldest` and `newest` as local dates: https://forum.intervals.icu/t/api-access-to-intervals-icu/609
+- aiohttp 3.14.5 as installed: `aiohttp.encode_basic_auth(login, password)` and the deprecation warnings of `BasicAuth` and `ClientSession(auth=...)`
 - Phase 3C display design, revision 2: `claude/phase3-display.md`
 - Phase 4 test plan, revision 2: `docs/phase4-test-plan.md`
 - Phase 3B Interface Control Document, revision 4: `claude/phase3-icd.md`

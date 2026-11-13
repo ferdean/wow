@@ -1,0 +1,225 @@
+{
+  "schema": 1,
+  "id": "ramp-test",
+  "name": "Ramp test",
+  "description": "15 min warm-up, then +20 W every minute from 120 W until you can't hold it. Tap Ride by resistance, Pause or Finish when you stop.",
+  "protocol_source": "Ferran, 11 Nov 2026; 1-minute, 20 W steps as in Zwift's ramp test",
+  "workout_doc": {
+    "steps": [
+      {
+        "duration": 600,
+        "power": {
+          "units": "w",
+          "value": 120
+        },
+        "warmup": true,
+        "text": "Warm-up"
+      },
+      {
+        "duration": 180,
+        "power": {
+          "units": "w",
+          "value": 150
+        },
+        "warmup": true,
+        "text": "Warm-up: a little harder"
+      },
+      {
+        "duration": 120,
+        "power": {
+          "units": "w",
+          "value": 100
+        },
+        "warmup": true,
+        "text": "Warm-up: easy before the ramp"
+      },
+      {
+        "reps": 1,
+        "text": "Ramp: hold each step as long as you can",
+        "steps": [
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 120
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 140
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 160
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 180
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 200
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 220
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 240
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 260
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 280
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 300
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 320
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 340
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 360
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 380
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 400
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 420
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 440
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 460
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 480
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 500
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 520
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 540
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 560
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 580
+            }
+          },
+          {
+            "duration": 60,
+            "power": {
+              "units": "w",
+              "value": 600
+            }
+          }
+        ]
+      },
+      {
+        "duration": 300,
+        "freeride": true,
+        "cooldown": true,
+        "text": "Cool-down"
+      }
+    ]
+  }
+}

@@ -9,6 +9,7 @@ class Screen(StrEnum):
     HOME = "home"
     PRE_RIDE = "pre_ride"
     RIDE = "ride"
+    SUMMARY = "summary"
 
 
 class Mode(StrEnum):
@@ -65,3 +66,21 @@ class CommandName(StrEnum):
     DEVICE_CHOOSE = "device_choose"
     RECOVERY_CONTINUE = "recovery_continue"
     RECOVERY_FINISH = "recovery_finish"
+
+
+class UploadState(StrEnum):
+    """Upload state of a ride (ICD IF-06)."""
+
+    OFF = "off"
+    PENDING = "pending"
+    UPLOADING = "uploading"
+    DONE = "done"
+    RETRYING = "retrying"
+    FAILED = "failed"
+    AUTH_ERROR = "auth_error"
+
+
+class WarningKind(StrEnum):
+    """Kind of a warning outside the ride."""
+
+    WORKOUTS_OFFLINE = "workouts_offline"

@@ -1,0 +1,550 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "not_found",
+  "hrm": "not_found"
+ },
+ "hrm_battery_pct": null,
+ "warnings": [
+  {
+   "kind": "workouts_offline",
+   "downloaded_utc": "2026-11-14T07:00:00.000Z"
+  }
+ ],
+ "screen": {
+  "name": "home",
+  "today": [
+   {
+    "ref": "library:2",
+    "source": "library",
+    "name": "Test workout",
+    "duration": 900.0,
+    "rideable": true,
+    "max_power": 225,
+    "sketch": [
+     {
+      "duration": 300.0,
+      "start_power": 225,
+      "end_power": 225,
+      "zone": 3
+     },
+     {
+      "duration": 300.0,
+      "start_power": 160,
+      "end_power": 160,
+      "zone": 2
+     },
+     {
+      "duration": 300.0,
+      "start_power": 125,
+      "end_power": 188,
+      "zone": 1
+     }
+    ]
+   }
+  ],
+  "library": [
+   {
+    "ref": "library:2",
+    "source": "library",
+    "name": "Test workout",
+    "duration": 900.0,
+    "rideable": true,
+    "max_power": 225,
+    "sketch": [
+     {
+      "duration": 300.0,
+      "start_power": 225,
+      "end_power": 225,
+      "zone": 3
+     },
+     {
+      "duration": 300.0,
+      "start_power": 160,
+      "end_power": 160,
+      "zone": 2
+     },
+     {
+      "duration": 300.0,
+      "start_power": 125,
+      "end_power": 188,
+      "zone": 1
+     }
+    ]
+   },
+   {
+    "ref": "library:1",
+    "source": "library",
+    "name": "VO2 Max \u2013 3\u00d76\u2032 30/30s + Tempo Finish",
+    "duration": 4800.0,
+    "rideable": true,
+    "max_power": 330,
+    "sketch": [
+     {
+      "duration": 900.0,
+      "start_power": 163,
+      "end_power": 163,
+      "zone": 2
+     },
+     {
+      "duration": 240.0,
+      "start_power": 215,
+      "end_power": 265,
+      "zone": 3
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 300.0,
+      "start_power": 125,
+      "end_power": 125,
+      "zone": 1
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 300.0,
+      "start_power": 125,
+      "end_power": 125,
+      "zone": 1
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 30.0,
+      "start_power": 330,
+      "end_power": 330,
+      "zone": 6
+     },
+     {
+      "duration": 30.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 300.0,
+      "start_power": 125,
+      "end_power": 125,
+      "zone": 1
+     },
+     {
+      "duration": 900.0,
+      "start_power": 230,
+      "end_power": 230,
+      "zone": 4
+     },
+     {
+      "duration": 480.0,
+      "start_power": 170,
+      "end_power": 120,
+      "zone": 2
+     },
+     {
+      "duration": 300.0,
+      "start_power": 0,
+      "end_power": 0,
+      "zone": 0
+     }
+    ]
+   },
+   {
+    "ref": "library:3",
+    "source": "library",
+    "name": "Notes only",
+    "duration": null,
+    "rideable": false,
+    "max_power": null,
+    "sketch": null
+   }
+  ],
+  "builtin": [
+   {
+    "ref": "builtin:ramp-test",
+    "source": "builtin",
+    "name": "Ramp test",
+    "duration": 2700.0,
+    "rideable": true,
+    "max_power": 600,
+    "sketch": [
+     {
+      "duration": 600.0,
+      "start_power": 120,
+      "end_power": 120,
+      "zone": 1
+     },
+     {
+      "duration": 180.0,
+      "start_power": 150,
+      "end_power": 150,
+      "zone": 2
+     },
+     {
+      "duration": 120.0,
+      "start_power": 100,
+      "end_power": 100,
+      "zone": 1
+     },
+     {
+      "duration": 60.0,
+      "start_power": 120,
+      "end_power": 120,
+      "zone": 1
+     },
+     {
+      "duration": 60.0,
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 60.0,
+      "start_power": 160,
+      "end_power": 160,
+      "zone": 2
+     },
+     {
+      "duration": 60.0,
+      "start_power": 180,
+      "end_power": 180,
+      "zone": 2
+     },
+     {
+      "duration": 60.0,
+      "start_power": 200,
+      "end_power": 200,
+      "zone": 3
+     },
+     {
+      "duration": 60.0,
+      "start_power": 220,
+      "end_power": 220,
+      "zone": 3
+     },
+     {
+      "duration": 60.0,
+      "start_power": 240,
+      "end_power": 240,
+      "zone": 4
+     },
+     {
+      "duration": 60.0,
+      "start_power": 260,
+      "end_power": 260,
+      "zone": 4
+     },
+     {
+      "duration": 60.0,
+      "start_power": 280,
+      "end_power": 280,
+      "zone": 5
+     },
+     {
+      "duration": 60.0,
+      "start_power": 300,
+      "end_power": 300,
+      "zone": 5
+     },
+     {
+      "duration": 60.0,
+      "start_power": 320,
+      "end_power": 320,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 340,
+      "end_power": 340,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 360,
+      "end_power": 360,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 380,
+      "end_power": 380,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 400,
+      "end_power": 400,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 420,
+      "end_power": 420,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 440,
+      "end_power": 440,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 460,
+      "end_power": 460,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 480,
+      "end_power": 480,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 500,
+      "end_power": 500,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 520,
+      "end_power": 520,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 540,
+      "end_power": 540,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 560,
+      "end_power": 560,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 580,
+      "end_power": 580,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "start_power": 600,
+      "end_power": 600,
+      "zone": 6
+     },
+     {
+      "duration": 300.0,
+      "start_power": 0,
+      "end_power": 0,
+      "zone": 0
+     }
+    ]
+   }
+  ],
+  "recovery": null
+ }
+}

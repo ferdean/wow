@@ -34,7 +34,7 @@ def test_targets_follow_ftp_intensity_and_round_half_up(
     expected: int,
 ) -> None:
     target = erg_target(watts, intensity, Range(0, 2000, step))
-    assert target.command.power == expected
+    assert target.power == expected
     assert not target.limited
 
 
@@ -55,7 +55,7 @@ def test_targets_outside_the_range_send_the_nearest_limit(
     sent: int,
 ) -> None:
     target = erg_target(requested, 100, D100)
-    assert (target.command.power, target.requested_power) == (sent, requested)
+    assert (target.power, target.requested_power) == (sent, requested)
     assert target.limited
 
 

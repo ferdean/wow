@@ -1,12 +1,13 @@
 [project]
 name = "witchesonwheels"
-version = "0.2.0"
+version = "0.3.0"
 description = "WitchesOnWheels: runs structured workouts on a smart trainer from a Raspberry Pi."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "aiohttp==3.14.5",
     "bleak==3.0.2",
+    "garmin-fit-sdk==21.221.0",
 ]
 
 [project.scripts]
