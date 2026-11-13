@@ -23,7 +23,8 @@
   <span class="link {trainer}"><i aria-hidden="true"></i>Trainer {words[trainer]}</span>
   <span class="link {hrm}"><i aria-hidden="true"></i>Strap {words[hrm]}</span>
   <span class="battery" class:low={batteryLow}>
-    <svg viewBox="0 0 20 10" aria-hidden="true"><rect x="0.5" y="0.5" width="16" height="9" rx="2" /><rect x="17" y="3" width="2" height="4" /></svg>
+    <svg viewBox="0 0 20 10" aria-hidden="true"><rect x="0.5" y="0.5" width="16" height="9" rx="2" /><rect class="tip" x="17" y="3" width="2" height="4" /><path
+        class="heart" d="M8.5 8 L5.7 5.2 A1.6 1.6 0 0 1 8.5 3.4 A1.6 1.6 0 0 1 11.3 5.2 Z" /></svg>
     {percent(battery)}{batteryLow ? " low" : ""}
   </span>
 </div>
@@ -79,8 +80,12 @@
     fill: none;
     stroke: currentColor;
   }
-  .battery svg rect:last-child {
+  .battery svg .tip {
     fill: currentColor;
+    stroke: none;
+  }
+  .battery svg .heart {
+    fill: var(--moon);
     stroke: none;
   }
   .low {

@@ -482,7 +482,53 @@ If the screen is off from what 3C shows, a screenshot per screen is enough; layo
 9. SL-02 is built with decisions IM-21 to IM-40 (section 8): among them a new `app/console` module, the recorder's journal and Bluetooth log pulled from SL-03, two built-in workouts, TypeScript 6.0.3, and L6 tests recorded in the verification log.
 10. The changes of 9.5 to 3A, the ICD and the test plan are proposed, to be applied when approved; findings SF-1 to SF-3 are recorded.
 
-**Approval question:** After tonight's test, do you approve SL-01 as built (its two log-based tests closing once the S1 and S2 logs are imported), SL-02 as built (closing when T-SYS-01 and RR-01 to RR-04 pass on the Pi), and the proposed document changes of 5.5 and 9.5?
+The approval question is in section 13.5.
+
+## 13 First test on the Pi, 12 Nov 2026
+
+### 13.1 Results
+
+| Item | Result | Evidence |
+|------|--------|----------|
+| Laptop gate through SL-02, S1 and S2 logs imported | passed: 255 pytest, 14 Vitest, trace 0 problems | gate output |
+| `wow-probe` on the D100 | control taken (00, 07), 150 W accepted, power received, released with 04 00 | probe log 16:14 UTC |
+| Ride "ERG check" 2026-11-12T162426Z | RR-01 to RR-04 pass | `docs/verification-log.md` |
+| A-60, no ride before the first stroke | confirmed by Ferran | rider report |
+| A-56, the page in Safari on the iPhone | works; three changes asked (13.3) | rider report |
+| T-SYS-01, A-51 | open | — |
+
+### 13.2 Findings
+
+| ID | Finding | Action |
+|----|---------|--------|
+| SF-4 | With a lead time of 1.5 s, the reported power starts to change about 0.75 s before the boundary and reaches 90 % of the step at +0.02 s going up and at +1.0 to +1.2 s going down. Ferran felt the change too early. | Default lead time 1.0 s (IM-41). |
+| SF-5 | BlueZ refused the strap's first connect with `InProgress` while the trainer was connecting, in the probe and in the app. The retry 2 s later worked. | SL-03: connect one device after the other, or retry `InProgress` at once. |
+| SF-6 | One event-loop delay of 61 ms during the first connect, over the 50 ms of A-51; none during the ride. | T-SYS-01 decides. |
+| SF-7 | During the ride: trainer data every 250 ms (longest gap 585 ms), strap every 500 ms (longest gap 813 ms), control point answers in 243 to 377 ms, no link loss. | None. |
+
+### 13.3 Changes after the test
+
+| ID | Change | Why |
+|----|--------|-----|
+| IM-41 | Default lead time 1.0 s (`DEFAULT_LEAD_TIME`, `deploy/settings.example.json`). | SF-4, Ferran's feel. |
+| IM-42 | A small white heart next to the heart rate and inside the strap's battery symbol. | Ferran. |
+| IM-43 | Home and Pre-ride: the title and Back stay at the top and Start at the bottom; only the content between them scrolls. | Ferran. |
+| IM-44 | Optional `[web] listen` address; the tests listen on 127.0.0.1. | With IPv6, a random port differed between the IPv4 and IPv6 sockets. |
+| IM-45 | flake8 checks `src`, `tools` and `tests` only; the display checks require Node 22.12 or later. | Ferran's own folders in the repository; Node 18 failed. |
+| IM-46 | T-SIM-01 checks the control point answer delays over S1 and S2 together. | S2 alone never took longer than 0.269 s. |
+| IM-47 | PEP 257 docstrings on every public object, checked by flake8-docstrings 1.7.0; constants typed `Final`; closed sets of strings as `StrEnum` (`core/vocab.py`). | Ferran's code standard. |
+
+### 13.4 Proposed document changes
+
+| Document | Change | From |
+|----------|--------|------|
+| Requirements, Table S | Lead time default 1.0 s instead of 1.5 s. The S2 rule gave 1.5 s; the first ride says 1.0 s feels right. | IM-41 |
+| 3C | Heart symbol next to the heart rate and in the battery symbol; fixed header and footer on scrolling screens. | IM-42, IM-43 |
+| ICD IF-10 | `[web] listen`, optional, all addresses when absent. | IM-44 |
+
+### 13.5 Approval question
+
+Do you approve SL-01 as built, SL-02 as built with the changes of 13.3 (closing when T-SYS-01 passes on the Pi), and the proposed document changes of 5.5, 9.5 and 13.4?
 
 ## Change log
 
@@ -490,6 +536,7 @@ If the screen is off from what 3C shows, a screenshot per screen is enough; layo
 |------|------|--------|
 | 1 | 11 Nov 2026 | Slice plan; SL-01 planned, built and gated; SL-02 plan. |
 | 2 | 12 Nov 2026 | SL-02 built and gated on the laptop (sections 7 to 11); decisions IM-21 to IM-40; findings SF-1 to SF-3; steps for testing SL-01 and SL-02 on the Pi. |
+| 3 | 12 Nov 2026 | First test on the Pi (section 13): results, findings SF-4 to SF-7, changes IM-41 to IM-47. |
 
 ## Sources
 

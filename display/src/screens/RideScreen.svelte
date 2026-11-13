@@ -2,6 +2,7 @@
   import type { CommandName, LinkState, Plan, RideScreen, Warning } from "../types/protocol";
   import { clock, countdown, watts, zoneColour } from "../format";
   import Banner from "../ui/Banner.svelte";
+  import Heart from "../ui/Heart.svelte";
   import Profile from "../ui/Profile.svelte";
   import Sheet from "../ui/Sheet.svelte";
   import StatusLine from "../ui/StatusLine.svelte";
@@ -68,7 +69,7 @@
       <div class="label">Keep spinning as long as you like, or finish the ride.</div>
     </div>
     <div class="cells">
-      <div class="cell"><span class="label">Heart rate</span><span class="number key">{watts(screen.hr_bpm)}</span></div>
+      <div class="cell"><span class="label">Heart rate</span><span class="number key">{watts(screen.hr_bpm)}<Heart /></span></div>
       <div class="cell"><span class="label">Ride time</span><span class="number key">{clock(elapsed)}</span></div>
     </div>
     <div class="profile grow"><Profile {plan} {elapsed} /></div>
@@ -90,7 +91,7 @@
       {#if screen.step}<span>Step {screen.step.index + 1} of {screen.step.count}</span>{/if}
     </div>
     <div class="cells">
-      <div class="cell"><span class="label">Heart rate</span><span class="number key">{watts(screen.hr_bpm)}</span></div>
+      <div class="cell"><span class="label">Heart rate</span><span class="number key">{watts(screen.hr_bpm)}<Heart /></span></div>
       <div class="cell" class:counting={count !== null}>
         <span class="label">Step left</span>
         <span class="number key">{count ?? clock(left)}</span>

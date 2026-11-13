@@ -2,7 +2,7 @@
   "schema": 1,
   "ftp": 250,
   "zones_pct": [55, 75, 90, 105, 120],
-  "lead_time": 1.5,
+  "lead_time": 1.0,
   "battery_warn_pct": 20,
   "free_ride_level_pct": 0,
   "upload_on": true,

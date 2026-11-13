@@ -21,21 +21,23 @@
   }
 </script>
 
-<div class="page">
+<div class="page fixed">
   <h1>WitchesOnWheels</h1>
-  <h2>Built in</h2>
-  {#each screen.builtin as card (card.ref)}
-    <button class="card panel" disabled={!card.rideable} onclick={() => send("open_workout", { ref: card.ref })}>
-      <span class="row"><span class="name grow">{card.name}</span><span class="label">{listDuration(card.duration)}</span></span>
-      <svg viewBox="0 0 1000 40" preserveAspectRatio="none" aria-hidden="true">
-        {#each sketch(card) as part, i (i)}
-          <rect x={part.x} width={Math.max(1, part.w - 2)} y={40 - part.h} height={part.h} fill={`var(--zone-${part.zone})`} />
-        {/each}
-      </svg>
-    </button>
-  {:else}
-    <p class="label">No workouts.</p>
-  {/each}
+  <div class="scroll">
+    <h2>Built in</h2>
+    {#each screen.builtin as card (card.ref)}
+      <button class="card panel" disabled={!card.rideable} onclick={() => send("open_workout", { ref: card.ref })}>
+        <span class="row"><span class="name grow">{card.name}</span><span class="label">{listDuration(card.duration)}</span></span>
+        <svg viewBox="0 0 1000 40" preserveAspectRatio="none" aria-hidden="true">
+          {#each sketch(card) as part, i (i)}
+            <rect x={part.x} width={Math.max(1, part.w - 2)} y={40 - part.h} height={part.h} fill={`var(--zone-${part.zone})`} />
+          {/each}
+        </svg>
+      </button>
+    {:else}
+      <p class="label">No workouts.</p>
+    {/each}
+  </div>
 </div>
 
 <style>

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Final
 
 DEFAULT_FTP: Final[int] = 250
-DEFAULT_LEAD_TIME: Final[float] = 1.5
+DEFAULT_LEAD_TIME: Final[float] = 1.0
 
 
 @dataclass(frozen=True)
