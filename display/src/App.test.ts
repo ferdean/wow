@@ -205,3 +205,17 @@ describe("S-DSP-03 a page that lost the Pi", () => {
     cleanup();
   });
 });
+
+describe("S-DSP-02 the profile after a skip", () => {
+  it("places the marker at the plan time, not the ride time", () => {
+    const view = golden("ride_erg");
+    if (view.screen.name !== "ride") {
+      throw new Error("ride_erg is not a ride view");
+    }
+    const skipped: View = { ...view, screen: { ...view.screen, elapsed: 30, remaining: 30 } };
+    const { container } = render(App, { props: { link: { ...fakeLink(skipped), receivedAt: performance.now() } } });
+    const marker = container.querySelector("rect.marker");
+    expect(Number(marker?.getAttribute("x"))).toBeCloseTo((60 / 90) * 1000 - 2, 0);
+    cleanup();
+  });
+});

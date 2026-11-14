@@ -27,6 +27,8 @@
   const elapsed = $derived(screen.elapsed + (running ? since : 0));
   const left = $derived(screen.step === null ? 0 : Math.max(0, screen.step.left - (running ? since : 0)));
   const remaining = $derived(screen.remaining === null ? null : Math.max(0, screen.remaining - (running ? since : 0)));
+  const planEnd = $derived(plan?.segments.at(-1)?.end ?? 0);
+  const position = $derived(remaining === null ? elapsed : planEnd - remaining);
   const count = $derived(countdown(left));
   const lost = $derived(links.trainer === "dropout");
   const free = $derived(!screen.waiting_for_power && !screen.workout_done && screen.step === null);
@@ -107,25 +109,25 @@
       {#if segment && segment.kind !== "erg"}<span>Free ride</span>{:else if segment}<span>Plan <b class="number">{watts(segment.start_power)}</b> W</span>{/if}
     </div>
     <div class="number levelnum"><span class="label">Level</span>{screen.resistance_pct ?? 0}<span class="unit">%</span></div>
-    <div class="row">
-      <button class="big grow" aria-label="Resistance down" disabled={screen.paused} onclick={() => send("resistance", { step: -1 })}>−</button>
-      <button class="big grow" aria-label="Resistance up" disabled={screen.paused} onclick={() => send("resistance", { step: 1 })}>+</button>
+    <div class="pair">
+      <button class="big" aria-label="Resistance down" disabled={screen.paused} onclick={() => send("resistance", { step: -1 })}>−</button>
+      <button class="big" aria-label="Resistance up" disabled={screen.paused} onclick={() => send("resistance", { step: 1 })}>+</button>
     </div>
     {#if screen.workout_done}
       <button class="primary" onclick={() => (sheet = "finish")}>Finish ride</button>
     {:else if canErg}
       <button class="primary" disabled={screen.paused} onclick={() => send("switch_mode", { mode: "erg" })}>{free ? "Ride by power" : "Back to ERG"}</button>
     {/if}
-    <div class="profile grow"><Profile {plan} {elapsed} /></div>
+    <div class="profile grow"><Profile {plan} elapsed={position} /></div>
     <div class="times label">
       <span><span class="number small">{clock(elapsed)}</span> ridden</span>
       {#if remaining !== null}<span><span class="number small">{timeLeft(remaining)}</span> to go</span>{/if}
     </div>
     {#if !screen.workout_done}
-      <div class="row controls">
-        <button class="primary grow" onclick={() => send(screen.paused ? "resume" : "pause")}>{screen.paused ? "Resume" : "Pause"}</button>
-        <button class="grow" disabled={free || screen.paused} onclick={askSkip}>Skip step</button>
-        <button class="grow" onclick={() => (sheet = "finish")}>Finish</button>
+      <div class="controls">
+        <button class="primary" onclick={() => send(screen.paused ? "resume" : "pause")}>{screen.paused ? "Resume" : "Pause"}</button>
+        <button disabled={free || screen.paused} onclick={askSkip}>Skip step</button>
+        <button onclick={() => (sheet = "finish")}>Finish</button>
       </div>
     {/if}
   {:else}
@@ -162,27 +164,27 @@
         <span class="label">for {clock(screen.next.duration)}</span>
       </div>
     {/if}
-    <div class="profile grow"><Profile {plan} {elapsed} /></div>
+    <div class="profile grow"><Profile {plan} elapsed={position} /></div>
     <div class="times label">
       <span><span class="number small">{clock(elapsed)}</span> ridden</span>
       {#if remaining !== null}<span><span class="number small">{timeLeft(remaining)}</span> to go</span>{/if}
     </div>
-    <div class="row">
+    <div class="adjust">
       {#if free}
         <button aria-label="Power down" onclick={() => send("free_ride_power", { step: -1 })}>−</button>
-        <span class="grow intensity"><span class="number small">{watts(screen.free_ride_target)}</span> W</span>
+        <span class="intensity"><span class="number small">{watts(screen.free_ride_target)}</span> W</span>
         <button aria-label="Power up" onclick={() => send("free_ride_power", { step: 1 })}>+</button>
       {:else}
         <button aria-label="Intensity down" disabled={screen.paused} onclick={() => send("intensity", { step: -1 })}>−</button>
-        <span class="grow intensity"><span class="number small">{screen.intensity_pct}</span> %</span>
+        <span class="intensity"><span class="number small">{screen.intensity_pct}</span> %</span>
         <button aria-label="Intensity up" disabled={screen.paused} onclick={() => send("intensity", { step: 1 })}>+</button>
       {/if}
       <button class="secondary" disabled={screen.paused} onclick={() => send("switch_mode", { mode: "resistance" })}>Ride by resistance</button>
     </div>
-    <div class="row controls">
-      <button class="primary grow" onclick={() => send(screen.paused ? "resume" : "pause")}>{screen.paused ? "Resume" : "Pause"}</button>
-      <button class="grow" disabled={free || screen.paused} onclick={askSkip}>Skip step</button>
-      <button class="grow" onclick={() => (sheet = "finish")}>Finish</button>
+    <div class="controls">
+      <button class="primary" onclick={() => send(screen.paused ? "resume" : "pause")}>{screen.paused ? "Resume" : "Pause"}</button>
+      <button disabled={free || screen.paused} onclick={askSkip}>Skip step</button>
+      <button onclick={() => (sheet = "finish")}>Finish</button>
     </div>
   {/if}
 </div>
@@ -335,9 +337,31 @@
     justify-content: space-between;
     align-items: baseline;
   }
+  .adjust {
+    display: grid;
+    grid-template-columns: 62px minmax(0, 1fr) 62px minmax(0, 1.6fr);
+    gap: var(--gap);
+    align-items: center;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--gap);
+  }
+  .pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--gap);
+  }
+  .controls button,
+  .adjust button {
+    min-width: 0;
+    padding: 0 8px;
+  }
   .intensity {
     text-align: center;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
   .explain {
     margin: 0;

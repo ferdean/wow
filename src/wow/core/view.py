@@ -133,11 +133,16 @@ def pre_ride_screen(plan: Plan, trainer: LinkState,
 
 
 def plan_message(plan: Plan,
-                 zones_pct: Sequence[int] = DEFAULT_ZONES_PCT) -> Json:
-    """Return the plan message of a ride."""
+                 zones_pct: Sequence[int] = DEFAULT_ZONES_PCT,
+                 intensity_pct: int = 100) -> Json:
+    """Return the plan message of a ride; segments at the intensity."""
+    def scaled(power: Fraction | None) -> int | None:
+        return None if power is None else round_half_up(
+            exact(power) * intensity_pct / 100)
+
     segments = []
     for step in plan.steps:
-        start, end = _watts(step.power), _watts(step.end_power)
+        start, end = scaled(step.power), scaled(step.end_power)
         segments.append({
             "start": _ms(step.start), "end": _ms(step.end),
             "block": step.block, "step": step.index,
@@ -164,7 +169,9 @@ def plan_message(plan: Plan,
             "index": index, "label": block.label or "",
             "repeats": block.repeats, "duration": _ms(block.duration),
             "mode": Mode.ERG, "steps": steps})
-    return {"type": "plan", "plan_id": plan.plan_id, "segments": segments,
+    plan_id = (plan.plan_id if intensity_pct == 100
+               else f"{plan.plan_id}@{intensity_pct}%")
+    return {"type": "plan", "plan_id": plan_id, "segments": segments,
             "blocks": blocks}
 
 

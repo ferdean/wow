@@ -1,6 +1,6 @@
 # Phase 5 — Implementation
 
-**Status:** revision 8, 14 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop (sections 20 to 25), awaiting the rides on the Pi. SL-13 (route simulation) added to the slice plan. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
+**Status:** revision 9, 14 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator (sections 20 to 26), awaiting the rides on the Pi. SL-13 (route simulation) added to the slice plan. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
 
 ## 1 How Phase 5 works
 
@@ -489,7 +489,7 @@ If the screen is off from what 3C shows, a screenshot per screen is enough; layo
 14. The changes of 16.5 are proposed, to be applied when approved.
 15. The deviations of 16.4 are accepted. After the ride of 13 Nov (section 19): changes IM-66 to IM-68, findings SF-12 to SF-15.
 16. SL-03 and SL-04 are approved (14 Nov 2026); the changes of 16.5 are approved with them.
-17. SL-05 and SL-06 are built together with decisions IM-69 to IM-87 (section 21); findings SF-16 to SF-21 and two test-plan deviations are recorded (22.4); the changes of 22.5 are proposed.
+17. SL-05 and SL-06 are built together with decisions IM-69 to IM-87 (section 21); findings SF-16 to SF-21 and two test-plan deviations are recorded (22.4); the changes of 22.5 are proposed. After the first simulated ride: changes IM-88 to IM-90, findings SF-22 to SF-24 (section 25).
 18. SL-13, route simulation after the ride, is the last slice, run with lighter documentation and testing; its requirements are written when it starts (section 2).
 
 ## 13 First test on the Pi, 12 Nov 2026
@@ -856,7 +856,7 @@ Deviations from the test plan:
 | Document | Change |
 |----------|--------|
 | 3A architecture | `core/target_policy` gives targets only, `core/ride` schedules them (IM-84); `adapters/ble_sim/faults`; `adapters/ble_replay` as built (IM-82). |
-| ICD | IF-04 events and actions of IM-69; journal fields of IM-70 and the `command` record; IF-06 commands `pause`, `resume`, `skip`, `finish`, `discard`, `intensity`, `switch_mode`, `resistance`, `free_ride_power`, `set_block_mode`, `open_free_ride`; view fields `paused`, `resistance_pct`, `free_ride_target`; IF-10 `settings.json` `free_ride_level_pct`. |
+| ICD | IF-04 events and actions of IM-69; journal fields of IM-70 and the `command` record; IF-06 commands `pause`, `resume`, `skip`, `finish`, `discard`, `intensity`, `switch_mode`, `resistance`, `free_ride_power`, `set_block_mode`, `open_free_ride`; view fields `paused`, `resistance_pct`, `free_ride_target`; the plan message at the ride's intensity and its `plan_id` (IM-89); IF-10 `settings.json` `free_ride_level_pct`. |
 | Test plan | RR-02's dropout and reconnect rules (IM-83); S-PW-01's set-up (IM-85); T-TGT-07 through the ride; the deviations of 22.4. |
 | Phase 1 requirements | When SL-13 starts: requirements for route simulation, and the item taken off the out-of-scope list. |
 
@@ -921,9 +921,31 @@ From `tools/trace.py --through SL-06`, 14 Nov 2026.
 6. D-14 to D-17 of DS-3, on an easy ride or at the end of one.
 7. `tools/check_ride.py` on each ride; results into `docs/verification-log.md` by ID.
 
-## 25 Approval question
+## 25 First ride on the simulator, 14 Nov 2026
 
-Do you approve SL-05 and SL-06 as built, with decisions IM-69 to IM-87, the deviations of 22.4 and the proposed document changes of 22.5, closing when the rides of section 24 pass?
+Ferran rode a workout on `wow --sim` from the iPhone, with intensity changes and a skip.
+
+### 25.1 Findings
+
+| ID | Finding | Action |
+|----|---------|--------|
+| SF-22 | The row of −, intensity, + and Ride by resistance sized its items by their content: from 100 to 95 % the − and + narrowed and Ride by resistance widened (Ferran). Pause and Resume shifted the bottom row the same way. | IM-88 |
+| SF-23 | An intensity change moved the target and the band into another zone, but the profile kept the plan's colours at 100 % (Ferran). | IM-89 |
+| SF-24 | After a skip the profile's marker stayed at the ride time (Ferran); the time to go already counted plan time. | IM-90 |
+
+### 25.2 Changes after the ride
+
+| ID | Change | Why |
+|----|--------|-----|
+| IM-88 | Fixed grid columns: the intensity row (62 px, the value, 62 px, Ride by resistance at 1.6 parts), the bottom row (three equal columns) and the resistance layout's − and + (two equal columns); the value in tabular digits. | SF-22 |
+| IM-89 | While the ride screen is open, the plan message carries its segments at the ride's intensity, watts and zones computed in `core/view` with the targets' rounding; its `plan_id` becomes `<ref>@<ftp>@<intensity>%` when the intensity isn't 100 %, so the hub sends it again at each change. Pre-ride's plan stays at 100 %. | SF-23 |
+| IM-90 | The profile's marker sits at plan time, worked out on the page as the plan's end minus the time to go; no new view field. | SF-24 |
+
+Tests: S-VIEW-01 and S-SHL-03 for the plan at an intensity, S-DSP-02 for the marker after a skip. Gate through SL-06 passed again: 389 pytest, 44 Vitest, core 96.4 % branches, 0 problems. Chromium screenshots of `wow --sim` at 100, 95 and 120 % and after a skip show the fixed rows, the recoloured profile and the marker at the next step.
+
+## 26 Approval question
+
+Do you approve SL-05 and SL-06 as built, with decisions IM-69 to IM-87, the changes IM-88 to IM-90 of section 25, the deviations of 22.4 and the proposed document changes of 22.5, closing when the rides of section 24 pass?
 
 ## Change log
 
@@ -937,6 +959,7 @@ Do you approve SL-05 and SL-06 as built, with decisions IM-69 to IM-87, the devi
 | 6 | 13 Nov 2026 | First ride of SL-03 and SL-04 (section 19): deviations accepted, findings SF-12 to SF-15, changes IM-66 to IM-68. |
 | 7 | 14 Nov 2026 | RR-01 passed on the second run; SL-03 and SL-04 approved by Ferran. |
 | 8 | 14 Nov 2026 | SL-05 and SL-06 planned, built and gated on the laptop (sections 20 to 25); decisions IM-69 to IM-87; findings SF-16 to SF-21; SL-13 route simulation added to the slice plan. |
+| 9 | 14 Nov 2026 | First ride on the simulator (section 25): findings SF-22 to SF-24, changes IM-88 to IM-90. |
 
 ## Sources
 

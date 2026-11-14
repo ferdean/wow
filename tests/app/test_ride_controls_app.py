@@ -8,7 +8,8 @@ import pytest
 from garmin_fit_sdk import Decoder, Stream
 
 from tests.support.app_rig import (
-    AppSession, RecordedProvider, app_config, read_jsonl, ride_dirs,
+    ERG_CHECK, AppSession, RecordedProvider, app_config, read_jsonl,
+    ride_dirs,
 )
 from tests.support.timeline import TESTDATA, load_json
 from wow.adapters.clock_stepped import SteppedClock
@@ -228,6 +229,35 @@ async def test_the_ride_screen_follows_pause_and_free_ride(
     assert app.console.view()["screen"]["paused"] is True
     assert app.console.command("intensity", {"step": 2}) == "bad_request"
     assert app.console.command("resume", {}) is None
+    assert app.console.command("finish", {}) is None
+    await clock.advance(5.0)
+    await clock.drive(app.devices.close(), limit=60.0)
+    await clock.drive(app.rides.close(), limit=60.0)
+    app.recorder.stop()
+
+
+@pytest.mark.case("S-SHL-03")
+@pytest.mark.asyncio
+async def test_the_profile_follows_the_intensity_on_the_ride_screen(
+        tmp_path: Path) -> None:
+    clock = SteppedClock()
+    app = App(app_config(tmp_path), clock)
+    app.recorder.start()
+    assert app.console.command("open_workout", {"ref": ERG_CHECK}) is None
+    planned = app.console.plan()
+    assert planned is not None
+    await clock.advance(15.0)
+    assert app.console.command("start", {}) is None
+    await clock.advance(10.0)
+    assert app.console.command("intensity", {"step": 1}) is None
+    riding = app.console.plan()
+    assert riding is not None
+    assert riding["plan_id"] == f"{planned['plan_id']}@105%"
+    assert [s["start_power"] for s in planned["segments"]] == [
+        120, 220, 130, 220, 130, 120]
+    assert [s["start_power"] for s in riding["segments"]] == [
+        126, 231, 137, 231, 137, 126]
+    assert [s["zone"] for s in riding["segments"]][:2] == [1, 4]
     assert app.console.command("finish", {}) is None
     await clock.advance(5.0)
     await clock.drive(app.devices.close(), limit=60.0)

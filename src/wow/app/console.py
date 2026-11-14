@@ -61,8 +61,12 @@ class Console:
         return self._screen
 
     def plan(self) -> Json | None:
-        """Return the plan message of the ride, if any."""
-        return None if self._plan is None else plan_message(self._plan)
+        """Return the plan message, at the ride's intensity while riding."""
+        if self._plan is None:
+            return None
+        intensity = (self._rides.ride.intensity_pct
+                     if self._screen == Screen.RIDE else 100)
+        return plan_message(self._plan, intensity_pct=intensity)
 
     def view(self) -> Json:
         """Return the current view state."""
