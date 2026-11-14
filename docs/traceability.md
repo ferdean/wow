@@ -5,7 +5,7 @@
 | APP-101 | T-COD-07 passed | I-01 pending | passed |
 | APP-102 | T-DEV-01 passed, T-VIEW-11 passed | D-04 pending, I-15 pending | passed |
 | APP-103 | T-COD-06 passed, T-DEV-02 passed, T-SES-07 passed | — | passed |
-| APP-104 | T-COD-07 passed, T-SES-01 passed | RR-01 fail | passed |
+| APP-104 | T-COD-07 passed, T-SES-01 passed | RR-01 pass | passed |
 | APP-105 | T-COD-08 passed, T-SES-02 passed, T-SES-03 passed, T-SES-04 passed, T-SES-08 passed | D-31 pending, I-18 pending | passed |
 | APP-106 | T-SES-05 passed | — | passed |
 | APP-107 | T-SES-06 passed, T-SES-07 passed | D-31 pending, I-18 pending | passed |

@@ -1,6 +1,6 @@
 # Phase 5 — Implementation
 
-**Status:** revision 6, 13 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, gated and ridden on the Pi on 13 Nov (sections 14 to 19); waiting for approval (19.5). Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
+**Status:** revision 7, 14 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). Next: SL-05 (ride controls). Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
 
 ## 1 How Phase 5 works
 
@@ -486,6 +486,7 @@ If the screen is off from what 3C shows, a screenshot per screen is enough; layo
 13. SL-03 and SL-04 are built together with decisions IM-48 to IM-65 (section 15); A-55 is confirmed; findings SF-8 to SF-11 and four test-plan deviations are recorded (16.4).
 14. The changes of 16.5 are proposed, to be applied when approved.
 15. The deviations of 16.4 are accepted. After the ride of 13 Nov (section 19): changes IM-66 to IM-68, findings SF-12 to SF-15.
+16. SL-03 and SL-04 are approved (14 Nov 2026); the changes of 16.5 are approved with them.
 
 ## 13 First test on the Pi, 12 Nov 2026
 
@@ -746,6 +747,10 @@ Today's planned workout from intervals.icu, "Long ride + SS" (1 h 45: 10 min ram
 
 Do you approve SL-03 and SL-04 as built, with decisions IM-48 to IM-65 and the changes IM-66 to IM-68 of 19.3, closing when RR-01 passes on the second run of 19.4, and the proposed document changes of 16.5?
 
+**Approved by Ferran on 14 Nov 2026**, after RR-01 passed on the second run (SF-12 confirmed). SL-03 and SL-04 are closed. The changes of 16.5 join those of 13.6, to be applied in each document's next revision.
+
+A-28 stays open: intervals.icu showed the laps and 100 % compliance with the planned workout, which comes from its own plan, not from the FIT file's `target_power` field. It is noted with D-25 in SL-08.
+
 ## Change log
 
 | Rev. | Date | Change |
@@ -756,6 +761,7 @@ Do you approve SL-03 and SL-04 as built, with decisions IM-48 to IM-65 and the c
 | 4 | 13 Nov 2026 | T-SYS-01 passed (A-51 confirmed); SL-01 and SL-02 approved by Ferran; approved document changes listed in 13.6. |
 | 5 | 13 Nov 2026 | SL-03 and SL-04 planned, built and gated on the laptop (sections 14 to 18); decisions IM-48 to IM-65; findings SF-8 to SF-11; A-55 confirmed. |
 | 6 | 13 Nov 2026 | First ride of SL-03 and SL-04 (section 19): deviations accepted, findings SF-12 to SF-15, changes IM-66 to IM-68. |
+| 7 | 14 Nov 2026 | RR-01 passed on the second run; SL-03 and SL-04 approved by Ferran. |
 
 ## Sources
 
