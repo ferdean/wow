@@ -8,3 +8,5 @@ build/
 src/wow/web/static/
 display/node_modules/
 wow-data/
+logs/
+certs/
