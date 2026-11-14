@@ -1,12 +1,13 @@
 """L3 rig: the app shell on the stepped clock with the simulated D100 and
 HRM 200 behind the logging connector (test plan 2.1)."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from wow.adapters.ble_log import BleLogRecord, LoggingConnector
 from wow.adapters.ble_sim import (
-    D100_ADDRESS, HRM_ADDRESS, SimConnector, SimD100Server, SimHrm200Server,
-    SimScheduler,
+    D100_ADDRESS, HRM_ADDRESS, Fault, Faults, SimConnector, SimD100Server,
+    SimHrm200Server, SimScheduler,
 )
 from wow.adapters.ble_sim.d100 import (
     D100_FEATURES, D100_POWER_RANGE, D100_RESISTANCE_RANGE,
@@ -47,6 +48,9 @@ def make_rig(
     battery_pct: int = 80,
     d100_type: type[SimD100Server] = SimD100Server,
     choice: DeviceChoice = DeviceChoice(D100_ADDRESS, HRM_ADDRESS),
+    trainer_faults: Sequence[Fault] = (),
+    strap_faults: Sequence[Fault] = (),
+    adapter_faults: Sequence[Fault] = (),
 ) -> Rig:
     clock = SteppedClock()
     scheduler = SimScheduler(clock)
@@ -55,10 +59,14 @@ def make_rig(
         resistance_range=resistance_range) if with_d100 else None
     hrm = (SimHrm200Server(scheduler, battery_pct=battery_pct)
            if with_hrm else None)
+    if d100 is not None:
+        d100.faults = Faults(trainer_faults)
+    if hrm is not None:
+        hrm.faults = Faults(strap_faults)
     servers = [s for s in (d100, hrm) if s is not None]
     log: list[BleLogRecord] = []
     roles = {D100_ADDRESS: "trainer", HRM_ADDRESS: "hrm"}
-    sim = SimConnector(clock, servers)
+    sim = SimConnector(clock, servers, Faults(adapter_faults))
     connector = LoggingConnector(
         sim, clock, log.append,
         lambda address: roles.get(address.upper(), "other"))

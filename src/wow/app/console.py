@@ -8,6 +8,7 @@ Home with today's, the library's and the built-in workouts, Pre-ride,
 the ride screen from Start to Finish, and the Summary after Finish.
 """
 
+import dataclasses
 import logging
 from collections.abc import Callable, Mapping
 from typing import Any
@@ -15,7 +16,7 @@ from typing import Any
 from wow.app.config import RideSettings
 from wow.app.device_manager import DeviceManager
 from wow.app.ride_controller import RideController, RideSetup
-from wow.app.workout_catalog import Entry, WorkoutCatalog
+from wow.app.workout_catalog import Entry, Source, WorkoutCatalog
 from wow.core.devices import HrSample, LinkState, TrainerSample
 from wow.core.plan import Plan, make_plan
 from wow.core.view import (
@@ -24,7 +25,9 @@ from wow.core.view import (
 )
 from wow.ports.clock import Clock
 from wow.core.ride import RidePhase
-from wow.core.vocab import CommandName, Problem, Screen, WarningKind
+from wow.core.workout import Workout
+from wow.core.vocab import CommandName, Mode, Problem, Screen, WarningKind
+from wow.core.workout import free_ride_workout
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +50,7 @@ class Console:
         self._screen = Screen.HOME
         self._plan: Plan | None = None
         self._entry: Entry | None = None
+        self._block_modes: list[Mode] = []
         self._power = PowerAverage()
         self._hr = Latest()
         self._data_mono: float | None = None
@@ -102,6 +106,11 @@ class Console:
                                  self._devices.hrm.link())
         self._on_change()
 
+    def set_free_ride_level(self, pct: int) -> None:
+        """Keep the free-ride level the rider chose (APP-705)."""
+        self._settings = dataclasses.replace(self._settings,
+                                             free_ride_level_pct=pct)
+
     def open_home(self) -> None:
         """Show Home and refresh the workouts."""
         self._screen, self._plan, self._entry = Screen.HOME, None, None
@@ -112,6 +121,7 @@ class Console:
         logger.info("ride ended: %s", cause)
         if cause == RidePhase.CANCELLED:
             self._screen = Screen.PRE_RIDE
+            self._devices.open_pre_ride()
         elif self._rides.summary is not None:
             self._screen = Screen.SUMMARY
         else:
@@ -122,7 +132,8 @@ class Console:
             return ride_screen(self._rides.ride, now, self._power.value(now),
                                self._hr.value(now))
         if self._screen == Screen.PRE_RIDE and self._plan is not None:
-            return pre_ride_screen(self._plan, trainer)
+            return pre_ride_screen(self._plan, trainer, self._block_modes,
+                                   self._is_free())
         summary = self._rides.summary
         if self._screen == Screen.SUMMARY and summary is not None:
             return summary_screen(summary.ride_id, summary.title,
@@ -156,10 +167,33 @@ class Console:
             return Problem.BAD_REQUEST
         if item.workout is None:
             return Problem.INVALID_STATE
+        self._open_pre_ride(item, item.workout)
+        return None
+
+    def _home_open_free_ride(self, _args: Mapping[str, Any]) -> str | None:
+        workout = free_ride_workout()
+        self._open_pre_ride(Entry(workout.ref, Source.FREE_RIDE,
+                                  workout.name, workout, None), workout)
+        return None
+
+    def _open_pre_ride(self, item: Entry, workout: Workout) -> None:
         self._entry = item
-        self._plan = make_plan(item.workout, self._ftp)
+        self._plan = make_plan(workout, self._ftp)
+        self._block_modes = [Mode.ERG] * len(workout.blocks)
         self._screen = Screen.PRE_RIDE
         self._devices.open_pre_ride()
+
+    def _is_free(self) -> bool:
+        return self._entry is not None and (
+            self._entry.source == Source.FREE_RIDE)
+
+    def _pre_ride_set_block_mode(self, args: Mapping[str, Any]
+                                 ) -> str | None:
+        block, mode = args.get("block"), args.get("mode")
+        if self._is_free() or not isinstance(block, int) or not (
+                0 <= block < len(self._block_modes)) or mode not in set(Mode):
+            return Problem.BAD_REQUEST
+        self._block_modes[block] = Mode(mode)
         return None
 
     def _pre_ride_back(self, _args: Mapping[str, Any]) -> str | None:
@@ -179,7 +213,8 @@ class Console:
             raw=self._entry.raw, source=self._entry.source,
             zones_pct=settings.zones_pct,
             free_ride_level_pct=settings.free_ride_level_pct,
-            upload_on=settings.upload_on))
+            upload_on=settings.upload_on,
+            block_modes=tuple(self._block_modes)))
         if refused is not None:
             logger.info("start refused: %s", refused)
             return Problem.INVALID_STATE
@@ -190,4 +225,49 @@ class Console:
         return Problem.INVALID_STATE if self._rides.cancel() else None
 
     def _ride_finish(self, _args: Mapping[str, Any]) -> str | None:
-        return Problem.INVALID_STATE if self._rides.finish() else None
+        return _refusal(self._rides.finish())
+
+    def _ride_discard(self, _args: Mapping[str, Any]) -> str | None:
+        return _refusal(self._rides.discard())
+
+    def _ride_pause(self, _args: Mapping[str, Any]) -> str | None:
+        return _refusal(self._rides.pause())
+
+    def _ride_resume(self, _args: Mapping[str, Any]) -> str | None:
+        return _refusal(self._rides.resume())
+
+    def _ride_skip(self, _args: Mapping[str, Any]) -> str | None:
+        return _refusal(self._rides.skip())
+
+    def _ride_intensity(self, args: Mapping[str, Any]) -> str | None:
+        step = _step(args)
+        return step if isinstance(step, str) else _refusal(
+            self._rides.intensity(step))
+
+    def _ride_resistance(self, args: Mapping[str, Any]) -> str | None:
+        step = _step(args)
+        return step if isinstance(step, str) else _refusal(
+            self._rides.resistance(step))
+
+    def _ride_free_ride_power(self, args: Mapping[str, Any]) -> str | None:
+        step = _step(args)
+        return step if isinstance(step, str) else _refusal(
+            self._rides.free_ride_power(step))
+
+    def _ride_switch_mode(self, args: Mapping[str, Any]) -> str | None:
+        mode = args.get("mode")
+        if mode not in set(Mode):
+            return Problem.BAD_REQUEST
+        power = self._power.value(self._clock.monotonic())
+        return _refusal(self._rides.switch_mode(Mode(mode), power))
+
+
+def _refusal(problem: str | None) -> str | None:
+    return None if problem is None else Problem.INVALID_STATE
+
+
+def _step(args: Mapping[str, Any]) -> int | str:
+    step = args.get("step")
+    if step not in (1, -1) or isinstance(step, bool):
+        return Problem.BAD_REQUEST
+    return int(step)

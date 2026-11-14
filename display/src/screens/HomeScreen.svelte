@@ -66,7 +66,7 @@
     {/each}
   </div>
   <div class="row more">
-    <button class="grow" disabled>Free ride</button>
+    <button class="grow" onclick={() => send("open_free_ride")}>Free ride</button>
     <button class="grow" disabled>Past rides</button>
     <button class="grow" disabled>Settings</button>
   </div>

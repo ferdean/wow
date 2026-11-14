@@ -4,9 +4,7 @@ import pytest
 
 from wow.core.devices import Range
 from wow.core.numbers import round_half_up, zone_of
-from wow.core.plan import make_plan
-from wow.core.target_policy import PlanPolicy, erg_target
-from wow.core.workout import Block, PowerTarget, PowerUnit, Step, Workout
+from wow.core.target_policy import erg_target
 
 D100 = Range(50, 600, 1)
 
@@ -57,49 +55,6 @@ def test_targets_outside_the_range_send_the_nearest_limit(
     target = erg_target(requested, 100, D100)
     assert (target.power, target.requested_power) == (sent, requested)
     assert target.limited
-
-
-def thirty_thirty(*powers: int) -> PlanPolicy:
-    steps = tuple(
-        Step(30.0, PowerTarget(p, PowerUnit.WATTS), None) for p in powers
-    )
-    plan = make_plan(Workout("t", "t", None, (Block(None, 1, steps),)), 250)
-    return PlanPolicy(plan, D100, 1.5)
-
-
-@pytest.mark.case("T-TGT-07")
-@pytest.mark.req("APP-304")
-@pytest.mark.parametrize(
-    "lead, expected", [(1.5, 28.5), (0.0, 30.0), (5.0, 25.0)]
-)
-def test_next_target_goes_out_one_lead_time_early(
-    lead: float,
-    expected: float,
-) -> None:
-    steps = (
-        Step(30.0, PowerTarget(330, PowerUnit.WATTS), None),
-        Step(30.0, PowerTarget(140, PowerUnit.WATTS), None),
-    )
-    plan = make_plan(Workout("t", "t", None, (Block(None, 1, steps),)), 250)
-    policy = PlanPolicy(plan, D100, lead)
-    assert policy.send_time(0, 0.0, 100) == expected
-
-
-@pytest.mark.case("T-TGT-07")
-@pytest.mark.req("APP-304")
-def test_no_send_for_an_unchanged_target_or_after_the_last_step() -> None:
-    policy = thirty_thirty(330, 330, 140)
-    assert policy.send_time(0, 0.0, 100) is None
-    assert policy.send_time(1, 30.0, 100) == 58.5
-    assert policy.send_time(2, 60.0, 100) is None
-
-
-@pytest.mark.case("T-TGT-07")
-@pytest.mark.req("APP-304")
-def test_never_before_the_current_step_began() -> None:
-    policy = thirty_thirty(330, 140, 330)
-    assert policy.send_time(1, 59.0, 100) == 59.0
-    assert policy.send_time(1, 30.0, 100) == 58.5
 
 
 @pytest.mark.case("S-WKO-01")

@@ -48,6 +48,7 @@ class FtmsTrainer:
         self._warnings: set[str] = set()
         self._closed = asyncio.Event()
         self._closing = False
+        self._last_data = clock.monotonic()
         self._tasks: set[asyncio.Task[None]] = set()
         self.on_sample = on_sample or (lambda _sample: None)
         self.on_link: Callable[[LinkState], None] = lambda _state: None
@@ -71,6 +72,15 @@ class FtmsTrainer:
     def set_command(self, command: TrainerCommand) -> None:
         """Set the command the trainer should hold."""
         self._driver.post(SetCommand(command))
+
+    def last_data(self) -> float:
+        """Return when the trainer last sent data, or connected."""
+        return self._last_data
+
+    def mark_silent(self) -> None:
+        """Show a dropout while the link is up but no data comes."""
+        if self._link == LinkState.CONNECTED:
+            self.set_link(LinkState.DROPOUT)
 
     def responding(self) -> bool:
         """Return whether the trainer answers in time."""
@@ -110,6 +120,7 @@ class FtmsTrainer:
             uuids.FITNESS_MACHINE_CONTROL_POINT,
             lambda data: self._driver.post(Indication(data)))
         self._client = client
+        self._last_data = self._clock.monotonic()
         self._closed.clear()
         self._closing = False
         self._driver.post(LinkUp(capabilities))
@@ -138,6 +149,9 @@ class FtmsTrainer:
         await asyncio.gather(*tasks, return_exceptions=True)
 
     def _on_bike_data(self, data: bytes) -> None:
+        self._last_data = self._clock.monotonic()
+        if self._link == LinkState.DROPOUT and self._client is not None:
+            self.set_link(LinkState.CONNECTED)
         record = codec.decode_indoor_bike_data(data, self._resistance_width)
         if isinstance(record, Dropped):
             logger.warning("indoor bike data dropped (%s): %s",

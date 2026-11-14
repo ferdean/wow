@@ -115,15 +115,18 @@ def home_screen(builtin: Sequence[Json], today: Sequence[Json] = (),
             "recovery": None}
 
 
-def pre_ride_screen(plan: Plan, trainer: LinkState) -> Json:
+def pre_ride_screen(plan: Plan, trainer: LinkState,
+                    block_modes: Sequence[Mode] = (),
+                    free: bool = False) -> Json:
     """Return the Pre-ride screen."""
     ready = trainer == LinkState.CONNECTED
+    modes = list(block_modes) or [Mode.ERG] * len(plan.workout.blocks)
     return {
         "name": Screen.PRE_RIDE, "title": plan.workout.name,
-        "free_ride": False,
-        "ftp": plan.ftp, "duration": _ms(plan.duration),
-        "plan_id": plan.plan_id,
-        "block_modes": [Mode.ERG] * len(plan.workout.blocks),
+        "free_ride": free, "ftp": plan.ftp,
+        "duration": None if free else _ms(plan.duration),
+        "plan_id": None if free else plan.plan_id,
+        "block_modes": [] if free else modes,
         "can_start": ready,
         "blocked": None if ready else Problem.TRAINER_MISSING,
     }
@@ -169,41 +172,48 @@ def ride_screen(ride: Ride, now: float, power: int | None,
                 hr_bpm: int | None) -> Json:
     """Return the ride screen at now."""
     plan = ride.plan
-    elapsed = ride.ride_time(now)
+    remaining = ride.remaining(now)
     screen: Json = {
         "name": Screen.RIDE,
         "waiting_for_power": ride.phase == RidePhase.ARMED,
-        "mode": Mode.ERG, "paused": False,
+        "mode": ride.shown_mode, "paused": ride.phase == RidePhase.PAUSED,
         "workout_done": ride.phase == RidePhase.WORKOUT_DONE,
-        "elapsed": _ms(elapsed), "remaining": None, "step": None,
-        "target": None, "target_zone": None, Problem.TARGET_LIMITED: False,
-        "power": power, "hr_bpm": hr_bpm, "next": None,
-        "intensity_pct": ride.intensity_pct, "resistance_pct": None,
-        "free_ride_target": None,
+        "elapsed": _ms(ride.ride_time(now)),
+        "remaining": None if remaining is None else _ms(remaining),
+        "step": None, "target": None, "target_zone": None,
+        Problem.TARGET_LIMITED: False, "power": power, "hr_bpm": hr_bpm,
+        "next": None, "intensity_pct": ride.intensity_pct,
+        "resistance_pct": ride.resistance_pct,
+        "free_ride_target": ride.free_ride_target,
     }
+    if plan is None:
+        return screen
+    if ride.free:
+        target_power = ride.free_ride_target
+        screen.update({"target": target_power, "target_zone": _zone(
+            target_power, plan.ftp, DEFAULT_ZONES_PCT)})
+        return screen
     target = ride.current_target(now)
-    if plan is None or target is None:
+    left = ride.step_left(now)
+    if target is None or left is None:
         return screen
     step = plan.steps[ride.step]
     screen.update({
-        "mode": _mode(step.kind),
-        "remaining": _ms(max(0.0, plan.duration - elapsed)),
         "step": {"index": step.index, "count": len(plan.steps),
-                 "left": _ms(max(0.0, step.end - elapsed)),
-                 "text": step.text},
+                 "left": _ms(left), "text": step.text},
         "target": target.power,
         "target_zone": _zone(target.power, plan.ftp, DEFAULT_ZONES_PCT),
         Problem.TARGET_LIMITED: target.limited,
     })
     following = ride.step_target(ride.step + 1)
     if following is not None:
-        kind = plan.steps[ride.step + 1].kind
+        planned = plan.steps[ride.step + 1]
         screen["next"] = {
-            "kind": (StepKind.ERG if kind == StepKind.ERG
+            "kind": (StepKind.ERG if planned.kind == StepKind.ERG
                      else StepKind.FREE_RIDE),
             "target": following.power,
             "zone": _zone(following.power, plan.ftp, DEFAULT_ZONES_PCT),
-            "duration": _ms(plan.steps[ride.step + 1].duration)}
+            "duration": _ms(planned.duration)}
     return screen
 
 

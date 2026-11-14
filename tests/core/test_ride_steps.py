@@ -36,6 +36,39 @@ def commands(timeline: list[tuple[float, Any]]) -> list[tuple[float, Any]]:
             if isinstance(a, SetTrainer)]
 
 
+def erg_steps(*steps: tuple[float, int]) -> tuple[Step, ...]:
+    return tuple(Step(seconds, PowerTarget(watts, WATTS), None)
+                 for seconds, watts in steps)
+
+
+@pytest.mark.case("T-TGT-07")
+@pytest.mark.req("APP-304")
+@pytest.mark.parametrize("lead, expected",
+                         [(1.5, 28.5), (0.0, 30.0), (5.0, 25.0)])
+def test_next_target_goes_out_one_lead_time_early(lead: float,
+                                                  expected: float) -> None:
+    sent = commands(ride_of(erg_steps((30.0, 330), (30.0, 140)), lead))
+    assert (1.0 + expected, Erg(140)) in sent
+
+
+@pytest.mark.case("T-TGT-07")
+@pytest.mark.req("APP-304")
+def test_no_send_for_an_unchanged_target_or_after_the_last_step() -> None:
+    sent = commands(ride_of(erg_steps((30.0, 330), (30.0, 330),
+                                      (30.0, 140))))
+    assert [(at, c) for at, c in sent if at < 91.0] == [
+        (0.0, Erg(330)), (59.5, Erg(140))]
+    assert all(at >= 91.0 for at, c in sent if not isinstance(c, Erg))
+
+
+@pytest.mark.case("T-TGT-07")
+@pytest.mark.req("APP-304")
+def test_never_before_the_current_step_began() -> None:
+    sent = commands(ride_of(erg_steps((30.0, 330), (1.0, 140),
+                                      (30.0, 330))))
+    assert sent[:3] == [(0.0, Erg(330)), (29.5, Erg(140)), (31.0, Erg(330))]
+
+
 @pytest.mark.case("T-TGT-03")
 @pytest.mark.req("APP-305")
 def test_a_ramp_sends_the_value_one_lead_time_ahead_every_second() -> None:
@@ -91,7 +124,8 @@ def test_dropouts_are_journaled_while_riding_only() -> None:
     back = ride.handle(TrainerLink(True), 9.0)
     assert lost == [Journal("dropout_start", 4.0, {"device": "trainer"})]
     assert again == []
-    assert back == [Journal("dropout_end", 8.0, {"device": "trainer"})]
+    assert back[0] == Journal("dropout_end", 8.0, {"device": "trainer"})
+    assert back[1] == SetTrainer(Erg(150))
 
 
 @pytest.mark.case("S-RID-02")

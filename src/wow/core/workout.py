@@ -7,6 +7,7 @@ from one power to another, free ride, or a target the app can't apply.
 from dataclasses import dataclass
 from enum import StrEnum
 from fractions import Fraction
+from typing import Final
 
 from wow.core.numbers import exact
 
@@ -73,3 +74,14 @@ class Workout:
     name: str
     description: str | None
     blocks: tuple[Block, ...]
+
+
+FREE_RIDE_REF: Final[str] = "free_ride"
+FREE_RIDE_NAME: Final[str] = "Free ride"
+FREE_RIDE_LENGTH: Final[float] = 86400.0
+
+
+def free_ride_workout() -> Workout:
+    """Return the workout of a free ride: one free-ride step (APP-317)."""
+    return Workout(FREE_RIDE_REF, FREE_RIDE_NAME, None, (Block(None, 1, (
+        Step(FREE_RIDE_LENGTH, None, None, kind=StepKind.FREE_RIDE),)),))

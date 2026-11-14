@@ -40,6 +40,7 @@ class Source(StrEnum):
     PLAN = "plan"
     LIBRARY = "library"
     BUILTIN = "builtin"
+    FREE_RIDE = "free_ride"
 
 
 @dataclass(frozen=True)

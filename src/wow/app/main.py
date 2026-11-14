@@ -24,7 +24,8 @@ from typing import Any, Final
 from wow.adapters.ble_bleak import BleakConnector
 from wow.adapters.ble_log import LoggingConnector
 from wow.adapters.ble_sim import (
-    D100_ADDRESS, HRM_ADDRESS, SimConnector, SimD100Server, SimHrm200Server,
+    D100_ADDRESS, HRM_ADDRESS, Faults, SimConnector, SimD100Server,
+    SimFaults, SimHrm200Server,
     SimScheduler,
 )
 from wow.adapters.clock_system import SystemClock, default_sync_marker
@@ -33,6 +34,7 @@ from wow.adapters.fit_garmin import GarminFitWriter
 from wow.adapters.intervals_icu import IntervalsIcu
 from wow.app.config import (
     Config, RideSettings, load_config, load_secrets, load_settings,
+    save_setting,
 )
 from wow.app.console import Console
 from wow.app.device_manager import DeviceChoice, DeviceManager
@@ -73,9 +75,13 @@ class App:
                  sim_pedal_after: float = SIM_PEDAL_AFTER,
                  workouts: Sequence[Workout] | None = None,
                  provider: WorkoutProvider | None = None,
-                 zone: tzinfo | None = None) -> None:
+                 zone: tzinfo | None = None,
+                 sim_faults: SimFaults = SimFaults(),
+                 replay: GattConnector | None = None) -> None:
         self.config = config
         self.clock = clock
+        self._faults = sim_faults
+        self._replay = replay
         settings = load_settings(config.data)
         self.recorder = Recorder(config.data, boot_id())
         self.scheduler: SimScheduler | None = None
@@ -97,6 +103,7 @@ class App:
             "intervals.json", builtin, self._changed, zone)
         self.console = Console(clock, self.devices, self.rides, self.catalog,
                                settings, self._changed)
+        self.rides.on_free_level = self._free_level
         self.trainer.on_sample = self.console.trainer_sample
         self.hrm.on_sample = self.console.hr_sample
         self.trainer.on_link = self.console.link_changed
@@ -147,6 +154,12 @@ class App:
             return None
         return IntervalsIcu(secrets.athlete_id, secrets.api_key)
 
+    def _free_level(self, pct: int) -> None:
+        self.console.set_free_ride_level(pct)
+        data = self.config.data
+        self.recorder.run(
+            lambda: save_setting(data, "free_ride_level_pct", pct))
+
     def _changed(self) -> None:
         self.hub.changed()
 
@@ -155,12 +168,19 @@ class App:
 
     def _bluetooth(self, settings: RideSettings, sim_pedal_after: float
                    ) -> tuple[GattConnector, DeviceChoice]:
+        if self._replay is not None:
+            choice = DeviceChoice(D100_ADDRESS, HRM_ADDRESS)
+            return self._logged(self._replay, choice), choice
         if self.config.simulate:
+            faults = self._faults
             self.scheduler = SimScheduler(self.clock)
             self.d100 = SimD100Server(self.scheduler,
-                                      pedal_after_erg=sim_pedal_after)
-            self.sim = SimConnector(
-                self.clock, [self.d100, SimHrm200Server(self.scheduler)])
+                                      pedal_after=sim_pedal_after)
+            self.d100.faults = Faults(faults.trainer)
+            strap = SimHrm200Server(self.scheduler)
+            strap.faults = Faults(faults.strap)
+            self.sim = SimConnector(self.clock, [self.d100, strap],
+                                    Faults(faults.adapter))
             inner: GattConnector = self.sim
             choice = DeviceChoice(D100_ADDRESS, HRM_ADDRESS)
             return self._logged(inner, choice), choice

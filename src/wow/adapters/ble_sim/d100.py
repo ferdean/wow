@@ -5,9 +5,11 @@ Simulated Van Rysel D100, built from the Phase 2 findings (3A,
 """
 
 import asyncio
+import functools
 import math
 from dataclasses import dataclass
 
+from wow.adapters.ble_sim.faults import FaultKind
 from wow.adapters.ble_sim.scheduler import SimScheduler
 from wow.adapters.ble_sim.server import SimServerBase
 from wow.core import ftms_codec as codec
@@ -87,7 +89,7 @@ class SimD100Server(SimServerBase):
         power_range: bytes | None = D100_POWER_RANGE,
         resistance_range: bytes | None = D100_RESISTANCE_RANGE,
         rider_speed_kmh: float = RIDER_SPEED_KMH,
-        pedal_after_erg: float | None = None,
+        pedal_after: float | None = None,
     ) -> None:
         super().__init__(
             scheduler,
@@ -110,8 +112,8 @@ class SimD100Server(SimServerBase):
             uuids.SUPPORTED_INCLINATION_RANGE: D100_INCLINATION_RANGE,
         }
         self._values = {k: v for k, v in values.items() if v is not None}
-        self.pedal_after_erg = pedal_after_erg
-        self.rider_speed_kmh = (rider_speed_kmh if pedal_after_erg is None
+        self.pedal_after = pedal_after
+        self.rider_speed_kmh = (rider_speed_kmh if pedal_after is None
                                 else 0.0)
         self._riding_speed_kmh = rider_speed_kmh
         self._clipping_in = False
@@ -121,10 +123,27 @@ class SimD100Server(SimServerBase):
         self.answer_times: list[float] = []
         self._answers = 0
         self._data_task: asyncio.Task[None] | None = None
+        self.data_chars = frozenset({uuids.INDOOR_BIKE_DATA})
 
     def advertising(self) -> bool:
         """Return whether the trainer advertises."""
-        return not self.linked()
+        return not self.linked() and not self.away()
+
+    def connected(self, now: float) -> None:
+        """Arm the control faults still to come."""
+        for kind, status in ((FaultKind.PERMISSION_LOST,
+                              codec.STATUS_CONTROL_PERMISSION_LOST),
+                             (FaultKind.RESET, codec.STATUS_RESET),
+                             (FaultKind.REFUSE_CONTROL, None)):
+            for start in self.faults.starts((kind,)):
+                if start >= now:
+                    self.scheduler.call_at(
+                        start, functools.partial(self._lose_control, status))
+
+    def _lose_control(self, status: int | None) -> None:
+        self.in_control = False
+        if status is not None:
+            self.send(uuids.FITNESS_MACHINE_STATUS, bytes([status]))
 
     def read_value(self, char: Uuid) -> bytes:
         """Return the value of a characteristic."""
@@ -132,9 +151,11 @@ class SimD100Server(SimServerBase):
 
     def power_now(self) -> int:
         """Return the current power in watts."""
-        if self.rider_speed_kmh <= 0:
+        now = self.scheduler.now()
+        if self.rider_speed_kmh <= 0 or self.faults.active(
+                FaultKind.POWER_ZERO, now):
             return 0
-        return round(self.response.value(self.scheduler.now()))
+        return round(self.response.value(now))
 
     def indoor_bike_record(self) -> bytes:
         """Return the current Indoor Bike Data record."""
@@ -169,6 +190,8 @@ class SimD100Server(SimServerBase):
             raise KeyError(char)
         now = self.scheduler.now()
         result = self._carry_out(data, now)
+        if self.faults.active(FaultKind.NO_ANSWER, now):
+            return
         answer_at = now + ANSWER_DELAYS[self._answers % len(ANSWER_DELAYS)]
         self._answers += 1
         self.scheduler.call_at(
@@ -188,6 +211,8 @@ class SimD100Server(SimServerBase):
     def _carry_out(self, data: bytes, now: float) -> ResultCode:
         op = data[0]
         if op == codec.REQUEST_CONTROL:
+            if self.faults.active(FaultKind.REFUSE_CONTROL, now):
+                return ResultCode.CONTROL_NOT_PERMITTED
             self.in_control = True
             return ResultCode.SUCCESS
         if op not in (codec.START_OR_RESUME, codec.SET_TARGET_POWER,
@@ -206,15 +231,13 @@ class SimD100Server(SimServerBase):
                 return ResultCode.INVALID_PARAMETER
             self.level_raw = data[1]
             self.response.set_target(now, resistance_power(data[1]))
-            if self.pedal_after_erg is not None:
-                self.rider_speed_kmh = 0.0
-                self._clipping_in = False
+            self._rider_clips_in(now)
         elif op != codec.START_OR_RESUME:
             return ResultCode.INVALID_PARAMETER
         return ResultCode.SUCCESS
 
     def _rider_clips_in(self, now: float) -> None:
-        delay = self.pedal_after_erg
+        delay = self.pedal_after
         if delay is None or self.rider_speed_kmh > 0 or self._clipping_in:
             return
         self._clipping_in = True

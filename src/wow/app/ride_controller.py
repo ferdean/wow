@@ -19,22 +19,26 @@ from typing import Final
 from wow.adapters.store_files import write_atomic
 from wow.app.machine_driver import MachineDriver
 from wow.app.recorder import Recorder
-from wow.core.activity import Activity, RecordedSample
+from wow.core.activity import Activity, Pause, RecordedSample
 from wow.core.devices import (
-    HrSample, LinkState, TrainerCapabilities, TrainerSample,
+    Erg, HrSample, LinkState, TrainerCapabilities, TrainerSample,
 )
 from wow.core.metrics import Metrics, ride_metrics
 from wow.core.numbers import DEFAULT_ZONES_PCT
 from wow.core.ride import (
-    CancelStart, Ended, Finish, HrmLink, Journal, PowerSeen, Refused, Ride,
-    RideAction, RideEvent, RidePhase, SetTrainer, Start, Tick, TrainerLink,
+    CancelStart, Discard, Ended, Finish, FreeRideLevel, FreeRidePowerStep,
+    HrmLink, IntensityStep, Journal, PowerSeen, Refused, ResistanceStep,
+    Resume, Ride, RideAction, RideEvent, RidePhase, SetTrainer, Skip, Start,
+    SwitchMode, Tick, TrainerLink,
 )
+from wow.core.ride import Pause as PauseRide
 from wow.core.sampler import (
-    Began, HrValue, Sample, Sampler, SamplerEvent, Stopped, TrainerValue,
+    Began, HrValue, Paused, Resumed, Sample, Sampler, SamplerEvent, Stopped,
+    TrainerValue,
 )
 from wow.core.sampler import Tick as SampleTick
 from wow.core.timefmt import utc_text
-from wow.core.vocab import UploadState
+from wow.core.vocab import Mode, UploadState
 from wow.core.workout import Workout
 from wow.ports.clock import Clock
 from wow.ports.devices import Trainer
@@ -63,6 +67,7 @@ class RideSetup:
     zones_pct: tuple[int, ...] = DEFAULT_ZONES_PCT
     free_ride_level_pct: int = 0
     upload_on: bool = True
+    block_modes: tuple[Mode, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -83,6 +88,8 @@ class _Record:
     meta: dict[str, object]
     samples: list[RecordedSample] = field(default_factory=list)
     lap_starts: list[float] = field(default_factory=list)
+    pauses: list[Pause] = field(default_factory=list)
+    paused_at: tuple[float, float] | None = None
     start_utc: datetime | None = None
 
 
@@ -99,6 +106,7 @@ class RideController:
         self._fit = fit_writer
         self._version = app_version
         self.on_ended: Callable[[RidePhase], None] = lambda _cause: None
+        self.on_free_level: Callable[[int], None] = lambda _pct: None
         self.ride = Ride()
         self.summary: Summary | None = None
         self._driver: MachineDriver[RideEvent, RideAction] = MachineDriver(
@@ -117,9 +125,11 @@ class RideController:
         self._driver.post(TrainerLink(connected))
         capabilities = self._trainer.capabilities() or NO_CAPABILITIES
         self._setup = setup
+        self.summary = None
         return self._post(Start(setup.workout, setup.ftp, capabilities,
                                 setup.lead_time,
-                                free_ride_level_pct=setup.free_ride_level_pct))
+                                free_ride_level_pct=setup.free_ride_level_pct,
+                                block_modes=setup.block_modes))
 
     def cancel(self) -> str | None:
         """Cancel the wait for power; return the problem, if any."""
@@ -128,6 +138,38 @@ class RideController:
     def finish(self) -> str | None:
         """Finish the ride; return the problem, if any."""
         return self._post(Finish())
+
+    def discard(self) -> str | None:
+        """Discard the ride; return the problem, if any."""
+        return self._post(Discard())
+
+    def pause(self) -> str | None:
+        """Pause the ride; return the problem, if any."""
+        return self._post(PauseRide())
+
+    def resume(self) -> str | None:
+        """Resume the ride; return the problem, if any."""
+        return self._post(Resume())
+
+    def skip(self) -> str | None:
+        """Skip the rest of the step; return the problem, if any."""
+        return self._post(Skip())
+
+    def intensity(self, step: int) -> str | None:
+        """Change the intensity by one step; return the problem, if any."""
+        return self._post(IntensityStep(step))
+
+    def switch_mode(self, mode: Mode, power: int | None) -> str | None:
+        """Switch the block or free ride to a mode; return the problem."""
+        return self._post(SwitchMode(mode, power))
+
+    def resistance(self, step: int) -> str | None:
+        """Change the resistance by one step; return the problem, if any."""
+        return self._post(ResistanceStep(step))
+
+    def free_ride_power(self, step: int) -> str | None:
+        """Change the free-ride target by 5 W; return the problem."""
+        return self._post(FreeRidePowerStep(step))
 
     def trainer_sample(self, sample: TrainerSample) -> None:
         """Take a trainer reading."""
@@ -171,6 +213,8 @@ class RideController:
                     self._refusal = reason
                 case Ended(cause=cause):
                     self._end(cause)
+                case FreeRideLevel(level_pct=pct):
+                    self.on_free_level(pct)
         self._on_change()
 
     def _on_journal(self, record: Journal) -> None:
@@ -187,6 +231,16 @@ class RideController:
         elif record.event in ("step_started", "workout_done"):
             if record.t_ride is not None:
                 current.lap_starts.append(record.t_ride)
+        elif record.event == "paused" and record.t_ride is not None:
+            now = self._clock.monotonic()
+            current.paused_at = (record.t_ride, now)
+            self._sampling.post(Paused(now))
+        elif record.event == "resumed" and current.paused_at is not None:
+            now = self._clock.monotonic()
+            t_ride, since = current.paused_at
+            current.pauses.append(Pause(t_ride, now - since))
+            current.paused_at = None
+            self._sampling.post(Resumed(now))
 
     def _open(self, setup: RideSetup) -> None:
         stamp = self._clock.utc().strftime("%Y-%m-%dT%H%M%SZ")
@@ -215,7 +269,9 @@ class RideController:
         if current is None:
             return
         for sample in samples:
-            mode, target = self.ride.target_at(sample.t)
+            command = self.ride.command
+            mode = self.ride.mode
+            target = command.power if isinstance(command, Erg) else None
             utc = self._utc_at(sample.mono)
             recorded = RecordedSample(sample.t, utc, sample.power,
                                       sample.heart_rate_bpm,
@@ -232,8 +288,14 @@ class RideController:
         if current is None:
             self.on_ended(cause)
             return
+        now = self._clock.monotonic()
+        if current.paused_at is not None:
+            t_ride, since = current.paused_at
+            current.pauses.append(Pause(t_ride, now - since))
+            current.paused_at = None
+            self._sampling.post(Resumed(now))
         if cause == RidePhase.FINISHED:
-            self._sampling.post(Stopped(self._clock.monotonic()))
+            self._sampling.post(Stopped(now))
         self._record = None
         if cause == RidePhase.FINISHED:
             self._finish(current)
@@ -255,7 +317,8 @@ class RideController:
         start = current.start_utc or self._clock.utc()
         activity = Activity(setup.workout.name, self._version, setup.ftp,
                             start, float(len(samples)), tuple(samples),
-                            tuple(current.lap_starts), (), metrics)
+                            tuple(current.lap_starts), tuple(current.pauses),
+                            metrics)
         meta = {**current.meta, "state": "finished",
                 "metrics": _metrics_json(metrics),
                 "finished_mono_ms": round(self._clock.monotonic() * 1000, 1)}

@@ -1,8 +1,8 @@
 // S-DSP-01: every golden view renders (test plan 5.16).
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { render, screen as dom } from "@testing-library/svelte";
-import { describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen as dom } from "@testing-library/svelte";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.svelte";
 import type { CommandName, Plan, View } from "./types/protocol";
 
@@ -23,9 +23,12 @@ const plan: Plan = {
 };
 
 function fakeLink(view: View): { view: View; plan: Plan; live: boolean; receivedAt: number;
-  sent: CommandName[]; send: (name: CommandName) => void } {
+  sent: CommandName[]; args: (Record<string, unknown> | undefined)[];
+  send: (name: CommandName, args?: Record<string, unknown>) => void } {
   const sent: CommandName[] = [];
-  return { view, plan, live: true, receivedAt: performance.now(), sent, send: (name) => sent.push(name) };
+  const args: (Record<string, unknown> | undefined)[] = [];
+  return { view, plan, live: true, receivedAt: performance.now(), sent, args,
+    send: (name, a) => { sent.push(name); args.push(a); } };
 }
 
 describe("S-DSP-01 golden views", () => {
@@ -85,9 +88,10 @@ describe("S-DSP-01 SL-03 and SL-04 screens", () => {
     expect(link.sent).toEqual(["back"]);
   });
 
-  it("shows a free-ride step without a watt target", () => {
+  it("shows a free-ride step on the resistance layout", () => {
     render(App, { props: { link: fakeLink(golden("ride_free_ride_step")) } });
-    expect(dom.getByText("Free")).toBeTruthy();
+    expect(dom.getByText("Free ride")).toBeTruthy();
+    expect(dom.getByText("Level")).toBeTruthy();
   });
 });
 
@@ -102,5 +106,102 @@ describe("S-DSP-01 long numbers fit their cells", () => {
   it("shows a ride time over an hour when the workout is done", () => {
     render(App, { props: { link: fakeLink(golden("ride_workout_done_after_an_hour")) } });
     expect(dom.getByText("1:45:07")).toBeTruthy();
+  });
+});
+
+describe("S-DSP-02 confirmations and the SL-05 controls", () => {
+  beforeEach(() => {
+    cleanup();
+  });
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  it("sends skip only from the sheet, which closes after 5 s", async () => {
+    vi.useFakeTimers();
+    const link = fakeLink(golden("ride_erg"));
+    render(App, { props: { link } });
+    await fireEvent.click(dom.getByText("Skip step"));
+    expect(link.sent).toEqual([]);
+    expect(dom.getByText("Skip the rest of this step?")).toBeTruthy();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(dom.queryByText("Skip the rest of this step?")).toBeNull();
+    await fireEvent.click(dom.getByText("Skip step"));
+    const [, confirmSkip] = dom.getAllByText("Skip step");
+    if (confirmSkip) {
+      await fireEvent.click(confirmSkip);
+    }
+    expect(link.sent).toEqual(["skip"]);
+  });
+
+  it("finishes or discards only after confirming", async () => {
+    const link = fakeLink(golden("ride_erg"));
+    render(App, { props: { link } });
+    await fireEvent.click(dom.getByText("Finish"));
+    await fireEvent.click(dom.getByText("Discard ride"));
+    expect(link.sent).toEqual([]);
+    await fireEvent.click(dom.getByText("Discard"));
+    expect(link.sent).toEqual(["discard"]);
+    await fireEvent.click(dom.getByText("Finish"));
+    await fireEvent.click(dom.getByText("Finish and save"));
+    expect(link.sent).toEqual(["discard", "finish"]);
+  });
+
+  it("pauses, resumes and changes the intensity", async () => {
+    const link = fakeLink(golden("ride_erg"));
+    render(App, { props: { link } });
+    await fireEvent.click(dom.getByText("Pause"));
+    await fireEvent.click(dom.getByLabelText("Intensity up"));
+    await fireEvent.click(dom.getByText("Ride by resistance"));
+    expect(link.sent).toEqual(["pause", "intensity", "switch_mode"]);
+    expect(link.args[1]).toEqual({ step: 1 });
+  });
+
+  it("shows a paused ride with Resume", () => {
+    render(App, { props: { link: fakeLink(golden("ride_paused")) } });
+    expect(dom.getByText("Resume")).toBeTruthy();
+    expect(dom.getAllByText("Paused").length).toBeGreaterThan(0);
+  });
+
+  it("rides a block by resistance and goes back to ERG", async () => {
+    const link = fakeLink(golden("ride_resistance_block"));
+    render(App, { props: { link } });
+    expect(dom.getByText("5")).toBeTruthy();
+    await fireEvent.click(dom.getByLabelText("Resistance up"));
+    await fireEvent.click(dom.getByText("Back to ERG"));
+    expect(link.sent).toEqual(["resistance", "switch_mode"]);
+    expect(link.args).toEqual([{ step: 1 }, { mode: "erg" }]);
+  });
+
+  it("moves a free ride's power in 5 W steps", async () => {
+    const link = fakeLink(golden("ride_free_ride_by_power"));
+    render(App, { props: { link } });
+    expect(dom.getAllByText("185").length).toBe(2);
+    await fireEvent.click(dom.getByLabelText("Power up"));
+    expect(link.sent).toEqual(["free_ride_power"]);
+  });
+
+  it("sets a block to resistance on Pre-ride and opens a free ride from Home", async () => {
+    const pre = fakeLink(golden("pre_ride_block_in_resistance"));
+    const { unmount } = render(App, { props: { link: pre } });
+    await fireEvent.click(dom.getByText("ERG"));
+    expect(pre.sent).toEqual(["set_block_mode"]);
+    expect(pre.args[0]).toEqual({ block: 0, mode: "resistance" });
+    unmount();
+    const home = fakeLink(golden("home"));
+    render(App, { props: { link: home } });
+    await fireEvent.click(dom.getByText("Free ride"));
+    expect(home.sent).toEqual(["open_free_ride"]);
+  });
+});
+
+describe("S-DSP-03 a page that lost the Pi", () => {
+  it("dims the values and blocks the controls", () => {
+    const link = { ...fakeLink(golden("ride_erg")), live: false };
+    const { container } = render(App, { props: { link } });
+    expect(container.querySelector("main")?.classList.contains("stale")).toBe(true);
+    expect(dom.getByText("Lost the Pi. Reconnecting…")).toBeTruthy();
+    cleanup();
   });
 });

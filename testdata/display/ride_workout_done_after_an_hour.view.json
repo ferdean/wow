@@ -12,7 +12,7 @@
  "screen": {
   "name": "ride",
   "waiting_for_power": false,
-  "mode": "erg",
+  "mode": "resistance",
   "paused": false,
   "workout_done": true,
   "elapsed": 6307.0,
@@ -25,7 +25,7 @@
   "hr_bpm": 113,
   "next": null,
   "intensity_pct": 100,
-  "resistance_pct": null,
+  "resistance_pct": 0,
   "free_ride_target": null
  }
 }

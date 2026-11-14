@@ -9,7 +9,10 @@ from wow.app.workout_catalog import load_builtin, planned_on, rides_of
 from wow.core.devices import LinkState, Range, TrainerCapabilities
 from wow.core.metrics import ride_metrics
 from wow.core.plan import make_plan
-from wow.core.ride import PowerSeen, Ride, Start, Tick, TrainerLink
+from wow.core.ride import (
+    Pause, PowerSeen, ResistanceStep, Ride, Start, SwitchMode, Tick,
+    TrainerLink,
+)
 from wow.core.view import (
     home_screen,
     pre_ride_screen,
@@ -19,8 +22,10 @@ from wow.core.view import (
     view_state,
     workout_card,
 )
-from wow.core.vocab import UploadState, WarningKind
-from wow.core.workout import Block, PowerTarget, PowerUnit, Step, Workout
+from wow.core.vocab import Mode, UploadState, WarningKind
+from wow.core.workout import (
+    Block, PowerTarget, PowerUnit, Step, Workout, free_ride_workout,
+)
 
 D100 = TrainerCapabilities(Range(50, 600, 1), Range(0, 100, 1), True, False)
 
@@ -111,6 +116,40 @@ def long_ride_scenes() -> dict[str, dict[str, Any]]:
         LinkState.CONNECTED, 80, ride_warnings(ride, []), None)
     return {"ride_long_step_left": envelope(sweet_spot),
             "ride_workout_done_after_an_hour": envelope(done)}
+
+
+def sl05_scenes() -> dict[str, dict[str, Any]]:
+    paused = started_ride()
+    advance(paused, 150.0)
+    paused.handle(Pause(), 150.0)
+    switched = started_ride()
+    advance(switched, 140.0)
+    switched.handle(SwitchMode(Mode.RESISTANCE), 140.0)
+    switched.handle(ResistanceStep(1), 140.5)
+    free = Ride()
+    free.handle(TrainerLink(True), 100.0)
+    free.handle(Start(free_ride_workout(), 250, D100, 1.0), 100.0)
+    free.handle(PowerSeen(90), 101.0)
+    free.handle(SwitchMode(Mode.ERG, 183), 400.0)
+    plan = make_plan(THIRTY_THIRTY, 250)
+    connected = LinkState.CONNECTED
+
+    def ride(state: Ride, at: float) -> dict[str, Any]:
+        return envelope(view_state(ride_screen(state, at, 182, 141),
+                                   connected, connected, 80,
+                                   ride_warnings(state, []), None))
+
+    return {
+        "ride_paused": ride(paused, 170.0),
+        "ride_resistance_block": ride(switched, 141.0),
+        "ride_free_ride_by_power": ride(free, 401.0),
+        "pre_ride_free_ride": envelope(view_state(pre_ride_screen(
+            make_plan(free_ride_workout(), 250), connected, (), True),
+            connected, connected, 80, [], None)),
+        "pre_ride_block_in_resistance": envelope(view_state(pre_ride_screen(
+            plan, connected, (Mode.ERG, Mode.RESISTANCE)), connected,
+            connected, 80, [], None)),
+    }
 
 
 def sl04_scenes() -> dict[str, dict[str, Any]]:
@@ -251,4 +290,5 @@ def scenes() -> dict[str, dict[str, Any]]:
             )
         ),
         **sl04_scenes(),
+        **sl05_scenes(),
     }

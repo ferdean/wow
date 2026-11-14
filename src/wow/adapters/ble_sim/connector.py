@@ -5,6 +5,7 @@ In-process GattConnector over simulated GATT servers (ICD 4.3.4).
 
 from collections.abc import Callable, Sequence
 
+from wow.adapters.ble_sim.faults import FaultKind, Faults
 from wow.adapters.ble_sim.server import GattServer
 from wow.ports.clock import Clock
 from wow.ports.gatt import (
@@ -21,8 +22,10 @@ WRITE_TIMES: Final[tuple[float, ...]] = (0.095, 0.195)
 class SimConnector:
     """Connector over simulated servers."""
 
-    def __init__(self, clock: Clock, servers: Sequence[GattServer]) -> None:
+    def __init__(self, clock: Clock, servers: Sequence[GattServer],
+                 faults: Faults | None = None) -> None:
         self._clock = clock
+        self._faults = faults or Faults()
         self._servers = {s.advertisement().address.upper(): s for s in servers}
         self._generations: dict[str, int] = {}
         self._clients: dict[str, SimClient] = {}
@@ -31,6 +34,7 @@ class SimConnector:
         self, service_uuids: Sequence[Uuid], duration: float
     ) -> list[Advertisement]:
         """Return the simulated devices that advertise."""
+        self._adapter()
         await self._clock.sleep_until(self._clock.monotonic() + duration)
         wanted = set(service_uuids)
         return [
@@ -45,6 +49,7 @@ class SimConnector:
         self, address: str, timeout: float, on_lost: Callable[[int], None]
     ) -> GattClient:
         """Connect to a simulated device."""
+        self._adapter()
         server = await self._advertising(address,
                                          self._clock.monotonic() + timeout)
         await self._clock.sleep_until(self._clock.monotonic() + CONNECT_TIME)
@@ -53,7 +58,17 @@ class SimConnector:
         server.on_connect()
         client = SimClient(self._clock, server, address, generation, on_lost)
         self._clients[address.upper()] = client
+        server.drop_link = client.lose_link
+        now = self._clock.monotonic()
+        for start in self._faults.starts((FaultKind.ADAPTER_DOWN,)):
+            if start >= now:
+                server.scheduler.call_at(start, client.lose_link)
         return client
+
+    def _adapter(self) -> None:
+        if self._faults.active(FaultKind.ADAPTER_DOWN,
+                               self._clock.monotonic()):
+            raise GattError("simulated adapter down")
 
     def lose_link(self, address: str) -> None:
         """Drop the link to a device, as if it went out of range."""
