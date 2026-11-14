@@ -408,12 +408,32 @@ def rr14(events: Sequence[Record], samples: Sequence[Record],
     return Outcome("RR-14", "pass", detail)
 
 
+def this_run(system_log: Sequence[Record],
+             ride_log: Sequence[Record]) -> list[Record]:
+    """Return the system log from the ride's connection to its start.
+
+    Generations restart at 1 with every run of the app, and monotonic
+    time with every boot, so earlier runs are cut off by file order:
+    the system log is only ever appended to.
+    """
+    writes = control_writes(ride_log)
+    if not writes:
+        return list(system_log)
+    first = min(writes, key=lambda r: float(r["mono_ms"]))
+    link, start = (first["addr"], first["gen"]), str(first["utc"])
+    before = [r for r in system_log if str(r.get("utc", "")) <= start]
+    connected = [i for i, r in enumerate(before)
+                 if r.get("op") == "connected"
+                 and (r.get("addr"), r.get("gen")) == link]
+    return before[connected[-1]:] if connected else before
+
+
 def check(ride: Path, system_log: Path) -> list[Outcome]:
     """Run all checks on a ride directory."""
     events = read_lines(ride / "events.jsonl")
     samples = read_lines(ride / "samples.jsonl")
     ride_log = read_lines(ride / "ble.jsonl")
-    system = read_lines(system_log)
+    system = this_run(read_lines(system_log), ride_log)
     meta, fit = read_meta(ride), read_fit(ride)
     return [rr01(ride_log, system), rr02(events, ride_log, system),
             rr03(events), rr04(events, ride_log, system),

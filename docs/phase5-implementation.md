@@ -1,6 +1,6 @@
 # Phase 5 — Implementation
 
-**Status:** revision 5, 13 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built and gated on the laptop (sections 14 to 17); next: their test on the Pi (section 18). Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
+**Status:** revision 6, 13 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, gated and ridden on the Pi on 13 Nov (sections 14 to 19); waiting for approval (19.5). Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
 
 ## 1 How Phase 5 works
 
@@ -485,6 +485,7 @@ If the screen is off from what 3C shows, a screenshot per screen is enough; layo
 12. SL-01 and SL-02 are approved (13 Nov 2026). The approved document changes are recorded in 13.6 and applied in each document's next revision.
 13. SL-03 and SL-04 are built together with decisions IM-48 to IM-65 (section 15); A-55 is confirmed; findings SF-8 to SF-11 and four test-plan deviations are recorded (16.4).
 14. The changes of 16.5 are proposed, to be applied when approved.
+15. The deviations of 16.4 are accepted. After the ride of 13 Nov (section 19): changes IM-66 to IM-68, findings SF-12 to SF-15.
 
 ## 13 First test on the Pi, 12 Nov 2026
 
@@ -640,7 +641,7 @@ App version 0.3.0. The modules of 14.2. `wow --sim` now records a ride with its 
 | SF-10 | The type stubs of `garmin-fit-sdk` 21.221.0 give `event_type` values such as `stopAll`, the decoder returns `stop_all`. | `tools/check_ride.py` compares the decoder's strings |
 | SF-11 | Connections one at a time (SF-5) mean a missing trainer delays the strap by up to 10 s on Pre-ride. | None; noted for SL-06 |
 
-Deviations from the test plan, to accept or correct:
+Deviations from the test plan, **accepted by Ferran on 13 Nov 2026**:
 
 1. T-SMP-01 and T-MET-07 use Phase 2's S2 log: S5's log is not in the repository.
 2. T-REC-01 covers what exists now; pause records come with SL-05, the system log's start and stop with SL-07.
@@ -701,9 +702,49 @@ From `tools/trace.py --through SL-04`, 13 Nov 2026.
 5. DS-1: today's workout from intervals.icu on Home, Pre-ride with its steps, a ride of it.
 6. Results into `docs/verification-log.md` by test ID.
 
-### 18.1 Approval question
+## 19 First ride of SL-03 and SL-04, 13 Nov 2026
 
-Do you approve SL-03 and SL-04 as built (decisions IM-48 to IM-65, the four deviations of 16.4), closing when the Pi steps of section 18 pass, and the proposed document changes of 16.5?
+Today's planned workout from intervals.icu, "Long ride + SS" (1 h 45: 10 min ramp 140 to 165 W, 45 min at 170 W, 20 min at 225 W, 25 min at 165 W, 5 min ramp 150 to 120 W), ridden from Home on the D100 with the HRM 200.
+
+### 19.1 Results
+
+| Item | Result | Evidence |
+|------|--------|----------|
+| S-FIT-01 on the Pi | pass: 14,400 records encoded in 0.5 s | `docs/verification-log.md` |
+| T-REC-03 on the Pi | pass: 20 kills in 387 s | `docs/verification-log.md` |
+| Ride 2026-11-13T170154Z | RR-02 to RR-05 and RR-12 to RR-14 pass; RR-01 fail (SF-12) | `docs/verification-log.md` |
+| D-13 | pass: lowest level at the end, Summary 0.3 s after Finish | screenshots, journal |
+| Summary | 1:45:13, 176 W average, NP 182 W, IF 0.73, TSS 93, 1111 kJ, heart rate 137 / 157 | screenshot 19:47 |
+| FIT import, Garmin Connect and intervals.icu | accepted, "very good" (Ferran) | rider report; target power (A-28) still to note |
+| Event loop | worst lag 11 ms, none late, over the whole run | wow's log |
+| Lead time | 1.5 s: Ferran's `wow-data/settings.json` still sets it, and the file overrides the default | journal `armed` |
+
+### 19.2 Findings
+
+| ID | Finding | Action |
+|----|---------|--------|
+| SF-12 | RR-01 sorted the whole system log by monotonic time and picked the writes of every connection with the ride's address and generation. Generations restart at 1 with each run of the app, and monotonic time with each boot, so an earlier run's `00 07` came first and this run's `00` third. | IM-66; RR-01 to be run again on this ride |
+| SF-13 | Step time left was rounded down and the countdown up, so the screen showed 0:05 and then 5: the 5 seemed to repeat (Ferran). | IM-67 |
+| SF-14 | The two cells under the band grow with their content: "10:14" left too little room for the heart rate, so its heart wrapped to a new line, and "1:45:07" ran off the screen on Workout done (Ferran). On Home a long name pushed "1 h 20" onto two lines. | IM-68 |
+| SF-15 | After the ride, the strap and then the trainer went to sleep; the app logged both link losses and reconnects to neither, as planned until SL-06. | None |
+
+### 19.3 Changes after the ride
+
+| ID | Change | Why |
+|----|--------|-----|
+| IM-66 | `tools/check_ride.py` uses only the system log from the last `connected` record of the ride's connection up to the ride's first write, in file order (the file is only appended to). | SF-12 |
+| IM-67 | Step time left and time to go round up to the next whole second, so 0:06 is followed by 5. Time ridden still rounds down. | SF-13 |
+| IM-68 | The two cells have equal widths; their numbers keep to one line and shrink to fit the cell (container units and the font's measured digit widths: 0.526 em, colon 0.239 em). Home durations keep to one line. Two new golden views: a step with 10:14 left, Workout done after 1 h 45. | SF-14 |
+
+### 19.4 To close
+
+1. Run `tools/check_ride.py` on 2026-11-13T170154Z with the fixed check: RR-01 pass expected.
+2. Note whether intervals.icu or Garmin Connect shows the target power from the FIT file (A-28).
+3. Set `"lead_time": 1.0` in `wow-data/settings.json` on the Pi.
+
+### 19.5 Approval question
+
+Do you approve SL-03 and SL-04 as built, with decisions IM-48 to IM-65 and the changes IM-66 to IM-68 of 19.3, closing when RR-01 passes on the second run of 19.4, and the proposed document changes of 16.5?
 
 ## Change log
 
@@ -714,6 +755,7 @@ Do you approve SL-03 and SL-04 as built (decisions IM-48 to IM-65, the four devi
 | 3 | 12 Nov 2026 | First test on the Pi (section 13): results, findings SF-4 to SF-7, changes IM-41 to IM-47. |
 | 4 | 13 Nov 2026 | T-SYS-01 passed (A-51 confirmed); SL-01 and SL-02 approved by Ferran; approved document changes listed in 13.6. |
 | 5 | 13 Nov 2026 | SL-03 and SL-04 planned, built and gated on the laptop (sections 14 to 18); decisions IM-48 to IM-65; findings SF-8 to SF-11; A-55 confirmed. |
+| 6 | 13 Nov 2026 | First ride of SL-03 and SL-04 (section 19): deviations accepted, findings SF-12 to SF-15, changes IM-66 to IM-68. |
 
 ## Sources
 

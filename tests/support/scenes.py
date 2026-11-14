@@ -1,10 +1,11 @@
 """Scripted view states of the core (test plan 3.1), shared by the view
 tests and the golden views in testdata/display/."""
 
+from datetime import date
 from typing import Any
 
 from tests.support.timeline import load_json
-from wow.app.workout_catalog import load_builtin, rides_of
+from wow.app.workout_catalog import load_builtin, planned_on, rides_of
 from wow.core.devices import LinkState, Range, TrainerCapabilities
 from wow.core.metrics import ride_metrics
 from wow.core.plan import make_plan
@@ -92,6 +93,26 @@ def ramp_test() -> Workout:
     return ramp
 
 
+def long_ride_scenes() -> dict[str, dict[str, Any]]:
+    (entry,) = [e for e in planned_on(load_json("intervals/events.json"),
+                                      date(2026, 11, 14))]
+    assert entry.workout is not None
+    ride = Ride()
+    ride.handle(TrainerLink(True), 100.0)
+    ride.handle(Start(entry.workout, 250, D100, 1.0), 100.0)
+    ride.handle(PowerSeen(1), 101.0)
+    advance(ride, 101.0 + 3886.0)
+    sweet_spot = view_state(
+        ride_screen(ride, 101.0 + 3886.0, 225, 155), LinkState.CONNECTED,
+        LinkState.CONNECTED, 80, ride_warnings(ride, []), None)
+    advance(ride, 101.0 + 6307.0)
+    done = view_state(
+        ride_screen(ride, 101.0 + 6307.0, 48, 113), LinkState.CONNECTED,
+        LinkState.CONNECTED, 80, ride_warnings(ride, []), None)
+    return {"ride_long_step_left": envelope(sweet_spot),
+            "ride_workout_done_after_an_hour": envelope(done)}
+
+
 def sl04_scenes() -> dict[str, dict[str, Any]]:
     library = rides_of(load_json("intervals/workouts.json"))
     cards = [card_of(e.workout, "library") if e.workout else workout_card(
@@ -119,6 +140,7 @@ def sl04_scenes() -> dict[str, dict[str, Any]]:
             ride_screen(free, 101.0 + plan.steps[-1].start + 10.0, 140, 150),
             LinkState.CONNECTED, LinkState.CONNECTED, 80,
             ride_warnings(free, []), None)),
+        **long_ride_scenes(),
         "summary": envelope(view_state(
             summary_screen("2026-11-14T071500Z", ramp.name,
                            "2026-11-14T07:15:00.000Z", metrics,

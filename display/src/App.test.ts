@@ -90,3 +90,17 @@ describe("S-DSP-01 SL-03 and SL-04 screens", () => {
     expect(dom.getByText("Free")).toBeTruthy();
   });
 });
+
+describe("S-DSP-01 long numbers fit their cells", () => {
+  it("sizes step time left and heart rate to their cells", () => {
+    const { container } = render(App, { props: { link: fakeLink(golden("ride_long_step_left")) } });
+    const fitted = [...container.querySelectorAll<HTMLElement>(".fit")];
+    expect(fitted.map((e) => e.textContent)).toEqual(["155", "10:14"]);
+    expect(fitted.every((e) => Number(e.style.getPropertyValue("--em")) > 1.5)).toBe(true);
+  });
+
+  it("shows a ride time over an hour when the workout is done", () => {
+    render(App, { props: { link: fakeLink(golden("ride_workout_done_after_an_hour")) } });
+    expect(dom.getByText("1:45:07")).toBeTruthy();
+  });
+});

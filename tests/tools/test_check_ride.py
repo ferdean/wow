@@ -148,3 +148,22 @@ def test_a_procedure_pending_from_before_the_ride_counts() -> None:
                "due_mono_ms": 1000.0}]
     assert check_ride.rr02(events, ride).result == "fail"
     assert check_ride.rr02(events, ride, system).result == "pass"
+
+
+@pytest.mark.case("S-RR-01")
+@pytest.mark.asyncio
+async def test_an_earlier_run_with_the_same_generation_is_left_out(
+        tmp_path: Path) -> None:
+    app, ride = await ride_erg_check(tmp_path)
+    system_path = app.config.data / "logs" / "ble-system.jsonl"
+    system = read_jsonl(system_path)
+    link = next(r for r in read_jsonl(ride / "ble.jsonl")
+                if r["op"] == "write")
+    earlier = [
+        {**link, "utc": "2026-11-12T16:00:0{}.000Z".format(i),
+         "mono_ms": float(i), "op": op, "hex": hex_}
+        for i, (op, hex_) in enumerate(
+            [("connected", None), ("write", "00"), ("write", "07")])]
+    _rewrite(system_path, earlier + system)
+    assert _results(ride, system_path)["RR-01"] == "pass"
+    assert check_ride.this_run(earlier, []) == earlier

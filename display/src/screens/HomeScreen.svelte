@@ -50,7 +50,7 @@
         <button class="card panel" disabled={!card.rideable} onclick={() => send("open_workout", { ref: card.ref })}>
           <span class="row">
             <span class="name grow">{card.name}</span>
-            <span class="label">{card.rideable ? listDuration(card.duration) : "Can't be ridden here"}</span>
+            <span class="label duration">{card.rideable ? listDuration(card.duration) : "Can't be ridden here"}</span>
           </span>
           {#if card.sketch}
             <svg viewBox="0 0 1000 40" preserveAspectRatio="none" aria-hidden="true">
@@ -81,6 +81,9 @@
     width: 100%;
     min-height: 96px;
     padding: 14px 16px;
+  }
+  .duration {
+    white-space: nowrap;
   }
   .name {
     font-size: 20px;

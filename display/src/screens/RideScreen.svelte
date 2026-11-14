@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { CommandName, LinkState, Plan, RideScreen, Warning } from "../types/protocol";
-  import { clock, countdown, watts, zoneColour } from "../format";
+  import { HEART_EM, clock, countdown, textEm, timeLeft, watts, zoneColour } from "../format";
   import Banner from "../ui/Banner.svelte";
   import Heart from "../ui/Heart.svelte";
   import Profile from "../ui/Profile.svelte";
@@ -69,8 +69,8 @@
       <div class="label">Keep spinning as long as you like, or finish the ride.</div>
     </div>
     <div class="cells">
-      <div class="cell"><span class="label">Heart rate</span><span class="number key">{watts(screen.hr_bpm)}<Heart /></span></div>
-      <div class="cell"><span class="label">Ride time</span><span class="number key">{clock(elapsed)}</span></div>
+      <div class="cell"><span class="label">Heart rate</span><span class="number key fit" style:--em={textEm(watts(screen.hr_bpm)) + HEART_EM}>{watts(screen.hr_bpm)}<Heart /></span></div>
+      <div class="cell"><span class="label">Ride time</span><span class="number key fit" style:--em={textEm(clock(elapsed))}>{clock(elapsed)}</span></div>
     </div>
     <div class="profile grow"><Profile {plan} {elapsed} /></div>
     <button class="primary" onclick={() => (confirming = true)}>Finish ride</button>
@@ -91,10 +91,10 @@
       {#if screen.step}<span>Step {screen.step.index + 1} of {screen.step.count}</span>{/if}
     </div>
     <div class="cells">
-      <div class="cell"><span class="label">Heart rate</span><span class="number key">{watts(screen.hr_bpm)}<Heart /></span></div>
+      <div class="cell"><span class="label">Heart rate</span><span class="number key fit" style:--em={textEm(watts(screen.hr_bpm)) + HEART_EM}>{watts(screen.hr_bpm)}<Heart /></span></div>
       <div class="cell" class:counting={count !== null}>
         <span class="label">Step left</span>
-        <span class="number key">{count ?? clock(left)}</span>
+        <span class="number key fit" style:--em={textEm(count ?? timeLeft(left))}>{count ?? timeLeft(left)}</span>
       </div>
     </div>
     {#if screen.next}
@@ -107,7 +107,7 @@
     <div class="profile grow"><Profile {plan} {elapsed} /></div>
     <div class="times label">
       <span><span class="number small">{clock(elapsed)}</span> ridden</span>
-      {#if remaining !== null}<span><span class="number small">{clock(remaining)}</span> to go</span>{/if}
+      {#if remaining !== null}<span><span class="number small">{timeLeft(remaining)}</span> to go</span>{/if}
     </div>
     <div class="row">
       <button disabled aria-label="Intensity down">−</button>
@@ -177,6 +177,10 @@
   .small {
     font-size: 30px;
   }
+  .fit {
+    white-space: nowrap;
+    font-size: min(74px, calc(100cqi / var(--em)));
+  }
   .limit {
     font-size: 15px;
     font-weight: 650;
@@ -187,10 +191,12 @@
   }
   .cells {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: var(--gap);
   }
   .cell {
+    min-width: 0;
+    container-type: inline-size;
     background: var(--dusk);
     border-radius: 18px;
     padding: 10px 14px;

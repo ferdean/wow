@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clock, countdown, listDuration, percent, shape, stepText, watts, zoneColour } from "./format";
+import { clock, countdown, listDuration, percent, shape, stepText, textEm, timeLeft, watts, zoneColour } from "./format";
 import { best, sample } from "./link/offset";
 
 describe("formatting (3C)", () => {
@@ -37,5 +37,20 @@ describe("step text and shapes (SL-04)", () => {
     expect(stepText({ duration: 300, kind: "free_ride", start_power: null, end_power: null })).toBe("5 min free ride");
     expect(stepText({ duration: 30, kind: "unsupported", start_power: null, end_power: null })).toBe("30 s not supported");
     expect(shape(10, 20, 40, 80, 100)).toBe("10,100 10,60 30,20 30,100");
+  });
+});
+
+describe("time left and fitted numbers (13 Nov ride)", () => {
+  it("rounds time left up so the countdown follows 0:06", () => {
+    expect(timeLeft(5.3)).toBe("0:06");
+    expect(timeLeft(6)).toBe("0:06");
+    expect(countdown(5)).toBe("5");
+    expect(timeLeft(614)).toBe("10:14");
+    expect(timeLeft(600.0004)).toBe("10:00");
+  });
+
+  it("measures numbers in em", () => {
+    expect(textEm("10:14")).toBeCloseTo(2.37);
+    expect(textEm("1:45:07")).toBeCloseTo(3.15);
   });
 });

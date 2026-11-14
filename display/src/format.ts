@@ -33,6 +33,26 @@ export function zoneColour(zone: number | null | undefined): string {
   return zone ? `var(--zone-${zone})` : "var(--rise)";
 }
 
+// Time left counts up to the next whole second, so 0:06 is followed by
+// the countdown's 5 rather than by 0:05 and then 5.
+export function timeLeft(seconds: number): string {
+  return clock(Math.ceil(seconds - 0.001));
+}
+
+// Advance widths of Sofia Sans Condensed at weight 800 with tabular
+// digits, measured in Chrome: digits 0.526 em, colon 0.239 em.
+const DIGIT_EM = 0.53;
+const COLON_EM = 0.25;
+const OTHER_EM = 0.55;
+export const HEART_EM = 0.42;
+
+export function textEm(text: string): number {
+  return [...text].reduce(
+    (sum, c) => sum + (c >= "0" && c <= "9" ? DIGIT_EM : c === ":" ? COLON_EM : OTHER_EM),
+    0,
+  );
+}
+
 export function countdown(left: number): string | null {
   return left > 0 && left <= 5 ? String(Math.ceil(left)) : null;
 }
