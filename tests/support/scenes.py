@@ -10,7 +10,7 @@ from wow.core.devices import LinkState, Range, TrainerCapabilities
 from wow.core.metrics import ride_metrics
 from wow.core.plan import make_plan
 from wow.core.ride import (
-    Pause, PowerSeen, ResistanceStep, Ride, Start, SwitchMode, Tick,
+    RIDING, Pause, PowerSeen, ResistanceStep, Ride, Start, SwitchMode, Tick,
     TrainerLink,
 )
 from wow.core.view import (
@@ -82,8 +82,11 @@ def started_ride(
 
 
 def advance(ride: Ride, until: float) -> None:
+    """Run the ride's deadlines up to until, the rider pedaling."""
     deadline = ride.next_deadline()
     while deadline is not None and deadline <= until:
+        if ride.phase in RIDING:
+            ride.handle(PowerSeen(150), deadline)
         ride.handle(Tick(), deadline)
         deadline = ride.next_deadline()
 

@@ -104,11 +104,12 @@ class AppSession:
     def __init__(self, tmp: Path, provider: WorkoutProvider | None = None,
                  sim_pedal_after: float = 3.0,
                  sim_faults: SimFaults = SimFaults(),
-                 uploader: ActivityUploader | None = None) -> None:
-        self.clock = SteppedClock()
+                 uploader: ActivityUploader | None = None,
+                 clock: SteppedClock | None = None, **extra: Any) -> None:
+        self.clock = clock or SteppedClock()
         self.app = App(app_config(tmp), self.clock, provider=provider,
                        sim_pedal_after=sim_pedal_after, sim_faults=sim_faults,
-                       uploader=uploader)
+                       uploader=uploader, **extra)
         self.app.recorder.start()
 
     async def begin(self, ref: str | None) -> None:

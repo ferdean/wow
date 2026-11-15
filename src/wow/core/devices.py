@@ -1,7 +1,10 @@
 """Device value types shared by the core and the shell (ICD IF-05)."""
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
+
+from wow.core import uuids
 
 
 @dataclass(frozen=True)
@@ -55,7 +58,30 @@ class DeviceKind(StrEnum):
 
     TRAINER = "trainer"
     HRM = "hrm"
+    CADENCE = "cadence"
     OTHER = "other"
+
+
+@dataclass(frozen=True)
+class FoundDevice:
+    """A fitness device seen in a scan (APP-114)."""
+
+    address: str
+    name: str | None
+    rssi_dbm: int
+    kind: DeviceKind
+
+
+def device_kind(service_uuids: Iterable[str]) -> DeviceKind:
+    """Return the role of a device from the services it advertises."""
+    services = set(service_uuids)
+    if uuids.FITNESS_MACHINE_SERVICE in services:
+        return DeviceKind.TRAINER
+    if uuids.HEART_RATE_SERVICE in services:
+        return DeviceKind.HRM
+    if uuids.CYCLING_SPEED_AND_CADENCE_SERVICE in services:
+        return DeviceKind.CADENCE
+    return DeviceKind.OTHER
 
 
 @dataclass(frozen=True)

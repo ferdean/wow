@@ -13,6 +13,8 @@
   const offline = $derived(warnings.find((w) => w.kind === "workouts_offline"));
   const storage = $derived(warnings.find((w) => w.kind === "storage_low"));
   const spinDown = $derived(warnings.some((w) => w.kind === "spindown_requested"));
+  const certificate = $derived(warnings.find((w) => w.kind === "cert_expiring"));
+  const unsynced = $derived(warnings.some((w) => w.kind === "clock_unsynced"));
   const recovery = $derived(screen.recovery);
   const sections = $derived(
     [
@@ -51,6 +53,12 @@
   {/if}
   {#if spinDown}
     <Banner tone="warning" text="The trainer asks for a calibration." />
+  {/if}
+  {#if certificate && certificate.kind === "cert_expiring"}
+    <Banner tone="warning" text={`The page's certificate ends in ${certificate.days_left} days. Renew it on the laptop.`} />
+  {/if}
+  {#if unsynced}
+    <Banner tone="warning" text="The Pi's clock isn't set yet. Ride times may be off." />
   {/if}
   {#if recovery}
     <div class="panel recovery">
@@ -95,7 +103,7 @@
     <button onclick={() => send("open_free_ride")}>Free ride</button>
     <button onclick={() => send("open_history")}>Past rides</button>
     <button class:primary={spinDown} onclick={() => send("open_calibration")}>Calibrate</button>
-    <button disabled>Settings</button>
+    <button onclick={() => send("open_settings")}>Settings</button>
   </div>
 </div>
 

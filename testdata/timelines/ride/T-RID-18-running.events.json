@@ -1,0 +1,84 @@
+{
+ "case": "T-RID-18",
+ "machine": "ride",
+ "title": "Running, no power after the first and no tap: finished by idle 1800 s after the first power",
+ "until": 4000.0,
+ "events": [
+  {
+   "at": 0.0,
+   "event": {
+    "type": "trainer_link",
+    "up": true
+   }
+  },
+  {
+   "at": 0.0,
+   "event": {
+    "type": "start",
+    "workout": {
+     "type": "workout",
+     "ref": "test:long",
+     "name": "Two hours at 150 W",
+     "description": null,
+     "blocks": [
+      {
+       "type": "block",
+       "label": null,
+       "repeats": 1,
+       "steps": [
+        {
+         "type": "step",
+         "duration": 7200.0,
+         "target": {
+          "type": "power_target",
+          "value": 150,
+          "units": "w"
+         },
+         "text": null,
+         "end": null,
+         "kind": "erg"
+        }
+       ]
+      }
+     ]
+    },
+    "ftp": 250,
+    "capabilities": {
+     "type": "trainer_capabilities",
+     "power": {
+      "type": "range",
+      "minimum": 50,
+      "maximum": 600,
+      "step": 1
+     },
+     "resistance": {
+      "type": "range",
+      "minimum": 0,
+      "maximum": 100,
+      "step": 1
+     },
+     "spin_down": true,
+     "cadence": false
+    },
+    "lead_time": 1.0,
+    "intensity_pct": 100,
+    "free_ride_level_pct": 0,
+    "block_modes": []
+   }
+  },
+  {
+   "at": 10.0,
+   "event": {
+    "type": "power_seen",
+    "power": 150
+   }
+  },
+  {
+   "at": 1000.0,
+   "event": {
+    "type": "power_seen",
+    "power": 0
+   }
+  }
+ ]
+}

@@ -1,0 +1,186 @@
+{
+ "case": "T-RID-18",
+ "machine": "ride",
+ "actions": [
+  {
+   "at": 0.0,
+   "action": {
+    "type": "journal",
+    "event": "command",
+    "t_ride": null,
+    "data": {
+     "name": "start",
+     "args": {}
+    }
+   }
+  },
+  {
+   "at": 0.0,
+   "action": {
+    "type": "journal",
+    "event": "armed",
+    "t_ride": null,
+    "data": {
+     "workout_ref": "test:long",
+     "plan_id": "test:long@250",
+     "ftp": 250,
+     "lead_time": 1.0,
+     "block_modes": [],
+     "capabilities": {
+      "type": "trainer_capabilities",
+      "power": {
+       "type": "range",
+       "minimum": 50,
+       "maximum": 600,
+       "step": 1
+      },
+      "resistance": {
+       "type": "range",
+       "minimum": 0,
+       "maximum": 100,
+       "step": 1
+      },
+      "spin_down": true,
+      "cadence": false
+     },
+     "free_ride_level_pct": 0
+    }
+   }
+  },
+  {
+   "at": 0.0,
+   "action": {
+    "type": "set_trainer",
+    "command": {
+     "type": "erg",
+     "power": 150
+    }
+   }
+  },
+  {
+   "at": 0.0,
+   "action": {
+    "type": "journal",
+    "event": "trainer_command",
+    "t_ride": null,
+    "data": {
+     "mode": "erg",
+     "power": 150,
+     "due_mono_ms": 0.0
+    }
+   }
+  },
+  {
+   "at": 10.0,
+   "action": {
+    "type": "journal",
+    "event": "ride_started",
+    "t_ride": 0.0,
+    "data": {
+     "power": 150
+    }
+   }
+  },
+  {
+   "at": 10.0,
+   "action": {
+    "type": "journal",
+    "event": "step_started",
+    "t_ride": 0.0,
+    "data": {
+     "index": 0,
+     "cause": "schedule",
+     "scheduled": 0.0,
+     "kind": "erg",
+     "mode": "erg",
+     "target": 150
+    }
+   }
+  },
+  {
+   "at": 100.0,
+   "action": {
+    "type": "journal",
+    "event": "command",
+    "t_ride": 90.0,
+    "data": {
+     "name": "pause",
+     "args": {}
+    }
+   }
+  },
+  {
+   "at": 100.0,
+   "action": {
+    "type": "journal",
+    "event": "paused",
+    "t_ride": 90.0,
+    "data": {}
+   }
+  },
+  {
+   "at": 100.0,
+   "action": {
+    "type": "set_trainer",
+    "command": {
+     "type": "resistance",
+     "level_raw": 0
+    }
+   }
+  },
+  {
+   "at": 100.0,
+   "action": {
+    "type": "journal",
+    "event": "trainer_command",
+    "t_ride": 90.0,
+    "data": {
+     "mode": "resistance",
+     "level_raw": 0,
+     "due_mono_ms": 100000.0
+    }
+   }
+  },
+  {
+   "at": 1900.0,
+   "action": {
+    "type": "journal",
+    "event": "finished",
+    "t_ride": 90.0,
+    "data": {
+     "cause": "idle"
+    }
+   }
+  },
+  {
+   "at": 1900.0,
+   "action": {
+    "type": "set_trainer",
+    "command": {
+     "type": "resistance",
+     "level_raw": 0
+    }
+   }
+  },
+  {
+   "at": 1900.0,
+   "action": {
+    "type": "journal",
+    "event": "trainer_command",
+    "t_ride": 90.0,
+    "data": {
+     "mode": "resistance",
+     "level_raw": 0,
+     "due_mono_ms": 1900000.0
+    }
+   }
+  },
+  {
+   "at": 1900.0,
+   "action": {
+    "type": "ended",
+    "cause": "finished"
+   }
+  }
+ ]
+}

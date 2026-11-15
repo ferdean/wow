@@ -7,10 +7,10 @@ import pytest
 
 from wow.core.devices import Erg, Range, Resistance, TrainerCapabilities
 from wow.core.ride import (
-    Discard, Ended, Finish, FreeRideLevel, FreeRidePowerStep, HrmLink,
-    IntensityStep, Journal, Pause, PowerSeen, Refused, ResistanceStep, Resume,
-    Ride, RideAction, RideEvent, RidePhase, SetTrainer, Skip, Start,
-    SwitchMode, Tick, TrainerLink,
+    ABANDON_AFTER, Discard, Ended, Finish, FreeRideLevel, FreeRidePowerStep,
+    HrmLink, IntensityStep, Journal, Pause, PowerSeen, Refused,
+    ResistanceStep, Resume, Ride, RideAction, RideEvent, RidePhase,
+    SetTrainer, Skip, Start, SwitchMode, Tick, TrainerLink,
 )
 from wow.core.view import ride_screen
 from wow.core.vocab import Mode, Problem
@@ -166,7 +166,7 @@ def test_pause_stops_the_clock_at_the_lowest_level() -> None:
     paused = rider.at(STARTED + 100, Pause())
     assert sent(paused) == [Resistance(0)]
     assert rider.ride.ride_time(STARTED + 150) == 100.0
-    assert rider.ride.next_deadline() is None
+    assert rider.ride.next_deadline() == STARTED + ABANDON_AFTER
     resumed = rider.at(STARTED + 160, Resume())
     assert sent(resumed) == [Erg(200)]
     assert rider.ride.next_deadline() == pytest.approx(STARTED + 60 + 118.5)

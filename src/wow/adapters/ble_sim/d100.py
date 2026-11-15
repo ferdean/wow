@@ -25,6 +25,10 @@ D100_FEATURES: Final[bytes] = bytes.fromhex("014000000ca00000")
 D100_POWER_RANGE: Final[bytes] = bytes.fromhex("320058020100")
 D100_RESISTANCE_RANGE: Final[bytes] = bytes.fromhex("000064000100")
 D100_INCLINATION_RANGE: Final[bytes] = bytes.fromhex("00003c000100")
+CADENCE_FEATURES: Final[bytes] = bytes.fromhex("034000000ca00000")
+FLAGS_POWER: Final[int] = 0x0040
+FLAGS_CADENCE: Final[int] = 0x0004
+CADENCE_RESOLUTION: Final[float] = 0.5
 
 DATA_INTERVALS: Final[tuple[float, ...]] = (0.21, 0.29)
 ANSWER_DELAYS: Final[tuple[float, ...]] = (0.186, 0.25, 0.32, 0.39)
@@ -95,12 +99,15 @@ class SimD100Server(SimServerBase):
         resistance_range: bytes | None = D100_RESISTANCE_RANGE,
         rider_speed_kmh: float = RIDER_SPEED_KMH,
         pedal_after: float | None = None,
+        address: str = D100_ADDRESS,
+        name: str = D100_NAME,
+        cadence_rpm: float | None = None,
     ) -> None:
         super().__init__(
             scheduler,
             Advertisement(
-                address=D100_ADDRESS,
-                name=D100_NAME,
+                address=address,
+                name=name,
                 rssi_dbm=-60,
                 service_uuids=(uuids.FITNESS_MACHINE_SERVICE,),
                 service_data={uuids.FITNESS_MACHINE_SERVICE:
@@ -118,6 +125,7 @@ class SimD100Server(SimServerBase):
         }
         self._values = {k: v for k, v in values.items() if v is not None}
         self.pedal_after = pedal_after
+        self.cadence_rpm = cadence_rpm
         self.rider_speed_kmh = (rider_speed_kmh if pedal_after is None
                                 else 0.0)
         self._riding_speed_kmh = rider_speed_kmh
@@ -164,13 +172,25 @@ class SimD100Server(SimServerBase):
         return round(self.response.value(now))
 
     def indoor_bike_record(self) -> bytes:
-        """Return the current Indoor Bike Data record."""
+        """Return the current Indoor Bike Data record.
+
+        With a cadence set, the record carries Instantaneous Cadence; the
+        D100 itself never does (F-1).
+        """
         speed_raw = round(self.rider_speed_kmh * 100)
         vendor = (speed_raw // 3, self.level_raw * 30, self.level_raw * 30,
                   1000 - self.level_raw * 5, 28)
+        cadence = b""
+        flags = FLAGS_POWER
+        if self.cadence_rpm is not None:
+            flags |= FLAGS_CADENCE
+            turning = self.cadence_rpm if self.rider_speed_kmh > 0 else 0.0
+            cadence = round(turning / CADENCE_RESOLUTION).to_bytes(
+                2, "little")
         return (
-            (0x0040).to_bytes(2, "little")
+            flags.to_bytes(2, "little")
             + speed_raw.to_bytes(2, "little")
+            + cadence
             + self.power_now().to_bytes(2, "little", signed=True)
             + b"".join(v.to_bytes(2, "little") for v in vendor)
         )

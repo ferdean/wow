@@ -6,7 +6,8 @@ Start, the wait for the first power, steps on schedule with the lead
 time, ramps, ERG and resistance blocks, free-ride steps, pause, skip,
 intensity, mode switches, resistance levels remembered per target, free
 ride without a plan, dropouts in the journal, the end of the workout,
-Finish, Discard and Cancel. The idle finish follows in SL-10.
+Finish, Discard and Cancel, and the finish of a ride left alone for 30
+minutes (APP-825).
 
 Times: `now` is monotonic; ride time stops in a pause; plan time is
 ride time plus the time skipped, so the plan's step times stay valid
@@ -34,6 +35,7 @@ from wow.core.workout import (
 )
 
 ARMED_TIMEOUT: Final[float] = 1800.0
+ABANDON_AFTER: Final[float] = 1800.0
 FIRST_POWER_MIN: Final[int] = 1
 EPSILON: Final[float] = 1e-6
 INTENSITY_STEP_PCT: Final[int] = 5
@@ -154,9 +156,17 @@ class Tick:
     """Event: a deadline of the ride has come."""
 
 
+@dataclass(frozen=True)
+class Recovered:
+    """Event: the rider took the ride up again after the app's outage."""
+
+
 RideEvent = (Start | CancelStart | PowerSeen | Pause | Resume | Skip
              | Finish | Discard | IntensityStep | SwitchMode | ResistanceStep
-             | FreeRidePowerStep | TrainerLink | HrmLink | Tick)
+             | FreeRidePowerStep | TrainerLink | HrmLink | Tick | Recovered)
+RIDER_ACTIONS: Final[tuple[type, ...]] = (
+    Pause, Resume, Skip, IntensityStep, SwitchMode, ResistanceStep,
+    FreeRidePowerStep)
 
 
 @dataclass(frozen=True)
@@ -201,7 +211,8 @@ RideAction = SetTrainer | Journal | Refused | Ended | FreeRideLevel
 RIDE_FORMS: Final[Registry] = Registry(
     Start, CancelStart, PowerSeen, Pause, Resume, Skip, Finish, Discard,
     IntensityStep, SwitchMode, ResistanceStep, FreeRidePowerStep,
-    TrainerLink, HrmLink, Tick, SetTrainer, Journal, Refused, Ended,
+    TrainerLink, HrmLink, Tick, Recovered, SetTrainer, Journal, Refused,
+    Ended,
     FreeRideLevel, Workout, Block, Step, PowerTarget, TrainerCapabilities,
     Range, Erg, Resistance,
 )
@@ -235,11 +246,17 @@ def _mode_of(command: TrainerCommand) -> Mode:
 
 
 class Ride:
-    """The state of one ride."""
+    """The state of one ride.
 
-    def __init__(self) -> None:
+    With watch_idle off, a ride left alone is never finished: a ride
+    rebuilt from its journal has no power readings to restart the 30
+    minutes, so the watch starts again with Recovered.
+    """
+
+    def __init__(self, watch_idle: bool = True) -> None:
         self._trainer_up = False
         self._hrm_up = False
+        self._watch_idle = watch_idle
         self._reset(None)
 
     def _reset(self, course: _Course | None) -> None:
@@ -261,6 +278,8 @@ class Ride:
         self._free_mode = Mode.RESISTANCE
         self._free_power = 0
         self._command: TrainerCommand | None = None
+        self._active_at = 0.0
+        self._idle_check: float | None = None
 
     @property
     def phase(self) -> RidePhase:
@@ -330,6 +349,14 @@ class Ride:
         return round_half_up(share / (levels.maximum - levels.minimum))
 
     @property
+    def resistance_blocks(self) -> tuple[int, ...]:
+        """Return the blocks the rider set to resistance mode (APP-403)."""
+        if self.free:
+            return ()
+        return tuple(sorted(block for block, mode in self._block_modes.items()
+                            if mode == Mode.RESISTANCE))
+
+    @property
     def free_ride_target(self) -> int | None:
         """Return the ERG target of a free ride, if riding by power."""
         if self.free and self._free_mode == Mode.ERG:
@@ -381,6 +408,13 @@ class Ride:
 
     def handle(self, event: RideEvent, now: float) -> list[RideAction]:
         """Handle an event and return the actions to carry out."""
+        actions = self._dispatch(event, now)
+        if isinstance(event, RIDER_ACTIONS) and not any(
+                isinstance(action, Refused) for action in actions):
+            self._touch(now)
+        return actions
+
+    def _dispatch(self, event: RideEvent, now: float) -> list[RideAction]:
         match event:
             case Start():
                 return self._on_start(event, now)
@@ -412,20 +446,32 @@ class Ride:
                 return self._on_link("hrm", up, now)
             case Tick():
                 return self._on_tick(now)
+            case Recovered():
+                self._watch_idle = True
+                if self._phase in RIDING:
+                    self._touch(now)
+                return []
         return []
 
     def next_deadline(self) -> float | None:
         """Return the time of the next Tick, if any."""
         if self._phase == RidePhase.ARMED:
             return self._armed_at + ARMED_TIMEOUT
+        idle = self._idle_check if self._phase in RIDING else None
         course, started = self._course, self._started_at
         if self._phase != RidePhase.RUNNING or not course or started is None:
-            return None
+            return idle
         due = course.plan.steps[self._step].end
         for extra in (self._lead_due(), self._ramp_next):
             if extra is not None:
                 due = min(due, extra)
-        return started + self._paused_total + due - self._skipped
+        step_due = started + self._paused_total + due - self._skipped
+        return step_due if idle is None else min(step_due, idle)
+
+    def _touch(self, now: float) -> None:
+        self._active_at = now
+        if self._watch_idle and self._idle_check is None:
+            self._idle_check = now + ABANDON_AFTER
 
     def _shown_command(self) -> TrainerCommand | None:
         if self._phase == RidePhase.PAUSED and self._course is not None:
@@ -570,10 +616,15 @@ class Ride:
                 *self._end(RidePhase.CANCELLED, "rider", now)]
 
     def _on_power(self, power: int, now: float) -> list[RideAction]:
-        if self._phase != RidePhase.ARMED or power < FIRST_POWER_MIN:
+        if power < FIRST_POWER_MIN:
+            return []
+        if self._phase in RIDING:
+            self._touch(now)
+        if self._phase != RidePhase.ARMED:
             return []
         self._phase = RidePhase.RUNNING
         self._started_at = now
+        self._touch(now)
         self._ramp_next = self._ramp_after(0.0)
         return [Journal("ride_started", 0.0, {"power": power}),
                 self._step_started("schedule", now)]
@@ -691,6 +742,12 @@ class Ride:
             if now >= self._armed_at + ARMED_TIMEOUT - EPSILON:
                 return self._end(RidePhase.CANCELLED, "timeout", now)
             return []
+        check = self._idle_check
+        if self._phase in RIDING and check is not None and (
+                now >= check - EPSILON):
+            if now >= self._active_at + ABANDON_AFTER - EPSILON:
+                return self._end(RidePhase.FINISHED, "idle", now)
+            self._idle_check = self._active_at + ABANDON_AFTER
         actions: list[RideAction] = []
         course = self._course
         while self._phase == RidePhase.RUNNING and course is not None:
@@ -789,5 +846,6 @@ class Ride:
         self._paused_at = None
         self._lead_sent = False
         self._ramp_next = None
+        self._idle_check = None
         return [Journal(phase.value, t_ride, {"cause": cause}), *lowest,
                 Ended(phase)]

@@ -12,6 +12,7 @@ class Screen(StrEnum):
     SUMMARY = "summary"
     HISTORY = "history"
     CALIBRATION = "calibration"
+    SETTINGS = "settings"
 
 
 class Mode(StrEnum):
@@ -34,6 +35,7 @@ class Problem(StrEnum):
     TRAINER_NOT_RESPONDING = "trainer_not_responding"
     CONTROL_REFUSED = "control_refused"
     TARGET_LIMITED = "target_limited"
+    INVALID_VALUE = "invalid_value"
 
 
 class CommandName(StrEnum):
@@ -83,8 +85,11 @@ class UploadState(StrEnum):
 
 
 class WarningKind(StrEnum):
-    """Kind of a warning outside the ride."""
+    """Kind of a warning that doesn't come from the trainer."""
 
     WORKOUTS_OFFLINE = "workouts_offline"
     STORAGE_LOW = "storage_low"
     SPINDOWN_REQUESTED = "spindown_requested"
+    HRM_BATTERY_LOW = "hrm_battery_low"
+    CLOCK_UNSYNCED = "clock_unsynced"
+    CERT_EXPIRING = "cert_expiring"

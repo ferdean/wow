@@ -36,6 +36,10 @@
   },
   "intensity_pct": 100,
   "resistance_pct": 5,
-  "free_ride_target": null
+  "free_ride_target": null,
+  "resistance_blocks": [
+   0
+  ],
+  "cadence_rpm": null
  }
 }

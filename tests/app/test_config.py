@@ -5,10 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from wow.app.config import (
-    DEFAULT_FTP, DEFAULT_LEAD_TIME, default_static, load_config,
-    load_settings,
-)
+from wow.app.config import default_static, load_config, load_settings
 from wow.app.main import app_version, parse_args
 from wow.app.workout_catalog import load_builtin
 
@@ -23,8 +20,9 @@ def test_the_examples_load(tmp_path: Path) -> None:
     shutil.copy(ROOT / "deploy" / "settings.example.json",
                 tmp_path / "settings.json")
     settings = load_settings(tmp_path)
-    assert settings.trainer == "94:05:BB:03:5D:9D"
-    assert settings.hrm == "E0:E2:EF:63:14:BC"
+    assert settings.trainer is not None and settings.hrm is not None
+    assert settings.trainer.address == "94:05:BB:03:5D:9D"
+    assert settings.hrm.address == "E0:E2:EF:63:14:BC"
 
 
 @pytest.mark.case("S-CFG-01")
@@ -37,8 +35,7 @@ def test_defaults_without_files(tmp_path: Path) -> None:
         443, "wow.local", "hci0")
     assert config.static == Path("s")
     settings = load_settings(tmp_path)
-    assert (settings.ftp, settings.lead_time) == (DEFAULT_FTP,
-                                                  DEFAULT_LEAD_TIME)
+    assert (settings.ftp, settings.lead_time) == (250, 1.0)
     assert settings.trainer is None and settings.hrm is None
 
 

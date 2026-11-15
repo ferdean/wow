@@ -4,9 +4,9 @@
   import CalibrationScreen from "./screens/CalibrationScreen.svelte";
   import HistoryScreen from "./screens/HistoryScreen.svelte";
   import HomeScreen from "./screens/HomeScreen.svelte";
-  import LaterScreen from "./screens/LaterScreen.svelte";
   import PreRideScreen from "./screens/PreRideScreen.svelte";
   import RideScreen from "./screens/RideScreen.svelte";
+  import SettingsScreen from "./screens/SettingsScreen.svelte";
   import StartScreen from "./screens/StartScreen.svelte";
   import SummaryScreen from "./screens/SummaryScreen.svelte";
   import { holdScreen } from "./device/wake";
@@ -57,7 +57,7 @@
     <HomeScreen screen={view.screen} warnings={view.warnings} send={(n, a) => link.send(n, a)} />
   {:else if view.screen.name === "pre_ride"}
     <PreRideScreen screen={view.screen} plan={link.plan} links={view.links} battery={view.hrm_battery_pct}
-      send={(n, a) => link.send(n, a)} />
+      warnings={view.warnings} send={(n, a) => link.send(n, a)} />
   {:else if view.screen.name === "ride"}
     <RideScreen screen={view.screen} plan={link.plan} links={view.links} battery={view.hrm_battery_pct}
       warnings={view.warnings} since={link.live ? since : 0} send={(n, a) => link.send(n, a)} />
@@ -67,8 +67,8 @@
     <HistoryScreen screen={view.screen} send={(n, a) => link.send(n, a)} />
   {:else if view.screen.name === "calibration"}
     <CalibrationScreen screen={view.screen} send={(n, a) => link.send(n, a)} />
-  {:else}
-    <LaterScreen name={view.screen.name} send={(n, a) => link.send(n, a)} />
+  {:else if view.screen.name === "settings"}
+    <SettingsScreen screen={view.screen} send={(n, a) => link.send(n, a)} />
   {/if}
 </main>
 {#if view !== null && !link.live && !greeting}

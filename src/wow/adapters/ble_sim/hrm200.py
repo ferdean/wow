@@ -30,12 +30,14 @@ class SimHrm200Server(SimServerBase):
         *,
         heart_rate_bpm: int = 130,
         battery_pct: int = 80,
+        address: str = HRM_ADDRESS,
+        name: str = HRM_NAME,
     ) -> None:
         super().__init__(
             scheduler,
             Advertisement(
-                address=HRM_ADDRESS,
-                name=HRM_NAME,
+                address=address,
+                name=name,
                 rssi_dbm=-55,
                 service_uuids=(uuids.HEART_RATE_SERVICE,),
                 service_data={},

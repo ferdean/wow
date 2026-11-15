@@ -8,11 +8,13 @@ from wow.adapters.ble_sim.connector import SimClient, SimConnector
 from wow.adapters.ble_sim.d100 import D100_ADDRESS, SimD100Server
 from wow.adapters.ble_sim.faults import Fault, FaultKind, Faults, SimFaults
 from wow.adapters.ble_sim.hrm200 import HRM_ADDRESS, SimHrm200Server
+from wow.adapters.ble_sim.others import SimAdvertiser, bystanders
 from wow.adapters.ble_sim.scheduler import SimScheduler
 from wow.adapters.ble_sim.server import GattServer, Traffic
 
 __all__ = [
     "D100_ADDRESS", "Fault", "FaultKind", "Faults", "GattServer",
-    "HRM_ADDRESS", "SimClient", "SimConnector", "SimD100Server",
-    "SimFaults", "SimHrm200Server", "SimScheduler", "Traffic",
+    "HRM_ADDRESS", "SimAdvertiser", "SimClient", "SimConnector",
+    "SimD100Server", "SimFaults", "SimHrm200Server", "SimScheduler",
+    "Traffic", "bystanders",
 ]

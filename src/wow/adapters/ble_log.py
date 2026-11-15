@@ -14,6 +14,7 @@ from wow.ports.gatt import (
     Advertisement, GattClient, GattConnector, GattError, Uuid,
 )
 from wow.core.devices import DeviceKind
+from wow.core.devices import device_kind as kind_of
 from typing import Final
 
 INDICATED: Final[frozenset[str]] = frozenset(
@@ -47,12 +48,7 @@ def record_line(record: BleLogRecord) -> str:
 
 def device_kind(advertisement: Advertisement) -> DeviceKind:
     """Return the role of an advertising device."""
-    services = set(advertisement.service_uuids)
-    if uuids.FITNESS_MACHINE_SERVICE in services:
-        return DeviceKind.TRAINER
-    if uuids.HEART_RATE_SERVICE in services:
-        return DeviceKind.HRM
-    return DeviceKind.OTHER
+    return kind_of(advertisement.service_uuids)
 
 
 BleSink = Callable[[BleLogRecord], None]

@@ -14,6 +14,7 @@ REQUIREMENTS = {
     "T-RID-04": ("APP-117",),
     "T-RID-05": ("APP-116",),
     "T-RID-06": ("APP-304", "APP-605"),
+    "T-RID-18": ("APP-825",),
 }
 
 
@@ -71,3 +72,26 @@ def test_each_command_leads_its_boundary_by_the_lead_time() -> None:
     starts = [at for at, _ in journal(timeline, "step_started")]
     assert [round(b - a, 6) for a, b in zip(sends[1:], starts[1:])] == [
         1.5] * 6
+
+
+def ended(timeline: list[list[Any]]) -> list[tuple[float, str | None]]:
+    finished = journal(timeline, "finished")
+    return [(at, a["data"]["cause"]) for at, a in finished] + [
+        (at, None) for at, a in timeline if a["type"] == "ended"
+        and a["cause"] != "finished"]
+
+
+@pytest.mark.case("T-RID-18")
+@pytest.mark.req("APP-825")
+@pytest.mark.parametrize(("name", "at"), [
+    ("T-RID-18-running", 1810.0), ("T-RID-18-workout-done", 1810.0),
+    ("T-RID-18-paused", 1900.0), ("T-RID-18-power-1799", 3609.0),
+    ("T-RID-18-tap-1799", 3609.0)])
+def test_a_ride_left_alone_finishes_after_30_minutes(
+        name: str, at: float) -> None:
+    timeline = run(name)
+    assert ended(timeline) == [(at, "idle")]
+    last = [a for t, a in timeline if t == at]
+    assert last[-1] == {"type": "ended", "cause": "finished"}
+    assert {"type": "set_trainer", "command": {
+        "type": "resistance", "level_raw": 0}} in last

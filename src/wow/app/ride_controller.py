@@ -26,10 +26,11 @@ from wow.core.devices import (
 from wow.core.metrics import Metrics, ride_metrics
 from wow.core.numbers import DEFAULT_ZONES_PCT
 from wow.core.ride import (
-    CancelStart, Discard, Ended, Finish, FreeRideLevel, FreeRidePowerStep,
-    HrmLink, IntensityStep, Journal, PowerSeen, Refused, ResistanceStep,
-    Resume, Ride, RideAction, RideEvent, RidePhase, SetTrainer, Skip, Start,
-    SwitchMode, Tick, TrainerLink,
+    ACTIVE, FIRST_POWER_MIN, CancelStart, Discard, Ended, Finish,
+    FreeRideLevel, FreeRidePowerStep, HrmLink, IntensityStep, Journal,
+    PowerSeen, Recovered, Refused, ResistanceStep, Resume, Ride, RideAction,
+    RideEvent, RidePhase, SetTrainer, Skip, Start, SwitchMode, Tick,
+    TrainerLink,
 )
 from wow.core.ride import Pause as PauseRide
 from wow.core.replay import Record, rebuild, record_mono, tick_until
@@ -207,9 +208,15 @@ class RideController:
         actions = ride.handle(TrainerLink(False), crash)
         actions += ride.handle(HrmLink(False), crash)
         self._perform(actions + tick_until(ride, now))
+        self._driver.post(Recovered())
         self._restart_sampler(found, now)
         self._driver.post(TrainerLink(
             self._trainer.link() == LinkState.CONNECTED))
+
+    @property
+    def setup(self) -> RideSetup | None:
+        """Return the setup of the ride last started or taken up."""
+        return self._setup
 
     def ride_id(self) -> str | None:
         """Return the ID of the ride being recorded, if any."""
@@ -220,7 +227,8 @@ class RideController:
         """Take a trainer reading."""
         self._sampling.post(TrainerValue(sample.mono, sample.power,
                                          sample.cadence_rpm))
-        if self.ride.phase == RidePhase.ARMED and sample.power is not None:
+        if sample.power is not None and sample.power >= FIRST_POWER_MIN and (
+                self.ride.phase in ACTIVE):
             self._driver.post(PowerSeen(sample.power))
 
     def hr_sample(self, sample: HrSample) -> None:

@@ -24,9 +24,8 @@ from typing import Any, Final
 from wow.adapters.ble_bleak import BleakConnector
 from wow.adapters.ble_log import LoggingConnector
 from wow.adapters.ble_sim import (
-    D100_ADDRESS, HRM_ADDRESS, Faults, SimConnector, SimD100Server,
-    SimFaults, SimHrm200Server,
-    SimScheduler,
+    D100_ADDRESS, HRM_ADDRESS, Faults, GattServer, SimConnector,
+    SimD100Server, SimFaults, SimHrm200Server, SimScheduler, bystanders,
 )
 from wow.adapters.clock_system import SystemClock, default_sync_marker
 from wow.app.boot import boot_id
@@ -35,8 +34,7 @@ from wow.adapters.intervals_icu import IntervalsIcu
 from wow.adapters.led_sysfs import SysfsLed
 from wow.app.calibration_controller import CalibrationController
 from wow.app.config import (
-    Config, RideSettings, load_config, load_secrets, load_settings,
-    save_setting,
+    Config, Secrets, load_config, load_secrets, load_settings,
 )
 from wow.app.console import Console
 from wow.app.device_manager import DeviceChoice, DeviceManager
@@ -45,13 +43,15 @@ from wow.app.hrm_link import HrmLink
 from wow.app.loop_lag import LoopLagMonitor
 from wow.app.recorder import Recorder
 from wow.app.recovery import close_cancelled, find_interrupted
-from wow.app.housekeeping import FreeSpace, disk_free
+from wow.app.housekeeping import CertificateWatch, FreeSpace, disk_free
 from wow.app.ride_controller import RideController, Summary
+from wow.app.settings_panel import SettingsPanel
 from wow.app.upload_worker import UploadWorker
 from wow.app.status_led import LedController
 from wow.app.workout_catalog import (
     Entry, Source, WorkoutCatalog, builtin_entries,
 )
+from wow.core.settings import Settings
 from wow.core.workout import Workout
 from wow.ports.clock import Clock
 from wow.ports.gatt import GattConnector
@@ -67,6 +67,14 @@ logger = logging.getLogger(__name__)
 DEFAULT_CONFIG: Final[Path] = Path("/etc/wow/wow.toml")
 SIM_PEDAL_AFTER: Final[float] = 3.0
 DISTRIBUTION: Final[str] = "witchesonwheels"
+
+AccountFactory = Callable[[Secrets], IntervalsIcu]
+SimDevices = Callable[[SimScheduler], Sequence[GattServer]]
+
+
+def intervals_account(secrets: Secrets) -> IntervalsIcu:
+    """Return the intervals.icu client of an account."""
+    return IntervalsIcu(secrets.athlete_id, secrets.api_key)
 
 
 def app_version() -> str:
@@ -90,11 +98,18 @@ class App:
                  boot: str | None = None,
                  led: StatusLed | None = None,
                  uploader: ActivityUploader | None = None,
-                 free_bytes: Callable[[Path], int] | None = None) -> None:
+                 free_bytes: Callable[[Path], int] | None = None,
+                 account: AccountFactory = intervals_account,
+                 sim_trainer: Callable[[SimScheduler], SimD100Server]
+                 | None = None,
+                 sim_devices: SimDevices | None = None) -> None:
         self.config = config
         self.clock = clock
         self._faults = sim_faults
         self._replay = replay
+        self._account_factory = account
+        self._sim_trainer = sim_trainer
+        self._sim_devices = sim_devices
         settings = load_settings(config.data)
         self.recorder = Recorder(config.data, boot or boot_id())
         self.scheduler: SimScheduler | None = None
@@ -105,6 +120,10 @@ class App:
         self.hrm = HrmLink(clock)
         self.devices = DeviceManager(connector, clock, self.trainer,
                                      self.hrm, choice)
+        self.settings = SettingsPanel(
+            config.data, settings, load_secrets(config.data) is not None,
+            self.devices, self.recorder.run, self._changed)
+        self.settings.on_account = self._use_account
         self.rides = RideController(clock, self.trainer, self.recorder,
                                     self._changed, GarminFitWriter(),
                                     app_version())
@@ -122,9 +141,11 @@ class App:
             clock, self.trainer, self.recorder, config.data / "logs",
             self._changed)
         self.trainer.on_status = self.calibration.status
+        self.certificate = CertificateWatch(clock, config.cert)
         self.console = Console(clock, self.devices, self.rides, self.catalog,
-                               settings, self._changed, self.uploads,
-                               self.space, rides, self.calibration)
+                               self.settings, self._changed, self.uploads,
+                               self.space, rides, self.calibration,
+                               self.certificate)
         self.rides.on_finished = self._finished
         self.rides.on_free_level = self._free_level
         self.trainer.on_sample = self.console.trainer_sample
@@ -165,6 +186,7 @@ class App:
     async def stop(self) -> None:
         """Stop in order, the trainer at its lowest level first."""
         self.calibration.close()
+        await self.settings.close()
         await self.devices.close()
         await self.rides.close()
         await self.catalog.close()
@@ -207,17 +229,20 @@ class App:
         secrets = load_secrets(self.config.data)
         if secrets is None:
             return None
-        return IntervalsIcu(secrets.athlete_id, secrets.api_key)
+        return self._account_factory(secrets)
+
+    def _use_account(self, secrets: Secrets) -> None:
+        client = self._account_factory(secrets)
+        self.catalog.set_provider(client)
+        self.uploads.set_uploader(client)
+        self.catalog.request_refresh()
 
     def _finished(self, summary: Summary) -> None:
         if summary.upload == UploadState.PENDING:
             self.uploads.queue(summary.ride_id)
 
     def _free_level(self, pct: int) -> None:
-        self.console.set_free_ride_level(pct)
-        data = self.config.data
-        self.recorder.run(
-            lambda: save_setting(data, "free_ride_level_pct", pct))
+        self.settings.keep_free_ride_level(pct)
 
     def _changed(self) -> None:
         self.hub.changed()
@@ -225,37 +250,38 @@ class App:
     def _spawn(self, work: Coroutine[Any, Any, None]) -> None:
         self._tasks.append(asyncio.get_running_loop().create_task(work))
 
-    def _bluetooth(self, settings: RideSettings, sim_pedal_after: float
+    def _bluetooth(self, settings: Settings, sim_pedal_after: float
                    ) -> tuple[GattConnector, DeviceChoice]:
+        chosen = DeviceChoice(
+            None if settings.trainer is None else settings.trainer.address,
+            None if settings.hrm is None else settings.hrm.address)
         if self._replay is not None:
-            choice = DeviceChoice(D100_ADDRESS, HRM_ADDRESS)
-            return self._logged(self._replay, choice), choice
+            return self._logged(self._replay), DeviceChoice(D100_ADDRESS,
+                                                            HRM_ADDRESS)
         if self.config.simulate:
             faults = self._faults
-            self.scheduler = SimScheduler(self.clock)
-            self.d100 = SimD100Server(self.scheduler,
-                                      pedal_after=sim_pedal_after)
+            scheduler = self.scheduler = SimScheduler(self.clock)
+            self.d100 = (SimD100Server(scheduler, pedal_after=sim_pedal_after)
+                         if self._sim_trainer is None
+                         else self._sim_trainer(scheduler))
             self.d100.faults = Faults(faults.trainer)
-            strap = SimHrm200Server(self.scheduler)
+            strap = SimHrm200Server(scheduler)
             strap.faults = Faults(faults.strap)
-            self.sim = SimConnector(self.clock, [self.d100, strap],
-                                    Faults(faults.adapter))
-            inner: GattConnector = self.sim
-            choice = DeviceChoice(D100_ADDRESS, HRM_ADDRESS)
-            return self._logged(inner, choice), choice
-        choice = DeviceChoice(settings.trainer, settings.hrm)
+            extra = ([] if self._sim_devices is None
+                     else list(self._sim_devices(scheduler)))
+            self.sim = SimConnector(
+                self.clock, [self.d100, strap, *bystanders(scheduler),
+                             *extra], Faults(faults.adapter))
+            return self._logged(self.sim), DeviceChoice(
+                chosen.trainer or D100_ADDRESS, chosen.hrm or HRM_ADDRESS)
         bleak = BleakConnector(self.config.adapter)
-        connector = self._logged(bleak, choice)
+        connector = self._logged(bleak)
         bleak.on_stale_release = connector.stale_release
-        return connector, choice
+        return connector, chosen
 
-    def _logged(self, inner: GattConnector,
-                choice: DeviceChoice) -> LoggingConnector:
-        roles = {address.upper(): role for role, address in (
-            ("trainer", choice.trainer), ("hrm", choice.hrm)) if address}
-        return LoggingConnector(
-            inner, self.clock, self.recorder.ble,
-            lambda address: roles.get(address.upper(), "other"))
+    def _logged(self, inner: GattConnector) -> LoggingConnector:
+        return LoggingConnector(inner, self.clock, self.recorder.ble,
+                                lambda address: self.devices.role_of(address))
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:

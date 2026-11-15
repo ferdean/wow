@@ -23,6 +23,15 @@ fi
 id wow >/dev/null 2>&1 || useradd --system --home-dir /var/lib/wow \
     --shell /usr/sbin/nologin --groups bluetooth wow
 install -d -o wow -g wow -m 0750 /var/lib/wow
+# The API key and the TLS key: readable by wow only (APP-817, T-SYS-05).
+[ ! -d /var/lib/wow/tls ] || chown -R wow:wow /var/lib/wow/tls
+[ ! -d /var/lib/wow/tls ] || chmod 0750 /var/lib/wow/tls
+for secret in /var/lib/wow/secrets.json /var/lib/wow/tls/server.key; do
+    if [ -f "$secret" ]; then
+        chown wow:wow "$secret"
+        chmod 0600 "$secret"
+    fi
+done
 install -d -m 0755 /etc/wow /opt/wow
 [ -f /etc/wow/wow.toml ] || install -m 0644 deploy/wow.pi.toml /etc/wow/wow.toml
 

@@ -1,6 +1,7 @@
 <script lang="ts">
-  import type { CommandName, LinkState, Plan, PreRideScreen } from "../types/protocol";
+  import type { CommandName, LinkState, Plan, PreRideScreen, Warning } from "../types/protocol";
   import { listDuration, percent, stepText } from "../format";
+  import Banner from "../ui/Banner.svelte";
   import Profile from "../ui/Profile.svelte";
   import { holdScreen } from "../device/wake";
 
@@ -9,9 +10,12 @@
     plan: Plan | null;
     links: { trainer: LinkState; hrm: LinkState };
     battery: number | null;
+    warnings?: Warning[];
     send: (name: CommandName, args?: Record<string, unknown>) => void;
   }
-  let { screen, plan, links, battery, send }: Props = $props();
+  let { screen, plan, links, battery, warnings = [], send }: Props = $props();
+  const low = $derived(warnings.some((w) => w.kind === "hrm_battery_low"));
+  const unsynced = $derived(warnings.some((w) => w.kind === "clock_unsynced"));
 
   const words: Record<LinkState, string> = {
     connected: "Connected",
@@ -41,8 +45,14 @@
     {/if}
     <div class="panel devices">
       <div class="row"><span class="grow">Trainer</span><span class:ok={links.trainer === "connected"}>{words[links.trainer]}</span></div>
-      <div class="row"><span class="grow">Strap</span><span class:ok={links.hrm === "connected"}>{words[links.hrm]}</span><span class="label">{percent(battery)}</span></div>
+      <div class="row"><span class="grow">Strap</span><span class:ok={links.hrm === "connected"}>{words[links.hrm]}</span><span class="label" class:low>{percent(battery)}{low ? " low" : ""}</span></div>
     </div>
+    {#if low}
+      <Banner tone="warning" text="The strap's battery is low. Replace it soon." />
+    {/if}
+    {#if unsynced}
+      <Banner tone="warning" text="The Pi's clock isn't set yet. Ride times may be off." />
+    {/if}
     {#if !screen.free_ride}<div class="profile"><Profile {plan} /></div>{/if}
     <div class="blocks">
       {#each blocks as block (block.index)}
@@ -83,6 +93,9 @@
   }
   .ok {
     color: var(--ok);
+  }
+  .low {
+    color: var(--warning);
   }
   .profile {
     height: 80px;

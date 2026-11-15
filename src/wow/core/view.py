@@ -4,8 +4,8 @@ The domain view state the Pi sends to the display (ICD IF-06, 4.6.3;
 AD-18). Values only, no formatting.
 
 Home with planned, library and built-in workouts, Pre-ride, the ride
-screen while armed, during steps and after the last one, and the
-Summary.
+screen while armed, during steps and after the last one, the Summary,
+the ride history, Calibration and Settings, and the warnings they carry.
 """
 
 from collections import deque
@@ -13,16 +13,18 @@ from collections.abc import Sequence
 from fractions import Fraction
 from typing import Any, Final
 
-from wow.core.devices import LinkState
+from wow.core.devices import FoundDevice, LinkState
 from wow.core.metrics import Metrics
 from wow.core.numbers import DEFAULT_ZONES_PCT, exact, round_half_up, zone_of
 from wow.core.plan import Plan
 from wow.core.ride import Ride, RidePhase
+from wow.core.settings import DeviceRef, Settings
 from wow.core.workout import StepKind, Workout
-from wow.core.vocab import Mode, Problem, Screen
+from wow.core.vocab import Mode, Problem, Screen, WarningKind
 
 AVERAGE_WINDOW: Final[float] = 3.0
 DATA_DROPOUT: Final[float] = 3.0
+CERT_WARN_DAYS: Final[int] = 30
 
 Json = dict[str, Any]
 
@@ -86,7 +88,8 @@ def _mode(kind: StepKind) -> Mode:
 
 
 def workout_card(workout: Workout | None, plan: Plan | None, source: str,
-                 ref: str, name: str) -> Json:
+                 ref: str, name: str,
+                 zones_pct: Sequence[int] = DEFAULT_ZONES_PCT) -> Json:
     """Return the Home card of a workout; None for one not rideable."""
     if workout is None or plan is None:
         return {"ref": ref, "source": source, "name": name,
@@ -98,7 +101,7 @@ def workout_card(workout: Workout | None, plan: Plan | None, source: str,
         sketch.append({
             "duration": _ms(step.duration), "start_power": start or 0,
             "end_power": end if end is not None else start or 0,
-            "zone": _zone(start, plan.ftp, DEFAULT_ZONES_PCT) or 0})
+            "zone": _zone(start, plan.ftp, zones_pct) or 0})
     peaks = [max(s["start_power"], s["end_power"]) for s in sketch]
     return {
         "ref": ref, "source": source, "name": name,
@@ -185,8 +188,10 @@ def plan_message(plan: Plan,
 
 
 def ride_screen(ride: Ride, now: float, power: int | None,
-                hr_bpm: int | None) -> Json:
-    """Return the ride screen at now."""
+                hr_bpm: int | None,
+                zones_pct: Sequence[int] = DEFAULT_ZONES_PCT,
+                cadence_rpm: int | None = None) -> Json:
+    """Return the ride screen at now; cadence only with a source."""
     plan = ride.plan
     remaining = ride.remaining(now)
     screen: Json = {
@@ -201,13 +206,15 @@ def ride_screen(ride: Ride, now: float, power: int | None,
         "next": None, "intensity_pct": ride.intensity_pct,
         "resistance_pct": ride.resistance_pct,
         "free_ride_target": ride.free_ride_target,
+        "resistance_blocks": list(ride.resistance_blocks),
+        "cadence_rpm": cadence_rpm,
     }
     if plan is None:
         return screen
     if ride.free:
         target_power = ride.free_ride_target
         screen.update({"target": target_power, "target_zone": _zone(
-            target_power, plan.ftp, DEFAULT_ZONES_PCT)})
+            target_power, plan.ftp, zones_pct)})
         return screen
     target = ride.current_target(now)
     left = ride.step_left(now)
@@ -218,7 +225,7 @@ def ride_screen(ride: Ride, now: float, power: int | None,
         "step": {"index": step.index, "count": len(plan.steps),
                  "left": _ms(left), "text": step.text},
         "target": target.power,
-        "target_zone": _zone(target.power, plan.ftp, DEFAULT_ZONES_PCT),
+        "target_zone": _zone(target.power, plan.ftp, zones_pct),
         Problem.TARGET_LIMITED: target.limited,
     })
     following = ride.step_target(ride.step + 1)
@@ -228,7 +235,7 @@ def ride_screen(ride: Ride, now: float, power: int | None,
             "kind": (StepKind.ERG if planned.kind == StepKind.ERG
                      else StepKind.FREE_RIDE),
             "target": following.power,
-            "zone": _zone(following.power, plan.ftp, DEFAULT_ZONES_PCT),
+            "zone": _zone(following.power, plan.ftp, zones_pct),
             "duration": _ms(planned.duration)}
     return screen
 
@@ -289,7 +296,8 @@ def metrics_view(metrics: Metrics) -> Json:
     }
 
 
-def ride_warnings(ride: Ride, trainer_warnings: Sequence[str]) -> list[Json]:
+def ride_warnings(ride: Ride, trainer_warnings: Sequence[str],
+                  extra: Sequence[Json] = ()) -> list[Json]:
     """Return the warnings to show during the ride."""
     warnings: list[Json] = [{"kind": k} for k in sorted(trainer_warnings)]
     target = ride.step_target()
@@ -297,7 +305,56 @@ def ride_warnings(ride: Ride, trainer_warnings: Sequence[str]) -> list[Json]:
         warnings.append({"kind": Problem.TARGET_LIMITED,
                          "requested_power": target.requested_power,
                          "sent_power": target.power})
-    return warnings
+    return warnings + list(extra)
+
+
+def battery_warning(battery_pct: int | None,
+                    threshold_pct: int) -> list[Json]:
+    """Return the strap's low-battery warning, if due (APP-112)."""
+    if battery_pct is None or battery_pct > threshold_pct:
+        return []
+    return [{"kind": WarningKind.HRM_BATTERY_LOW,
+             "battery_pct": battery_pct}]
+
+
+def clock_warning(synchronised: bool) -> list[Json]:
+    """Return the warning for a clock not synchronised (APP-824)."""
+    return [] if synchronised else [{"kind": WarningKind.CLOCK_UNSYNCED}]
+
+
+def certificate_warning(days_left: int | None) -> list[Json]:
+    """Return the warning for a certificate ending soon (APP-830)."""
+    if days_left is None or days_left > CERT_WARN_DAYS:
+        return []
+    return [{"kind": WarningKind.CERT_EXPIRING,
+             "days_left": max(0, days_left)}]
+
+
+def _device(ref: DeviceRef | None) -> Json | None:
+    return None if ref is None else {"address": ref.address,
+                                     "name": ref.name}
+
+
+def settings_screen(settings: Settings, account_set: bool,
+                    cert_valid_until: str | None,
+                    scan: tuple[str, bool, Sequence[FoundDevice]] | None
+                    ) -> Json:
+    """Return the Settings screen; scan is the kind, running and found."""
+    return {
+        "name": Screen.SETTINGS, "ftp": settings.ftp,
+        "zones_pct": list(settings.zones_pct),
+        "lead_time": settings.lead_time,
+        "battery_warn_pct": settings.battery_warn_pct,
+        "upload_on": settings.upload_on,
+        "intervals_account_set": account_set,
+        "cert_valid_until": cert_valid_until,
+        "trainer": _device(settings.trainer), "hrm": _device(settings.hrm),
+        "scan": None if scan is None else {
+            "kind": scan[0], "running": scan[1],
+            "found": [{"address": f.address, "name": f.name,
+                       "rssi_dbm": f.rssi_dbm, "kind": f.kind}
+                      for f in scan[2]]},
+    }
 
 
 def view_state(screen: Json, trainer: LinkState, hrm: LinkState,

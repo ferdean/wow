@@ -9,11 +9,19 @@ import os
 from pathlib import Path
 
 
-def write_atomic(path: Path, data: bytes) -> None:
-    """Replace a file's content atomically."""
+def write_atomic(path: Path, data: bytes, mode: int | None = None) -> None:
+    """Replace a file's content atomically; with mode, set its mode first.
+
+    The mode is set on the temporary file before any byte is written, so
+    the content is never readable with wider permissions.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp")
-    with temporary.open("wb") as handle:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+    descriptor = os.open(temporary, flags, 0o666 if mode is None else mode)
+    with os.fdopen(descriptor, "wb") as handle:
+        if mode is not None:
+            os.fchmod(handle.fileno(), mode)
         handle.write(data)
         handle.flush()
         os.fsync(handle.fileno())

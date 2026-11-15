@@ -160,6 +160,11 @@ class WorkoutCatalog:
         """Return the cache's download time while offline, else None."""
         return self._downloaded if self._offline else None
 
+    def set_provider(self, provider: WorkoutProvider) -> None:
+        """Read workouts through a new account from now on (APP-706)."""
+        self._provider = provider
+        self._last_try = None
+
     def request_refresh(self) -> None:
         """Start a download unless one ran in the last minute."""
         now = self._clock.monotonic()

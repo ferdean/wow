@@ -79,6 +79,8 @@ export interface RideScreen {
   intensity_pct: number;
   resistance_pct: number | null;
   free_ride_target: number | null;
+  resistance_blocks: number[];
+  cadence_rpm: number | null;
 }
 
 export interface Metrics {
@@ -106,14 +108,15 @@ export interface CalibrationScreen {
   blocked: "ride_running" | "trainer_missing" | null;
 }
 
+export type DeviceKind = "trainer" | "hrm" | "cadence";
+export interface FoundDevice { address: string; name: string | null; rssi_dbm: number; kind: DeviceKind }
 export interface SettingsScreen {
   name: "settings";
   ftp: number; zones_pct: number[]; lead_time: number; battery_warn_pct: number;
   upload_on: boolean; intervals_account_set: boolean; cert_valid_until: string | null;
   trainer: { address: string; name: string | null } | null;
   hrm: { address: string; name: string | null } | null;
-  scan: { kind: "trainer" | "hrm"; running: boolean;
-          found: { address: string; name: string | null; rssi_dbm: number }[] } | null;
+  scan: { kind: "trainer" | "hrm"; running: boolean; found: FoundDevice[] } | null;
 }
 
 export type Down = Hello | Plan | View | Ack | Pong;

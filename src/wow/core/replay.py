@@ -3,7 +3,9 @@
 The ride state machine fed again with the events its journal recorded
 (AD-09; ICD 4.9.4; APP-809): Start from `armed`, the first power from
 `ride_started`, every rider command, the link dropouts, and the Ticks
-between them, all at their recorded monotonic times plus a shift.
+between them, all at their recorded monotonic times plus a shift. The
+rebuilt ride doesn't watch for idleness: the journal holds no power
+readings, so the watch starts again when the ride is taken up.
 """
 
 from collections.abc import Mapping, Sequence
@@ -28,7 +30,7 @@ def record_mono(record: Record) -> float:
 def rebuild(records: Sequence[Record], workout: Workout,
             shift: float = 0.0, until: float | None = None) -> Ride:
     """Return the ride the records describe, ticked on to until."""
-    ride = Ride()
+    ride = Ride(watch_idle=False)
     for record in records:
         event = _event(record, workout)
         if event is None:

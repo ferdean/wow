@@ -71,18 +71,22 @@ class UploadWorker:
         self._wake.set()
         return True
 
+    def set_uploader(self, uploader: ActivityUploader) -> None:
+        """Upload through a new account from now on (APP-706)."""
+        self._uploader = uploader
+        self._wake.set()
+
     async def run(self) -> None:
         """Upload whatever is due, until cancelled.
 
         Without an intervals.icu account nothing is sent and the rides
-        stay pending.
+        stay pending until an account is entered.
         """
         if self._uploader is None:
             logger.info("no intervals.icu account: uploads wait")
-            return
         while True:
             now = self._clock.utc()
-            due = self._next(now)
+            due = None if self._uploader is None else self._next(now)
             if due is not None and due[1] <= 0.0:
                 await self._attempt(due[0])
                 continue

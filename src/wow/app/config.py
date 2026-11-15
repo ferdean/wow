@@ -1,7 +1,9 @@
-"""Load the installation configuration and ride settings.
+"""Load the configuration; keep the settings and the account.
 
-The installation's configuration (`wow.toml`) and, until slice SL-10
-brings the settings screen, the few settings a ride needs (ICD IF-10).
+The installation's configuration (`wow.toml`), and the rider's settings
+and intervals.icu account in the data directory (ICD IF-10; APP-706,
+APP-707, APP-708, APP-817): both files are replaced atomically, and
+`secrets.json` is created readable by the app's user only.
 """
 
 import json
@@ -11,16 +13,16 @@ import tomllib
 from dataclasses import dataclass, field
 from importlib import resources
 from pathlib import Path
-from typing import Any, Final
+from typing import Final
 
 from wow.adapters.store_files import write_atomic
-from wow.core.numbers import DEFAULT_ZONES_PCT
+from wow.core.settings import SCHEMA, Settings, settings_json, settings_of
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_FTP: Final[int] = 250
-DEFAULT_LEAD_TIME: Final[float] = 1.0
-SETTINGS_SCHEMA: Final[int] = 1
+SETTINGS_FILE: Final[str] = "settings.json"
+SECRETS_FILE: Final[str] = "secrets.json"
+SECRETS_MODE: Final[int] = 0o600
 
 
 @dataclass(frozen=True)
@@ -39,19 +41,6 @@ class Config:
     static: Path
     listen: str | None = None
     led: Path | None = None
-
-
-@dataclass(frozen=True)
-class RideSettings:
-    """Settings a ride needs."""
-
-    ftp: int
-    lead_time: float
-    trainer: str | None
-    hrm: str | None
-    zones_pct: tuple[int, ...] = DEFAULT_ZONES_PCT
-    free_ride_level_pct: int = 0
-    upload_on: bool = True
 
 
 @dataclass(frozen=True)
@@ -90,42 +79,35 @@ def load_config(path: Path) -> Config:
     )
 
 
-def _address(entry: Any) -> str | None:
-    if isinstance(entry, dict) and isinstance(entry.get("address"), str):
-        return str(entry["address"])
-    return None
-
-
-def load_settings(data: Path) -> RideSettings:
-    """Load the ride settings from the data directory."""
-    path = data / "settings.json"
-    raw = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-    return RideSettings(
-        ftp=int(raw.get("ftp", DEFAULT_FTP)),
-        lead_time=float(raw.get("lead_time", DEFAULT_LEAD_TIME)),
-        trainer=_address(raw.get("trainer")),
-        hrm=_address(raw.get("hrm")),
-        zones_pct=tuple(int(z) for z in raw.get("zones_pct",
-                                                DEFAULT_ZONES_PCT)),
-        free_ride_level_pct=int(raw.get("free_ride_level_pct", 0)),
-        upload_on=bool(raw.get("upload_on", True)),
-    )
-
-
-def save_setting(data: Path, key: str, value: object) -> None:
-    """Replace one value in the settings file (IF-10), keeping the rest."""
-    path = data / "settings.json"
+def load_settings(data: Path) -> Settings:
+    """Load the settings; defaults for anything missing or unusable."""
+    path = data / SETTINGS_FILE
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        raw = {"schema": SETTINGS_SCHEMA}
-    raw[key] = value
-    write_atomic(path, (json.dumps(raw, indent=2) + "\n").encode())
+    except FileNotFoundError:
+        return Settings()
+    except (OSError, ValueError) as error:
+        logger.warning("%s unreadable, defaults used: %r", path, error)
+        return Settings()
+    if not isinstance(raw, dict):
+        logger.warning("%s is not an object, defaults used", path)
+        return Settings()
+    settings, rejected = settings_of(raw)
+    for problem in rejected:
+        logger.warning("%s: default kept for %s", path, problem.text())
+    return settings
+
+
+def save_settings(data: Path, settings: Settings) -> None:
+    """Replace the settings file atomically (APP-707)."""
+    write_atomic(data / SETTINGS_FILE,
+                 (json.dumps(settings_json(settings), indent=2)
+                  + "\n").encode())
 
 
 def load_secrets(data: Path) -> Secrets | None:
     """Load the intervals.icu account, if one is stored."""
-    path = data / "secrets.json"
+    path = data / SECRETS_FILE
     if not path.exists():
         return None
     if path.stat().st_mode & (stat.S_IRWXG | stat.S_IRWXO):
@@ -137,3 +119,10 @@ def load_secrets(data: Path) -> Secrets | None:
         logger.warning("%s lacks the athlete ID or the API key", path)
         return None
     return Secrets(athlete, key)
+
+
+def save_secrets(data: Path, secrets: Secrets) -> None:
+    """Store the intervals.icu account, readable by the app only."""
+    write_atomic(data / SECRETS_FILE, json.dumps({
+        "schema": SCHEMA, "intervals_athlete_id": secrets.athlete_id,
+        "intervals_api_key": secrets.api_key}).encode(), mode=SECRETS_MODE)

@@ -5,32 +5,34 @@ carried to the controllers, and the view state put together from
 core/view (ICD IF-06, 4.6.3 and 4.6.5; IM-23).
 
 Home with today's, the library's and the built-in workouts, Pre-ride,
-the ride screen from Start to Finish, and the Summary after Finish.
+the ride screen from Start to Finish, the Summary after Finish, past
+rides, Calibration and Settings; the devices are kept while Pre-ride, a
+ride or Calibration is open (APP-110).
 """
 
-import dataclasses
 import logging
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
 from wow.app.calibration_controller import CalibrationController
-from wow.app.config import RideSettings
 from wow.app.device_manager import DeviceManager
 from wow.app.history import (
     delete_ride, kept_rides, metrics_of, read_meta, ride_path,
 )
-from wow.app.housekeeping import FreeSpace
+from wow.app.housekeeping import CertificateWatch, FreeSpace
 from wow.app.recovery import Interrupted, outage, resumption
 from wow.app.ride_controller import RideController, RideSetup, Summary
+from wow.app.settings_panel import SettingsPanel
 from wow.app.upload_worker import UploadWorker
 from wow.app.workout_catalog import Entry, Source, WorkoutCatalog
 from wow.core.devices import HrSample, LinkState, TrainerSample
 from wow.core.plan import Plan, make_plan
+from wow.core.numbers import round_half_up
 from wow.core.view import (
-    Json, Latest, PowerAverage, calibration_screen, history_entry,
-    history_screen, home_screen,
-    plan_message, pre_ride_screen, recovery_offer, ride_screen,
+    Json, Latest, PowerAverage, battery_warning, calibration_screen,
+    certificate_warning, clock_warning, history_entry, history_screen,
+    home_screen, plan_message, pre_ride_screen, recovery_offer, ride_screen,
     ride_warnings, summary_screen, view_state, workout_card,
 )
 from wow.ports.clock import Clock
@@ -49,17 +51,17 @@ class Console:
 
     def __init__(self, clock: Clock, devices: DeviceManager,
                  rides: RideController, catalog: WorkoutCatalog,
-                 settings: RideSettings, on_change: Callable[[], None],
+                 panel: SettingsPanel, on_change: Callable[[], None],
                  uploads: UploadWorker, space: FreeSpace,
-                 rides_dir: Path, calibration: CalibrationController
-                 ) -> None:
+                 rides_dir: Path, calibration: CalibrationController,
+                 certificate: CertificateWatch) -> None:
         self._clock = clock
         self._devices = devices
         self._rides = rides
         rides.on_ended = self.ride_ended
         self._catalog = catalog
-        self._settings = settings
-        self._ftp = settings.ftp
+        self._panel = panel
+        self._certificate = certificate
         self._on_change = on_change
         self._screen = Screen.HOME
         self._plan: Plan | None = None
@@ -67,6 +69,8 @@ class Console:
         self._block_modes: list[Mode] = []
         self._power = PowerAverage()
         self._hr = Latest()
+        self._cadence = Latest()
+        self._unsynced_at_start = False
         self._data_mono: float | None = None
         self._interrupted: Interrupted | None = None
         self._boot = ""
@@ -85,9 +89,10 @@ class Console:
         """Return the plan message, at the ride's intensity while riding."""
         if self._plan is None:
             return None
-        intensity = (self._rides.ride.intensity_pct
-                     if self._screen == Screen.RIDE else 100)
-        return plan_message(self._plan, intensity_pct=intensity)
+        riding = self._screen == Screen.RIDE
+        intensity = self._rides.ride.intensity_pct if riding else 100
+        return plan_message(self._plan, self._zones(riding),
+                            intensity_pct=intensity)
 
     def view(self) -> Json:
         """Return the current view state."""
@@ -108,12 +113,15 @@ class Console:
         if handler is None:
             return Problem.INVALID_STATE
         result: str | None = handler(args)
+        self._hold()
         self._on_change()
         return result
 
     def trainer_sample(self, sample: TrainerSample) -> None:
         """Take a trainer reading."""
         self._power.add(sample.mono, sample.power)
+        if sample.cadence_rpm is not None:
+            self._cadence.add(sample.mono, round_half_up(sample.cadence_rpm))
         self._data_mono = sample.mono
         self._rides.trainer_sample(sample)
         self._calibration.sample(sample)
@@ -131,11 +139,6 @@ class Console:
         self._rides.link_changed(self._devices.trainer.link(),
                                  self._devices.hrm.link())
         self._on_change()
-
-    def set_free_ride_level(self, pct: int) -> None:
-        """Keep the free-ride level the rider chose (APP-705)."""
-        self._settings = dataclasses.replace(self._settings,
-                                             free_ride_level_pct=pct)
 
     def offer(self, found: Interrupted, boot_id: str) -> None:
         """Offer on Home to continue or finish an interrupted ride."""
@@ -156,11 +159,25 @@ class Console:
             self._screen = Screen.SUMMARY
         else:
             self.open_home()
+        self._hold()
+
+    def _hold(self) -> None:
+        self._devices.hold(self._ride_active() or self._screen in (
+            Screen.PRE_RIDE, Screen.RIDE, Screen.CALIBRATION))
+
+    def _zones(self, riding: bool) -> tuple[int, ...]:
+        setup = self._rides.setup
+        if riding and setup is not None:
+            return setup.zones_pct
+        return self._panel.settings.zones_pct
 
     def _screen_state(self, now: float, trainer: LinkState) -> Json:
         if self._screen == Screen.RIDE:
             return ride_screen(self._rides.ride, now, self._power.value(now),
-                               self._hr.value(now))
+                               self._hr.value(now), self._zones(True),
+                               self._cadence.value(now))
+        if self._screen == Screen.SETTINGS:
+            return self._panel.screen(self._certificate.valid_until)
         if self._screen == Screen.PRE_RIDE and self._plan is not None:
             return pre_ride_screen(self._plan, trainer, self._block_modes,
                                    self._is_free())
@@ -222,16 +239,31 @@ class Console:
         return entries
 
     def _card(self, item: Entry) -> Json:
+        settings = self._panel.settings
         plan = (None if item.workout is None
-                else make_plan(item.workout, self._ftp))
+                else make_plan(item.workout, settings.ftp))
         return workout_card(item.workout, plan, item.source, item.ref,
-                            item.name)
+                            item.name, settings.zones_pct)
+
+    def _device_warnings(self) -> list[Json]:
+        synchronised = self._clock.synchronised()
+        if self._screen == Screen.RIDE:
+            synchronised = synchronised and not self._unsynced_at_start
+        return [*battery_warning(self._devices.hrm.battery_pct(),
+                                 self._panel.settings.battery_warn_pct),
+                *clock_warning(synchronised)]
 
     def _warnings(self) -> list[Json]:
         trainer = sorted(self._devices.trainer.warnings())
         if self._screen == Screen.RIDE:
-            return ride_warnings(self._rides.ride, trainer)
+            return ride_warnings(self._rides.ride, trainer,
+                                 self._device_warnings())
         warnings: list[Json] = [{"kind": kind} for kind in trainer]
+        if self._screen == Screen.PRE_RIDE:
+            warnings += self._device_warnings()
+        if self._screen == Screen.HOME:
+            warnings += clock_warning(self._clock.synchronised())
+            warnings += certificate_warning(self._certificate.days_left())
         offline = self._catalog.offline_since
         if self._screen == Screen.HOME and offline is not None:
             warnings.append({"kind": WarningKind.WORKOUTS_OFFLINE,
@@ -290,7 +322,7 @@ class Console:
 
     def _open_pre_ride(self, item: Entry, workout: Workout) -> None:
         self._entry = item
-        self._plan = make_plan(workout, self._ftp)
+        self._plan = make_plan(workout, self._panel.settings.ftp)
         self._block_modes = [Mode.ERG] * len(workout.blocks)
         self._screen = Screen.PRE_RIDE
         self._devices.open_pre_ride()
@@ -395,9 +427,9 @@ class Console:
     def _pre_ride_start(self, _args: Mapping[str, Any]) -> str | None:
         if self._plan is None or self._entry is None:
             return Problem.INVALID_STATE
-        settings = self._settings
+        settings = self._panel.settings
         refused = self._rides.start(RideSetup(
-            self._plan.workout, self._ftp, settings.lead_time,
+            self._plan.workout, self._plan.ftp, settings.lead_time,
             raw=self._entry.raw, source=self._entry.source,
             zones_pct=settings.zones_pct,
             free_ride_level_pct=settings.free_ride_level_pct,
@@ -406,8 +438,34 @@ class Console:
         if refused is not None:
             logger.info("start refused: %s", refused)
             return Problem.INVALID_STATE
+        self._unsynced_at_start = not self._clock.synchronised()
+        if self._unsynced_at_start:
+            logger.warning("ride started with the clock not synchronised")
         self._screen = Screen.RIDE
         return None
+
+    def _home_open_settings(self, _args: Mapping[str, Any]) -> str | None:
+        self._screen = Screen.SETTINGS
+        return None
+
+    def _settings_back(self, _args: Mapping[str, Any]) -> str | None:
+        self.open_home()
+        return None
+
+    def _settings_settings_set(self, args: Mapping[str, Any]) -> str | None:
+        return self._panel.set(str(args.get("key")), args.get("value"))
+
+    def _settings_intervals_account_set(self, args: Mapping[str, Any]
+                                        ) -> str | None:
+        return self._panel.set_account(args.get("athlete_id"),
+                                       args.get("api_key"))
+
+    def _settings_device_scan(self, args: Mapping[str, Any]) -> str | None:
+        return self._panel.scan(args.get("kind"))
+
+    def _settings_device_choose(self, args: Mapping[str, Any]
+                                ) -> str | None:
+        return self._panel.choose(args.get("kind"), args.get("address"))
 
     def _ride_cancel_start(self, _args: Mapping[str, Any]) -> str | None:
         return Problem.INVALID_STATE if self._rides.cancel() else None

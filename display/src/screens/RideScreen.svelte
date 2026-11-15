@@ -43,8 +43,12 @@
       warnings.some((w) => w.kind === "control_refused")
         ? { tone: "warning" as const, text: "Another app has the trainer. Taking control back." }
         : null,
+      warnings.some((w) => w.kind === "clock_unsynced")
+        ? { tone: "warning" as const, text: "The Pi's clock wasn't set at Start. Ride times may be off." }
+        : null,
     ].filter((b) => b !== null),
   );
+  const batteryLow = $derived(warnings.some((w) => w.kind === "hrm_battery_low"));
 
   function nextText(next: NonNullable<RideScreen["next"]>): string {
     if (next.kind === "free_ride") {
@@ -78,7 +82,7 @@
 </script>
 
 <div class="page fixed">
-  <StatusLine trainer={links.trainer} hrm={links.hrm} {battery} />
+  <StatusLine trainer={links.trainer} hrm={links.hrm} {battery} {batteryLow} />
   {#each banners as banner (banner.text)}
     <Banner tone={banner.tone} text={banner.text} />
   {/each}
@@ -105,6 +109,7 @@
     <div class="info label">
       <span>Power <b class="number">{lost ? "––" : watts(screen.power)}</b> W</span>
       <span>Heart <b class="number">{watts(screen.hr_bpm)}</b></span>
+      {#if screen.cadence_rpm !== null}<span>Cadence <b class="number">{screen.cadence_rpm}</b></span>{/if}
       {#if screen.step}<span>Step <b class="number">{count ?? timeLeft(left)}</b></span>{/if}
       {#if segment && segment.kind !== "erg"}<span>Free ride</span>{:else if segment}<span>Plan <b class="number">{watts(segment.start_power)}</b> W</span>{/if}
     </div>
@@ -144,6 +149,7 @@
     </div>
     <div class="cue label">
       <span class="grow">{screen.step?.text ?? (free ? "Free ride by power" : "")}</span>
+      {#if screen.cadence_rpm !== null}<span>Cadence <b class="number">{screen.cadence_rpm}</b></span>{/if}
       {#if screen.step}<span>Step {screen.step.index + 1} of {screen.step.count}</span>{/if}
     </div>
     <div class="cells">

@@ -121,4 +121,5 @@ def test_device_kinds_by_service() -> None:
 
     assert device_kind(advert(uuids.HEART_RATE_SERVICE)) == "hrm"
     assert device_kind(advert(uuids.CYCLING_SPEED_AND_CADENCE_SERVICE)) == (
-        "other")
+        "cadence")
+    assert device_kind(advert(uuids.sig_uuid(0x180F))) == "other"
