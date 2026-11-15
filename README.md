@@ -31,6 +31,8 @@ uv run wow --config wow.toml --sim                   # simulated devices
 
 Open `https://wow.local:8443` in Safari. `http://wow.local:8080/setup/root.crt` serves the root certificate; any other plain-HTTP path redirects to HTTPS. In `--sim` the simulated rider starts pedaling 3 s after the first target arrives, so the ride starts by itself.
 
+FTP, zones, lead time, the battery warning, upload, the intervals.icu account and the trainer and strap are set on the Settings screen (from Home); `settings.json` and `secrets.json` don't need editing by hand. The devices are released 10 minutes after the last ride, Pre-ride or calibration, so Onelap can connect without stopping wow.
+
 For the display alone on the laptop: `npm run dev` in `display/`, with `wow --sim` running; Vite proxies `/ws` to `https://localhost:8443` (set `WOW_PI` for another address).
 
 ## Install on the Pi as a service
@@ -122,7 +124,14 @@ After every real ride (test plan, section 6):
 uv run python tools/check_ride.py wow-data/rides/<ride id>
 ```
 
-It prints RR-01 to RR-04 as pass, fail with the worst value, or not applicable; copy the lines into `docs/verification-log.md`. It reads the ride's `events.jsonl` and `ble.jsonl`, and `logs/ble-system.jsonl` for the connection made before the ride.
+It prints RR-01 to RR-14 as pass, fail with the worst value, or not applicable; copy the lines into `docs/verification-log.md`. It reads the ride's files (`events.jsonl`, `samples.jsonl`, `ble.jsonl`, `timing.jsonl`, `meta.json`, `ride.fit`), and `logs/ble-system.jsonl` for the connection made before the ride.
+
+To keep a real ride as a replay case (T-LOG-05), read the three files it writes before committing them:
+
+```
+uv run python tools/keep_ride.py wow-data/rides/<ride id> --out testdata/rides
+uv run pytest -m pi tests/adapters/test_replay_kept.py
+```
 
 ## Probe on the real devices
 
@@ -147,6 +156,6 @@ display/            Svelte 5 display: link, screens, ui, device, IF-06 types
 deploy/             example wow.toml and settings.json
 tests/              pytest: core (L1, L2), app on the stepped clock (L3), web (L5), system (L6), tools
 testdata/           language-neutral fixtures (README inside)
-tools/              gate.py, trace.py, check_ride.py, import_spike_log.py
+tools/              gate.py, trace.py, check_ride.py, keep_ride.py, import_spike_log.py
 docs/               phase documents, verification log, generated traceability
 ```

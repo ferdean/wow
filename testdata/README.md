@@ -26,7 +26,7 @@ One pair per case: `<case>-<name>.events.json` (in) and `<case>-<name>.actions.j
 - **Harness rule:** events go in at their times; whenever the machine's `next_deadline()` comes before the next event (and not after `until`), a `{"type": "tick"}` goes in at that deadline. An event and a deadline at the same instant: the event first. Entries with equal times keep their order in the file.
 - The expected file lists every action with the `now` of the call that returned it, in order. Times are compared rounded to 1 µs.
 
-`timelines/ftms_session/` holds the trainer-session cases T-SES-01 to T-SES-10 and the supporting edge cases S-SES-01. `timelines/ride/` holds the ride cases T-RID-01 to T-RID-06 and the supporting cases S-RID-01; their workouts are in the events file as JSON forms of `Workout`.
+`timelines/ftms_session/` holds the trainer-session cases T-SES-01 to T-SES-10 and the supporting edge cases S-SES-01. `timelines/ride/` holds the ride cases T-RID-01 to T-RID-06, the abandoned-ride cases T-RID-18 (SL-10) and the supporting cases S-RID-01; their workouts are in the events file as JSON forms of `Workout`.
 
 ## `workouts/`: workout documents (L1)
 
@@ -52,6 +52,10 @@ uv run python tools/import_spike_log.py <spike log> testdata/ble/<name>.jsonl
 | `phase2-s5-ride.jsonl` | `ride-20261110T174048Z.jsonl` (S5) | T-LOG-04, T-MET-07 (later slices) |
 
 The importer maps the spike's `rx` to `notify` (or `indicate` on the control point), `tx` to `write`, `read` to `read`, and the events `connected` and `disconnected` to link lines; it prints what it leaves out. Addresses default to the D100 and the HRM 200 (`--trainer`, `--hrm`). Until the S1 and S2 files exist, the two log-based tests are skipped, and `tools/trace.py` reports SL-01 as not finished.
+
+## `metrics/`: ride summaries (L1)
+
+`s2-ride.json`: the per-second power and heart rate of the S2 spike ride through the sampler, with the summary the metrics must give at FTP 250. `t-e2e-04.metrics.json`: the summary of T-E2E-04's 4-hour simulated ride (SL-12), compared exactly so a change in the long ride shows up.
 
 ## `tls/`: test certificates (L5)
 

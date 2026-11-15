@@ -1,11 +1,14 @@
 """System tests on the Pi, real time, simulated devices (L6).
 
-T-SYS-01 runs 60 minutes; set WOW_SYS_MINUTES for a shorter look:
+T-SYS-01 runs 60 minutes and T-SYS-02 four hours; WOW_SYS_MINUTES and
+WOW_SYS_HOURS shorten them for a look:
 
-    WOW_SYS_MINUTES=5 uv run pytest -m "pi and slow" tests/system
+    WOW_SYS_MINUTES=5 uv run pytest -m "pi and slow" tests/system/test_sys.py
+    uv run pytest -m "pi and slow" -s -k four_hours tests/system/test_sys.py
 """
 
 import asyncio
+import json
 import os
 import time
 from pathlib import Path
@@ -95,3 +98,77 @@ async def test_real_time_interval_ride_with_a_display(tmp_path: Path) -> None:
     print(outcome.line(), f"loop lag worst {app.lag.worst * 1000:.1f} ms")
     assert outcome.result == "pass"
     assert app.lag.late == 0
+
+
+def resident_kb() -> int:
+    for line in Path("/proc/self/status").read_text().splitlines():
+        if line.startswith("VmRSS:"):
+            return int(line.split()[1])
+    raise AssertionError("no VmRSS in /proc/self/status")
+
+
+def endurance(hours: float) -> Workout:
+    return Workout(
+        "test:sys-4h", "Four hours for the system test", None,
+        (Block("Endurance", max(1, round(hours * 4)), (
+            Step(600.0, PowerTarget(180, PowerUnit.WATTS), None),
+            Step(180.0, PowerTarget(150, PowerUnit.WATTS), "Ramp",
+                 end=PowerTarget(250, PowerUnit.WATTS)),
+            Step(60.0, PowerTarget(330, PowerUnit.WATTS), None),
+            Step(60.0, PowerTarget(140, PowerUnit.WATTS), None))),))
+
+
+@pytest.mark.case("T-SYS-02")
+@pytest.mark.req("APP-812", "APP-804", "APP-315")
+@pytest.mark.pi
+@pytest.mark.slow
+@pytest.mark.asyncio
+async def test_real_time_four_hours_with_a_display(tmp_path: Path) -> None:
+    hours = float(os.environ.get("WOW_SYS_HOURS", "4"))
+    workout = endurance(hours)
+    seconds = 900 * max(1, round(hours * 4))
+    app = App(app_config(tmp_path), SystemClock(None), sim_pedal_after=1.0,
+              workouts=[workout])
+    await app.start()
+    try:
+        async with aiohttp.ClientSession() as session:
+            page = await open_page(app, session)
+            assert (await page.command("open_workout", ref=workout.ref))["ok"]
+            await page.wait_for(
+                lambda m: (m["type"] == "view"
+                           and m["links"]["trainer"] == "connected"),
+                timeout=30.0)
+            assert (await page.command("start"))["ok"]
+            await page.wait_for(
+                lambda m: (m["type"] == "view"
+                           and not m["screen"]["waiting_for_power"]),
+                timeout=30.0)
+            started = time.monotonic()
+            settled: int | None = None
+            ping = 0
+            while time.monotonic() - started < seconds - 0.5:
+                ping += 1
+                await page.socket.send_json(
+                    {"type": "ping", "id": ping,
+                     "t_page_ms": time.monotonic() * 1000})
+                await page.collect(min(PING_INTERVAL, seconds - 0.5 - (
+                    time.monotonic() - started)))
+                page.received.clear()
+                if settled is None and time.monotonic() - started >= 600:
+                    settled = resident_kb()
+            assert (await page.command("finish"))["ok"]
+            await asyncio.sleep(12.0)
+            grown = resident_kb() - (settled or resident_kb())
+            await page.socket.close()
+    finally:
+        await app.stop()
+    (ride,) = ride_dirs(app.config)
+    events = read_jsonl(ride / "events.jsonl")
+    samples = read_jsonl(ride / "samples.jsonl")
+    meta = json.loads((ride / "meta.json").read_text())
+    steps = check_ride.rr03(events)
+    files = check_ride.rr12(events, meta)
+    print(steps.line(), files.line(), f"resident memory grew {grown} kB")
+    assert abs(len(samples) - seconds) <= 1
+    assert steps.result == "pass" and files.result == "pass"
+    assert grown < 10 * 1024

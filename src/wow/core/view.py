@@ -37,18 +37,22 @@ class PowerAverage:
         self._values: deque[tuple[float, int]] = deque()
 
     def add(self, mono: float, power: int | None) -> None:
-        """Add a reading taken at mono."""
+        """Add a reading taken at mono; older ones leave the window."""
         if power is not None:
             self._values.append((mono, power))
+        self._forget(mono)
 
     def value(self, now: float) -> int | None:
         """Return the mean at now, or None without readings."""
-        while self._values and self._values[0][0] <= now - self._window:
-            self._values.popleft()
+        self._forget(now)
         if not self._values:
             return None
         total = sum(power for _, power in self._values)
         return round_half_up(total / len(self._values))
+
+    def _forget(self, now: float) -> None:
+        while self._values and self._values[0][0] <= now - self._window:
+            self._values.popleft()
 
 
 class Latest:

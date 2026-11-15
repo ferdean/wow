@@ -24,9 +24,10 @@ from typing import Any, Final
 from wow.adapters.ble_bleak import BleakConnector
 from wow.adapters.ble_log import LoggingConnector
 from wow.adapters.ble_sim import (
-    D100_ADDRESS, HRM_ADDRESS, Faults, GattServer, SimConnector,
-    SimD100Server, SimFaults, SimHrm200Server, SimScheduler, bystanders,
+    D100_ADDRESS, HRM_ADDRESS, Faults, SimConnector, SimD100Server,
+    SimFaults, SimHrm200Server, SimScheduler, bystanders,
 )
+from wow.adapters.ble_sim.server import SimServerBase
 from wow.adapters.clock_system import SystemClock, default_sync_marker
 from wow.app.boot import boot_id
 from wow.adapters.fit_garmin import GarminFitWriter
@@ -71,7 +72,7 @@ SIM_PEDAL_AFTER: Final[float] = 3.0
 DISTRIBUTION: Final[str] = "witchesonwheels"
 
 AccountFactory = Callable[[Secrets], IntervalsIcu]
-SimDevices = Callable[[SimScheduler], Sequence[GattServer]]
+SimDevices = Callable[[SimScheduler], Sequence[SimServerBase]]
 
 
 def intervals_account(secrets: Secrets) -> IntervalsIcu:
@@ -263,8 +264,8 @@ class App:
             None if settings.trainer is None else settings.trainer.address,
             None if settings.hrm is None else settings.hrm.address)
         if self._replay is not None:
-            return self._logged(self._replay), DeviceChoice(D100_ADDRESS,
-                                                            HRM_ADDRESS)
+            return self._logged(self._replay), DeviceChoice(
+                chosen.trainer or D100_ADDRESS, chosen.hrm or HRM_ADDRESS)
         if self.config.simulate:
             faults = self._faults
             scheduler = self.scheduler = SimScheduler(self.clock)
@@ -276,9 +277,11 @@ class App:
             strap.faults = Faults(faults.strap)
             extra = ([] if self._sim_devices is None
                      else list(self._sim_devices(scheduler)))
-            self.sim = SimConnector(
-                self.clock, [self.d100, strap, *bystanders(scheduler),
-                             *extra], Faults(faults.adapter))
+            servers = [self.d100, strap, *bystanders(scheduler), *extra]
+            for server in servers:
+                server.traffic.keep_sent = False
+            self.sim = SimConnector(self.clock, servers,
+                                    Faults(faults.adapter))
             return self._logged(self.sim), DeviceChoice(
                 chosen.trainer or D100_ADDRESS, chosen.hrm or HRM_ADDRESS)
         bleak = BleakConnector(self.config.adapter)

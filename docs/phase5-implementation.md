@@ -1,6 +1,6 @@
 # Phase 5 — Implementation
 
-**Status:** revision 10, 15 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) planned, built and gated on the laptop (sections 27 to 32). SL-13 (route simulation) added to the slice plan. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
+**Status:** revision 11, 15 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) planned, built and gated on the laptop (sections 27 to 32); their approval is pending. SL-10 (settings, housekeeping), SL-11 (display finish) and SL-12 (endurance, close-out) planned, built and gated on the laptop at Ferran's request (sections 33 to 38). SL-13 (route simulation) added to the slice plan. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
 
 ## 1 How Phase 5 works
 
@@ -493,6 +493,7 @@ If the screen is off from what 3C shows, a screenshot per screen is enough; layo
 18. SL-13, route simulation after the ride, is the last slice, run with lighter documentation and testing; its requirements are written when it starts (section 2).
 19. SL-05 and SL-06 are approved (15 Nov 2026); their rides move to the next Pi session.
 20. SL-07 to SL-09 are built together with decisions IM-91 to IM-103 (section 28), findings SF-25 to SF-27 and three test-plan deviations (29.4); the changes of 29.5 are proposed. A start screen comes before Home (IM-102).
+21. SL-10 to SL-12 are built together at Ferran's request (15 Nov 2026), on top of SL-07 to SL-09 before their approval, with decisions IM-104 to IM-127 (section 34), findings SF-28 to SF-36 and four test-plan deviations (35.4); the changes of 35.5 are proposed. App version 0.6.0.
 
 ## 13 First test on the Pi, 12 Nov 2026
 
@@ -1108,6 +1109,202 @@ The rides of section 24 and these, in one or two sessions. Install first; from t
 
 Do you approve SL-07, SL-08 and SL-09 as built, with decisions IM-91 to IM-103, the start screen, the deviations of 29.4 and the proposed document changes of 29.5, closing when the steps of section 31 pass?
 
+## 33 SL-10, SL-11 and SL-12 plan
+
+Built together at Ferran's request (15 Nov 2026), on top of SL-07 to SL-09 while their approval is pending (section 32).
+
+### 33.1 Scope
+
+| Slice | Requirements | Tests |
+|-------|--------------|-------|
+| SL-10 settings, housekeeping | APP-110, APP-112, APP-114, APP-115 (trainer part), APP-406, APP-701 to APP-708, APP-817, APP-824, APP-825, APP-830 | T-SET-01 to -08, T-DEV-04, -05, -11, T-RID-18, T-MET-08, T-VIEW-05, -08, T-HK-02, T-SYS-05 (on the Pi) |
+| SL-11 display finish | APP-401, APP-403, APP-404, APP-407, APP-409, APP-412, APP-413, APP-414, APP-416, APP-802, APP-803 | T-VIEW-09, T-WEB-07, -08 (on the Pi), S-DSP-04, -05, RR-07, RR-08 |
+| SL-12 endurance, close-out | APP-804, APP-812, APP-815, APP-819, APP-820, APP-821 | T-RID-17, T-E2E-04, T-LOG-05, T-SIM-04, T-SYS-02 (on the Pi) |
+
+### 33.2 Modules
+
+| Module | New or changed | What it does |
+|--------|----------------|--------------|
+| `core/settings` | new | Table S: defaults, ranges and steps, the JSON form of `settings.json` |
+| `core/certificate` | new | The end of validity of the display's certificate, from its DER encoding |
+| `core/ride` | changed | The finish of a ride left alone for 30 minutes; `Recovered`; the blocks set to resistance |
+| `core/view` | changed | Settings screen; warnings for the strap's battery, the clock and the certificate; zones from the settings; cadence |
+| `core/devices` | changed | `DeviceKind.CADENCE`, `device_kind`, `FoundDevice` |
+| `app/config` | changed | Settings and the account loaded and saved; `secrets.json` 0600 |
+| `app/settings_panel` | new | The Settings screen's commands: values, account, scan and choice |
+| `app/device_manager` | changed | Idle release, scan, choice of another device |
+| `app/housekeeping` | changed | `CertificateWatch` |
+| `app/timing_log` | new | `timing.jsonl`: taps with their write, painted views |
+| `app/main`, `app/console` | changed | Settings screen, account used at once, warnings, cadence, the devices held while in use |
+| `web/hub` | changed | Tap and paint times to the timing log; the page's viewport logged |
+| `adapters/ble_sim` | changed | A cadence sensor, a television and a phone advertising; D100 address, name and cadence; strap address and name |
+| `adapters/store_files` | changed | `write_atomic` with a file mode set before the content |
+| `tools/check_ride` | changed | RR-07, RR-08 |
+| `tools/keep_ride` | new | Keeps a real ride as a replay case |
+| Display | changed | Settings screen; wake-lock prompt; step tone; profile marks for resistance blocks; banners; sizes; viewport report; `rtt_ms` with taps and paints |
+| `deploy/install.sh` | changed | Modes of `secrets.json` and the TLS key |
+
+### 33.3 Exit criteria
+
+Gate green through SL-12; on the Pi: T-SYS-02 (overnight), T-SYS-05, T-WEB-07, T-WEB-08, T-LOG-05 over at least one kept real ride, DS-1 (D-02 device choice), DS-8 with the display walk-through I-14 to I-20, and DS-2 repeated after SL-11 (D-08 tone and countdown, D-12 screen kept on).
+
+## 34 Decisions taken while building SL-10 to SL-12
+
+| ID | Decision | Why |
+|----|----------|-----|
+| IM-104 | `core/settings` checks table S with the lead time default of 1.0 s (IM-41, approved in 13.6). Zones: five whole, strictly increasing upper bounds of 1 to 200 % of FTP (the range of `zones_pct` in ICD 4.6.4). A value out of its range or step is refused with the field and its range, logged, and acknowledged `invalid_value` (new `Problem`); a value in `settings.json` that can't be used keeps its default and is logged. `RideSettings` is replaced by `Settings`. | APP-701 to APP-705, APP-708; ICD IF-10 |
+| IM-105 | Settings screen: each number is edited with a stepper on a draft and sent once with Save (FTP also in 10 W steps), the zones as five steppers, upload as a switch, the trainer and strap from a scan, the account in two fields. The key never comes back to the page: the row says "Key saved". The screen opens from Home only, so a running ride never sees a change; the ride keeps the FTP and zones of its Start. | 3C, Settings; APP-701, APP-817; T-MET-08 |
+| IM-106 | `secrets.json` is written atomically with mode 0600 set on the temporary file before any byte (`write_atomic(..., mode)`). An entered account replaces the workout provider and the uploader at once, without a restart; uploads that waited for an account start then. Athlete ID and key: 1 to 128 characters without spaces. Neither is logged. | APP-706, APP-817 |
+| IM-107 | Device scan: one 5 s scan filtered on the Fitness Machine, Heart Rate and Cycling Speed and Cadence services, filtered again on the services each device advertises (A-65), the strongest signal kept per address, listed trainers first, then straps, then cadence sensors, each with its kind (`FoundDevice.kind`, ICD change). Only a device of the role being chosen can be picked; a cadence sensor is listed but has no role until APP-115's sensor part is built. The scan waits for the connect lock. The choice goes to `settings.json`, is used at once (the old device released) and at the next start, also with `simulate = true`. `wow --sim` adds a cadence sensor, a television and a phone that advertise. | APP-114; T-DEV-05 |
+| IM-108 | Idle release: the console tells the device manager whether Pre-ride, a ride or Calibration is open; 600 s after the last of them closes, both devices are released, the trainer at its lowest level first (S-6), and nothing reconnects until Pre-ride or Calibration opens again; the links show "not found", as at start. The strap goes too, though APP-110 names only the trainer: idle, the Pi has no use for it. Pre-ride opened during a release connects once the release is over. | APP-110, APP-320; T-DEV-04 |
+| IM-109 | Abandoned ride: `ABANDON_AFTER` 1800 s from the last power above 0 W or the last accepted rider action, in Running, Paused and WorkoutDone; then Finished with cause `idle`, files and upload as for Finish. Power readings reach the ride state machine only to restart the 30 minutes; its deadline is checked, not moved, by each reading, so 4 readings a second don't reset a timer. A ride rebuilt from its journal doesn't watch (the journal has no power readings); `Recovered` at Continue starts the watch again. | APP-825; T-RID-18 |
+| IM-110 | Warnings: `hrm_battery_low` with the level on Pre-ride and the ride screens at or below the threshold; `clock_unsynced` on Home and Pre-ride while the clock isn't synchronised, and on the ride screen when it wasn't at Start or isn't now; `cert_expiring` on Home with the whole days left at 30 and below. The certificate's end is read once at start from the PEM with a small DER reader (`core/certificate`, RFC 5280): Python's `ssl` decodes certificates only from a TLS peer. | APP-112, APP-406, APP-824, APP-830 |
+| IM-111 | APP-115 is built for a trainer that declares cadence: shown on both ride screens, recorded in the samples and the FIT file (both already carried it). A cadence sensor waits until one is bought (N-4, D-32). The simulated D100 can declare cadence. | APP-115 (*could*); T-DEV-11 |
+| IM-112 | `deploy/install.sh` sets `/var/lib/wow/tls` to 0750 and `secrets.json` and `tls/server.key` to 0600, owned by `wow`. | APP-817; T-SYS-05 |
+| IM-113 | Supporting tests S-SET-01 (other settings and the JSON form), S-CRT-01 (certificate reader), S-SIM-04 (advertising-only devices). `RideScreen` gets `cadence_rpm` and `resistance_blocks` (ICD change). | Trace rule |
+| IM-114 | Wake lock: the lock's state is reactive; the prompt is a full-width moon-white bar of 64 pt at the top while a ride or a running calibration is on screen, the page is live and the lock isn't held. Any tap on the page asks again (A-57), as does the page becoming visible; a browser without the API is told to set Auto-Lock to Never. The page moves down by the prompt's height. | APP-409, APP-416; 3C, Screen wake lock |
+| IM-115 | Step tone: 880 Hz for 150 ms through Web Audio when the step changes, and when the workout ends, while the ride runs. The first tap on the page creates or resumes the audio context (A-49). | APP-413 (*could*); 3C, answer 4 |
+| IM-116 | Sizes: the ride screens fit 375 × 600 to 430 × 800 pt with a banner. The power number shrinks first, from 132 pt to no less than 74 pt (48 pt digits, APP-412), with the width so the 74 pt target always fits beside it and with the height; then the profile, down to nothing; the resistance level from 168 pt to no less than 80 pt. The status line is tighter below 390 pt; Settings rows are 44 pt. | 3C, Safari rules; APP-407, APP-412, APP-414; SF-32, SF-33 |
+| IM-117 | The profile draws a moon-white line over the blocks the rider set to resistance (`RideScreen.resistance_blocks`). | APP-403; 3C, ERG pin 9 |
+| IM-118 | Latency logging: the page sends `rtt_ms` (the round trip its offset came from) with every command and paint report. `app/timing_log` writes `timing.jsonl` while a ride runs: one `tap` line for `intensity`, `resistance`, `switch_mode`, `free_ride_power`, `pause`, `resume` and `skip`, with the first control point write started after the command (null when none starts within 1 s) and whether a procedure was pending when it arrived; one `paint` line per painted view, from the view's `data_mono_ms` and `sent_mono_ms` the hub keeps for the page's last 64 views. A ramp tick or a scheduled change written within that second is attributed to the tap. `tools/check_ride.py` adds RR-07 and RR-08; RR-08 counts every value's arrival (`ble.jsonl`) to the first paint that shows it. | ICD 4.6.7, 4.9.5; APP-802, APP-803 |
+| IM-119 | The page reports its viewport (`{"type": "viewport", "width", "height"}`) after each `hello`; the hub writes it to the system log. | A-56 |
+| IM-120 | T-WEB-07 and T-WEB-08 run on the Pi (`pi`, `slow`): they measure the Pi's share of the latencies, which laptop numbers don't show. In the workspace (30 s for T-WEB-07): values reached a view within 1.0 ms for 95 %, worst 101 ms; 100 taps in time, worst 391 ms, the one tap that met a pending procedure. | Test plan 5.15 |
+| IM-121 | Golden views for every state of test plan 3.1, 56 files; T-VIEW-09 checks the list. Vitest S-DSP-04 (prompt), S-DSP-05 (countdown and clock offset) and S-DSP-06 (tone, Settings). | T-VIEW-09; test plan 5.16 |
+| IM-122 | T-RID-17 reads "the last step no later than the first" as no drift: every step starts at the tick that ends its predecessor, so its lateness equals that tick's delay (0 to 80 ms), and the excess over it is the same for the first and the last step. | Test plan 5.5 |
+| IM-123 | T-E2E-04 measures the core's memory as the bytes reachable from the ride, the sampler, the trainer session and the power average, at 1 hour and at the end. Measured: 15.1 kB, then 14.6 kB. Its metrics fixture `testdata/metrics/t-e2e-04.metrics.json` was checked by hand against the plan: 176.65 W average against 176.7 W planned, time in zone 2, 3 and 4 as the ramp's shares. | APP-812; SF-28 |
+| IM-124 | T-LOG-05: `tools/keep_ride.py` copies a real ride into `testdata/rides/<ride id>/`: the journal, `ble.jsonl` with the system log's lines of the connections the ride used, and `workout.json` reduced to the reference, the name and the steps, so no intervals.icu answer (athlete, calendar) reaches the public repository. `tests/support/replay_ride.py` replays it through the whole app, with the ride's settings and the rider's commands at their times; the release at shutdown, after the log ends, is left out. T-LOG-05 is marked `pi`: it is due until a real ride is kept. S-LOG-01 runs the same path over a simulated ride in the gate. | APP-820; test plan 5.13 |
+| IM-125 | T-SIM-04: every requirement verified by T has an implemented catalogue test, and no test reaches BlueZ (no test imports `ble_bleak`); the app with `simulate = true` never builds a `BleakConnector`. | APP-819 |
+| IM-126 | T-SYS-02 (`pi`, `slow`): 4 hours real time with a page that pings, a workout of steady blocks, ramps and 30/30s; RR-03, RR-12, the samples, and resident memory growth under 10 MB from 10 minutes on. `WOW_SYS_HOURS` shortens it. | APP-812, APP-804, APP-315; A-52 |
+| IM-127 | In the app, the simulated devices keep no history of their notifications (`Traffic.keep_sent`); tests that count them use the rig. App version 0.6.0. | SF-29 |
+
+## 35 SL-10 to SL-12 result
+
+### 35.1 What was built
+
+The modules of 33.2. `wow --sim` now has a Settings screen with the device scan and the account, releases the devices 10 minutes after the last ride, Pre-ride or calibration, finishes a forgotten ride after 30 minutes, warns about the strap's battery, the clock and the certificate, asks for the wake lock with a prompt, plays a tone at each step change, logs taps and paints in `timing.jsonl`, and fits its ride screens from 375 × 600 to 430 × 800.
+
+### 35.2 Test results
+
+| Gate step | Result (workspace, 15 Nov 2026) |
+|-----------|---------------------------------|
+| flake8, mypy strict | clean, 155 files |
+| pytest without `pi` and `slow` | 530 passed, 12 deselected (T-SYS-01 to -06, T-WEB-07, -08, T-LOG-05, T-REC-03 kill runs, S-FIT-01) |
+| Coverage | core 96.5 to 96.6 % branches (two gate runs); app and web 95.0 % lines; testable adapters 97.5 % lines |
+| Vitest | 95 passed |
+| `tools/trace.py --through SL-12` | 0 problems; T-SYS-02 to -06, T-WEB-07, -08 and T-LOG-05 due on the Pi |
+| T-E2E-04 on the stepped clock | 60 s for 4 hours; RR-02 worst 0.0 ms, RR-03 worst +0.0 ms, RR-05 pass; core memory flat |
+| T-WEB-07, T-WEB-08 in the workspace | see IM-120 |
+| T-SYS-02 in the workspace, 15 minutes (`WOW_SYS_HOURS=0.25`) | passed: one sample a second; RR-03 worst +1.5 ms; RR-12 files 0.03 s after the finish; resident memory +496 kB (limit 10 MB for 4 hours) after SF-36. The 4-hour run is due on the Pi. |
+| Screens of `wow --sim` in Chrome at 375 × 600, 402 × 664, 430 × 800 | Settings with the scan; Home; Pre-ride; ERG and resistance screens with the clock banner and the wake-lock prompt: everything on screen except at 375 × 600 with banner and prompt together, where the prompt's one tap brings the bottom row back |
+
+### 35.3 Assumptions
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A-49 sound after a tap | Built, open | IM-115; D-08 in DS-2 |
+| A-52 FIT of a 4-hour ride within 10 s | Open | T-SYS-02 |
+| A-56 viewport on the iPhone 17 | Built, open | IM-119: the system log gets the size at every page load (DS-1) |
+| A-57 any tap grants the wake lock | Built, open | IM-114; D-17 |
+| A-58 no double-tap zoom, selection or pull-to-refresh | Built in SL-02, open | I-03, D-19 |
+| A-63 paint timing in Safari | Built, open | RR-08 on the first ride after SL-11 |
+| A-65 (new) BlueZ passes bleak's service filter on to discovery, so a scan reports only fitness devices; the device manager filters again either way | Open | D-02 |
+| A-66 (new) Safari on the iPhone 17 sizes the ride screens' numbers with the container query units `cqi` and `cqb` as Chrome does | Open | I-03, I-04 in DS-8 |
+
+### 35.4 Findings
+
+| ID | Finding | What changed |
+|----|---------|--------------|
+| SF-28 | The 3 s power average kept every reading while no page asked for a view: about 1 MB an hour of a ride without a display. Found by T-E2E-04. | Readings leave the window when the next one comes. |
+| SF-29 | The simulator kept every notification for the tests: a 4-hour `wow --sim` run would hold about 10 MB, which T-SYS-02 would count against the app. | IM-127 |
+| SF-30 | RR-03 and RR-05 counted a pause that began at the same ride time as a step start, or a sample, as before it. T-E2E-04 pauses at a block boundary. | A pause counts from the next instant on (`tools/check_ride.py`). |
+| SF-31 | Pre-ride opened while the idle release ran left the strap disconnected: it was still connected when asked, then released. | Devices in use again after a release connect at once. |
+| SF-32 | At 375 × 600 the ERG screen ran off both edges (power and target side by side) and off the bottom; at 402 × 664 a banner pushed the buttons off. | IM-116 |
+| SF-33 | The status line wrapped at 375 pt; under the wake-lock prompt the page kept its full height. | IM-116; the page's minimum height follows the prompt. |
+| SF-34 | The scan list was sorted by kind name, putting cadence sensors first. | Trainers, straps, cadence sensors (IM-107). |
+| SF-35 | In the workspace the clock is never synchronised, so `wow --sim` shows the clock banner there; on the Pi it shows only before network time. | None: correct behaviour (APP-824). |
+| SF-36 | T-SYS-02's test page kept every message it received in the test process, whose resident memory the test measures: 5.8 MB in 5 minutes. | The page forgets messages it has read. |
+
+Deviations from the test plan:
+
+1. T-WEB-07 and T-WEB-08 run on the Pi only (IM-120).
+2. T-LOG-05 is marked `pi` and due until a real ride is kept (IM-124); S-LOG-01 covers the path in the gate.
+3. The golden state "Settings: scan running with three devices" is two states: running (no list yet, as the scan returns at its end) and done with three devices.
+4. The golden states of Home "storage low" and "calibration requested" stay combined in `home_recovery` (SL-07).
+
+### 35.5 Proposed changes to approved documents
+
+| Document | Change |
+|----------|--------|
+| Requirements, table S | Zones: 1 to 200 % of FTP, strictly increasing (IM-104). |
+| 3A architecture | `core/settings`, `core/certificate`, `app/settings_panel`, `app/timing_log`, `tools/keep_ride`; idle release and the abandoned ride as in IM-108 and IM-109. |
+| ICD | 4.4.2 `Recovered` event, `ABANDON_AFTER` checked, not moved, by readings (IM-109); 4.6.3 `RideScreen.cadence_rpm`, `RideScreen.resistance_blocks`, `SettingsScreen.scan.found[].kind` with `cadence`; 4.6.5 `rtt_ms` on `command` and `painted`, new up message `viewport`; 4.6.6 `invalid_value` for a setting out of range; 4.9.5 which commands count as taps, and a tap without a write within 1 s (IM-118); 4.10 `secrets.json` written 0600 before its content; 4.11 `dev` may be `cadence` on `scan_result`. |
+| 3C display | Settings screen as built; wake-lock prompt 64 pt; sizes of IM-116; the resistance line on the profile; banners for the battery, the clock and the certificate. |
+| Test plan | The deviations of 35.4; T-RID-17's reading (IM-122); T-E2E-04's memory measure (IM-123); 3.1's Settings state split. |
+
+## 36 Traceability notes SL-10 to SL-12
+
+From `tools/trace.py --through SL-12`, 15 Nov 2026.
+
+### SL-10
+
+| Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
+|---|---|---|---|
+| APP-110 | T-DEV-04 passed | — | passed |
+| APP-112 | T-VIEW-05 passed | D-30 pending, I-15 pending | passed |
+| APP-114 | T-DEV-05 passed | D-02 pending | passed |
+| APP-115 | T-DEV-11 passed | D-32 pending | passed |
+| APP-320 | T-DEV-04 passed, T-RID-13 passed, T-SES-10 passed, T-SYS-04 due on the Pi | D-13 pass, RR-10 pending | passed so far |
+| APP-406 | T-VIEW-05 passed | D-04 pending, D-07 pending, I-15 pending | passed |
+| APP-701 | T-MET-08 passed, T-SET-02 passed | — | passed |
+| APP-702 | T-MET-05 passed, T-SET-03 passed | — | passed |
+| APP-703 | T-SET-04 passed | — | passed |
+| APP-704 | T-SET-05 passed | — | passed |
+| APP-706 | T-SET-07 passed | — | passed |
+| APP-707 | T-SET-06 passed | — | passed |
+| APP-708 | T-SET-01 passed | — | passed |
+| APP-817 | T-SET-07 passed, T-SET-08 passed, T-SYS-05 due on the Pi | I-08 pending | passed so far |
+| APP-824 | T-VIEW-08 passed | D-24 pending, I-18 pending | passed |
+| APP-825 | T-RID-18 passed | — | passed |
+| APP-830 | T-HK-02 passed | D-31 pending, I-14 pending | passed |
+
+### SL-11
+
+| Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
+|---|---|---|---|
+| APP-401 | T-VIEW-01 passed, T-VIEW-09 passed | D-07 pending, I-16 pending | passed |
+| APP-414 | T-VIEW-09 passed | D-09 pending, I-03 pending, I-17 pending | passed |
+| APP-802 | T-WEB-08 due on the Pi | D-19 pending, RR-07 pending | not yet due |
+| APP-803 | T-WEB-04 passed, T-WEB-07 due on the Pi | RR-08 pending | passed so far |
+
+### SL-12
+
+| Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
+|---|---|---|---|
+| APP-315 | T-E2E-01 passed, T-REC-04 passed, T-RID-13 passed, T-SYS-02 due on the Pi | D-13 pass, RR-12 pass | passed so far |
+| APP-804 | T-E2E-04 passed, T-RID-17 passed, T-SYS-02 due on the Pi | RR-03 pass | passed so far |
+| APP-812 | T-E2E-04 passed, T-SYS-02 due on the Pi | — | passed so far |
+| APP-819 | T-SIM-01 passed, T-SIM-02 passed, T-SIM-03 passed, T-SIM-04 passed, T-TOOL-02 passed, T-TOOL-03 passed | I-10 pending | passed |
+| APP-820 | T-LOG-02 passed, T-LOG-03 passed, T-LOG-04 passed, T-LOG-05 due on the Pi | — | passed so far |
+
+## 37 On the Pi: SL-05 to SL-12
+
+Section 31 still holds for SL-05 to SL-09; these steps add SL-10 to SL-12. Install first (`sudo deploy/install.sh` after the laptop's gate and display build), as in 31.
+
+1. Before the first start of 0.6.0: the lead time in `/var/lib/wow/settings.json` stays as it is; check its `ftp` and `zones_pct` on the Settings screen afterwards.
+2. T-SYS-05: `uv run pytest -m pi tests/system/test_install.py` (after the account is entered once in Settings, so `secrets.json` exists).
+3. DS-1 D-02: Settings, choose the trainer and the strap from the scan; `sudo systemctl restart wow`; the choice is still there. The trainer has to be free (not connected) to advertise (F-33).
+4. Idle release: open Pre-ride, go back to Home, wait 10 minutes: Onelap can connect to the D100 without stopping the service.
+5. With `simulate = true`: `uv run pytest -m "pi and slow" -s tests/web/test_latency.py` (T-WEB-07, 10 min; T-WEB-08, 2 min).
+6. With `simulate = true`, overnight: `uv run pytest -m "pi and slow" -s -k four_hours tests/system/test_sys.py` (T-SYS-02, 4 h). Then back to `simulate = false`.
+7. DS-8 on the iPhone with `simulate = true`: the walk-through I-14 to I-20, with Settings, the wake-lock prompt after a reload (one tap, A-57), and the battery (D-30).
+8. DS-2 again (the planned interval ride): the countdown, one tone per step (D-08, A-49), the screen kept on for 20 minutes (D-12), 100 taps in resistance mode for RR-07 if DS-3 is ridden too.
+9. Keep one real ride for T-LOG-05: `uv run python tools/keep_ride.py /var/lib/wow/rides/<ride id> --out testdata/rides`, read its three files, then `uv run pytest -m pi tests/adapters/test_replay_kept.py` and commit the case.
+10. `tools/check_ride.py` on each ride (RR-07 and RR-08 now included); results into `docs/verification-log.md`, with the T-SYS, T-WEB and T-LOG lines.
+
+## 38 Approval question
+
+Do you approve SL-10, SL-11 and SL-12 as built, with decisions IM-104 to IM-127, the deviations of 35.4 and the proposed document changes of 35.5, closing when the steps of section 37 pass?
+
 ## Change log
 
 | Rev. | Date | Change |
@@ -1122,6 +1319,7 @@ Do you approve SL-07, SL-08 and SL-09 as built, with decisions IM-91 to IM-103, 
 | 8 | 14 Nov 2026 | SL-05 and SL-06 planned, built and gated on the laptop (sections 20 to 25); decisions IM-69 to IM-87; findings SF-16 to SF-21; SL-13 route simulation added to the slice plan. |
 | 9 | 14 Nov 2026 | First ride on the simulator (section 25): findings SF-22 to SF-24, changes IM-88 to IM-90. |
 | 10 | 15 Nov 2026 | SL-05 and SL-06 approved by Ferran. SL-07 to SL-09 planned, built and gated on the laptop (sections 27 to 32); decisions IM-91 to IM-103; findings SF-25 to SF-27; start screen. |
+| 11 | 15 Nov 2026 | SL-10 to SL-12 planned, built and gated in the workspace at Ferran's request (sections 33 to 38); decisions IM-104 to IM-127; findings SF-28 to SF-36; A-65; app version 0.6.0. |
 
 ## Sources
 
@@ -1140,6 +1338,10 @@ Do you approve SL-07, SL-08 and SL-09 as built, with decisions IM-91 to IM-103, 
 - npm registry, `@playwright/test` 1.65.1, and its device list (`iPhone 17` in `playwright-core/types/types.d.ts`), read 14 Nov 2026: https://registry.npmjs.org/@playwright/test
 - systemd.service(5), command line prefixes ("+": full privileges) and `StartLimitIntervalSec=`: https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html
 - uv 0.11 command reference (`uv export --frozen --no-dev --no-emit-project`, `uv pip install --python`, `uv build --wheel`): https://docs.astral.sh/uv/reference/cli/
+- RFC 5280, Internet X.509 Public Key Infrastructure Certificate and CRL Profile, 4.1 (Certificate, TBSCertificate, Validity) and 4.1.2.5 (UTCTime years 50 to 99 are 19xx): https://www.rfc-editor.org/rfc/rfc5280. Not re-read for this slice; `core/certificate` agrees with OpenSSL 3.0.13's `x509 -enddate` on both test certificates (S-CRT-01).
+- Python 3.13 `ssl` as installed: `ssl.PEM_cert_to_DER_cert`; certificates are decoded from a TLS peer (`getpeercert`) or for loaded CA certificates only (`SSLContext.get_ca_certs`)
+- bleak 3.0.2 as installed, `bleak/backends/bluezdbus/scanner.py`: `service_uuids` goes into BlueZ's discovery filter as `UUIDs` (A-65)
+- Observed in this gate, not from documentation: Vitest with `@sveltejs/vite-plugin-svelte` 7.3.1 compiles runes in a `*.svelte.test.ts` file (S-DSP-06); Chrome's container query units `cqi` and `cqb` and Web Audio behave as the screenshots and S-DSP-06 show (Safari: A-49, A-66)
 - Phase 3C display design, revision 2: `claude/phase3-display.md`
 - Phase 4 test plan, revision 2: `docs/phase4-test-plan.md`
 - Phase 3B Interface Control Document, revision 4: `claude/phase3-icd.md`

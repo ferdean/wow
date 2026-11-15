@@ -55,12 +55,17 @@ class GattServer(Protocol):
 
 @dataclass
 class Traffic:
-    """What a server has seen, for tests."""
+    """What a server has seen, for tests.
+
+    Notifications are kept only while keep_sent is on: a long run of
+    `wow --sim` would otherwise hold every one of them.
+    """
 
     reads: list[tuple[Uuid, bytes]] = field(default_factory=list)
     writes: list[tuple[Uuid, bytes]] = field(default_factory=list)
     sent: list[tuple[Uuid, bytes]] = field(default_factory=list)
     subscribed: list[Uuid] = field(default_factory=list)
+    keep_sent: bool = True
 
 
 class SimServerBase:
@@ -148,7 +153,8 @@ class SimServerBase:
         silent = self.faults.active(FaultKind.SILENCE, self.scheduler.now())
         if notify is None or (silent and char in self.data_chars):
             return
-        self.traffic.sent.append((char, data))
+        if self.traffic.keep_sent:
+            self.traffic.sent.append((char, data))
         notify(data)
 
     def read_value(self, char: Uuid) -> bytes:

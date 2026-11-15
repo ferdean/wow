@@ -385,7 +385,8 @@ def _pauses(events: Sequence[Record]) -> list[tuple[float, float]]:
 
 def _sample_ms(t: float, start: float,
                pauses: Sequence[tuple[float, float]]) -> float:
-    return start + t * 1000 + sum(d for at, d in pauses if at <= t)
+    """Return when ride time t fell; a pause at t itself came after it."""
+    return start + t * 1000 + sum(d for at, d in pauses if at < t)
 
 
 def _dropouts(events: Sequence[Record], device: str,
