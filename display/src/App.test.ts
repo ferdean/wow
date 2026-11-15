@@ -219,3 +219,73 @@ describe("S-DSP-02 the profile after a skip", () => {
     cleanup();
   });
 });
+
+describe("S-DSP-06 SL-07 to SL-09 screens", () => {
+  beforeEach(() => {
+    cleanup();
+  });
+
+  it("offers an interrupted ride on Home", async () => {
+    const link = fakeLink(golden("home_recovery"));
+    render(App, { props: { link } });
+    expect(dom.getByText("A ride stopped unexpectedly")).toBeTruthy();
+    expect(dom.getByText(/Only 812 MB free/)).toBeTruthy();
+    expect(dom.getByText("The trainer asks for a calibration.")).toBeTruthy();
+    await fireEvent.click(dom.getByText("Continue ride"));
+    await fireEvent.click(dom.getByText("Finish ride"));
+    await fireEvent.click(dom.getByText("Past rides"));
+    await fireEvent.click(dom.getByText("Calibrate"));
+    expect(link.sent).toEqual(["recovery_continue", "recovery_finish", "open_history", "open_calibration"]);
+  });
+
+  it("offers only Finish when the gap is unknown", () => {
+    render(App, { props: { link: fakeLink(golden("home_recovery_finish_only")) } });
+    expect(dom.queryByText("Continue ride")).toBeNull();
+    expect(dom.getByText("Finish ride")).toBeTruthy();
+  });
+
+  it("lists past rides and opens one", async () => {
+    const link = fakeLink(golden("history"));
+    render(App, { props: { link } });
+    expect(dom.getByText("31.5 GB free on the Pi")).toBeTruthy();
+    expect(dom.getByText("Upload failed")).toBeTruthy();
+    await fireEvent.click(dom.getByText("ERG check"));
+    expect(link.args[0]).toEqual({ ride_id: "2026-11-12T162426Z" });
+  });
+
+  it("downloads, retries and deletes a past ride only after confirming", async () => {
+    const link = fakeLink(golden("summary_past"));
+    render(App, { props: { link } });
+    const download = dom.getByText("Download FIT file");
+    expect(download.getAttribute("href")).toBe("/rides/2026-11-12T162426Z/ride.fit");
+    await fireEvent.click(dom.getByText("Try again"));
+    await fireEvent.click(dom.getByText("Delete ride"));
+    expect(link.sent).toEqual(["upload_retry"]);
+    await fireEvent.click(dom.getByText("Delete"));
+    expect(link.sent).toEqual(["upload_retry", "delete_ride"]);
+  });
+
+  it("guides a calibration", async () => {
+    const link = fakeLink(golden("calibration_idle"));
+    const { unmount } = render(App, { props: { link } });
+    await fireEvent.click(dom.getByText("Start calibration"));
+    expect(link.sent).toEqual(["calibration_start"]);
+    unmount();
+    render(App, { props: { link: fakeLink(golden("calibration_speed_up")) } });
+    expect(dom.getByText("Speed up gently past 40 km/h. No sprint.")).toBeTruthy();
+    expect(dom.getByText("34")).toBeTruthy();
+    cleanup();
+    render(App, { props: { link: fakeLink(golden("calibration_blocked")) } });
+    expect((dom.getByText("Start calibration") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("greets with a Start button unless a ride runs", async () => {
+    render(App, { props: { link: fakeLink(golden("home")), greet: true } });
+    await fireEvent.click(dom.getByText("Start"));
+    expect(dom.getByText("WitchesOnWheels")).toBeTruthy();
+    expect(dom.getByText("Free ride")).toBeTruthy();
+    cleanup();
+    render(App, { props: { link: fakeLink(golden("ride_erg")), greet: true } });
+    expect(dom.queryByText("Start")).toBeNull();
+  });
+});

@@ -19,7 +19,8 @@ from wow.core.ftms_codec import Dropped
 from wow.core.ftms_session import (
     CloseLink, FtmsSession, Indication, LinkDown, LinkUp, Logged,
     ModeUnavailable, Phase, Release, SessionAction, SessionEvent, SetCommand,
-    StatusForwarded, StatusNotification, Tick, WarningChanged, Write,
+    SpinDown, SpinDownAnswered, StatusForwarded, StatusNotification, Tick,
+    WarningChanged, Write,
 )
 from wow.app.machine_driver import MachineDriver
 from wow.ports.clock import Clock
@@ -53,6 +54,8 @@ class FtmsTrainer:
         self.on_sample = on_sample or (lambda _sample: None)
         self.on_link: Callable[[LinkState], None] = lambda _state: None
         self.on_status = on_status or (lambda _data: None)
+        self.on_spin_down: Callable[[int, tuple[float, float] | None],
+                                    None] = lambda _result, _band: None
 
     def capabilities(self) -> TrainerCapabilities | None:
         """Return the capabilities, if known."""
@@ -72,6 +75,10 @@ class FtmsTrainer:
     def set_command(self, command: TrainerCommand) -> None:
         """Set the command the trainer should hold."""
         self._driver.post(SetCommand(command))
+
+    def spin_down(self) -> None:
+        """Start a spin-down once control is held (APP-501)."""
+        self._driver.post(SpinDown())
 
     def last_data(self) -> float:
         """Return when the trainer last sent data, or connected."""
@@ -174,6 +181,8 @@ class FtmsTrainer:
                     self._warning(kind, active)
                 case StatusForwarded(data=data):
                     self.on_status(data)
+                case SpinDownAnswered(result=result, band_kmh=band):
+                    self.on_spin_down(result, band)
                 case ModeUnavailable(mode=mode):
                     logger.warning("trainer refused %s mode", mode)
                 case Logged(event=event, data=data):

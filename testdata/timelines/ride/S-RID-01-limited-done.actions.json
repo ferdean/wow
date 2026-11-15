@@ -1,7 +1,7 @@
 {"case": "S-RID-01", "machine": "ride",
  "actions": [
   {"at": 0.0, "action": {"type": "journal", "event": "command", "t_ride": null, "data": {"name": "start", "args": {}}}},
-  {"at": 0.0, "action": {"type": "journal", "event": "armed", "t_ride": null, "data": {"workout_ref": "test:short", "plan_id": "test:short@250", "ftp": 250, "lead_time": 1.5, "block_modes": []}}},
+  {"at": 0.0, "action": {"type": "journal", "event": "armed", "t_ride": null, "data": {"workout_ref": "test:short", "plan_id": "test:short@250", "ftp": 250, "lead_time": 1.5, "block_modes": [], "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": null, "spin_down": false, "cadence": false}, "free_ride_level_pct": 0}}},
   {"at": 0.0, "action": {"type": "set_trainer", "command": {"type": "erg", "power": 600}}},
   {"at": 0.0, "action": {"type": "journal", "event": "trainer_command", "t_ride": null, "data": {"mode": "erg", "power": 600, "due_mono_ms": 0.0}}},
   {"at": 0.0, "action": {"type": "journal", "event": "target_limited", "t_ride": null, "data": {"requested_power": 650, "sent_power": 600}}},

@@ -83,8 +83,8 @@ export const UPLOAD_WORDS: Record<string, string> = {
   uploading: "Uploading…",
   done: "Uploaded to intervals.icu",
   retrying: "Retrying",
-  failed: "Upload failed. Tap to try again.",
-  auth_error: "intervals.icu refused the key. Check Settings.",
+  failed: "Upload failed",
+  auth_error: "intervals.icu refused the key",
 };
 
 export function dateTime(utc: string): string {
@@ -96,4 +96,19 @@ export function dateTime(utc: string): string {
 
 export function fixed(value: number | null, digits: number): string {
   return value === null ? MISSING : value.toFixed(digits);
+}
+
+export function gone(seconds: number): string {
+  const whole = Math.round(seconds);
+  if (whole < 60) {
+    return `${whole} s`;
+  }
+  if (whole < 3600) {
+    return `${Math.floor(whole / 60)} min ${whole % 60} s`;
+  }
+  return `${Math.floor(whole / 3600)} h ${Math.floor((whole % 3600) / 60)} min`;
+}
+
+export function speed(kmh: number | null): string {
+  return kmh === null ? MISSING : kmh.toFixed(0);
 }

@@ -1,0 +1,21 @@
+# /etc/wow/wow.toml of the installed service (ICD IF-10). deploy/install.sh
+# copies it once; later installs keep your edits.
+
+[bluetooth]
+adapter = "hci0"
+simulate = false
+
+[web]
+host = "wow.local"
+https_port = 443
+http_port = 80
+cert = "/var/lib/wow/tls/server.crt"
+key = "/var/lib/wow/tls/server.key"
+root_cert = "/var/lib/wow/tls/root.crt"
+
+[paths]
+data = "/var/lib/wow"
+
+[system]
+# The green ACT LED (APP-826); leave out to keep the LED to the system.
+led = "/sys/class/leds/ACT"

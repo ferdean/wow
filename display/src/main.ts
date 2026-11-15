@@ -10,4 +10,4 @@ const link = new Link(`${scheme}://${location.host}/ws`, __APP_VERSION__);
 link.start();
 console.info("viewport", window.innerWidth, window.innerHeight);
 
-export default mount(App, { target: document.getElementById("app") as HTMLElement, props: { link } });
+export default mount(App, { target: document.getElementById("app") as HTMLElement, props: { link, greet: true } });

@@ -32,9 +32,10 @@ from wow.core.ride import (
     SwitchMode, Tick, TrainerLink,
 )
 from wow.core.ride import Pause as PauseRide
+from wow.core.replay import Record, rebuild, record_mono, tick_until
 from wow.core.sampler import (
-    Began, HrValue, Paused, Resumed, Sample, Sampler, SamplerEvent, Stopped,
-    TrainerValue,
+    Began, HrValue, Paused, Resumed, Restored, Sample, Sampler, SamplerEvent,
+    Stopped, TrainerValue,
 )
 from wow.core.sampler import Tick as SampleTick
 from wow.core.timefmt import utc_text
@@ -81,6 +82,20 @@ class Summary:
     upload: UploadState
 
 
+@dataclass(frozen=True)
+class Resumption:
+    """A ride read back after a restart, and how to take it up again."""
+
+    ride_dir: Path
+    meta: dict[str, object]
+    records: list[Record]
+    samples: list[Record]
+    setup: RideSetup
+    crash_mono: float
+    shift: float
+    outage: float | None
+
+
 @dataclass
 class _Record:
     ride_dir: Path
@@ -107,6 +122,7 @@ class RideController:
         self._version = app_version
         self.on_ended: Callable[[RidePhase], None] = lambda _cause: None
         self.on_free_level: Callable[[int], None] = lambda _pct: None
+        self.on_finished: Callable[[Summary], None] = lambda _summary: None
         self.ride = Ride()
         self.summary: Summary | None = None
         self._driver: MachineDriver[RideEvent, RideAction] = MachineDriver(
@@ -170,6 +186,35 @@ class RideController:
     def free_ride_power(self, step: int) -> str | None:
         """Change the free-ride target by 5 W; return the problem."""
         return self._post(FreeRidePowerStep(step))
+
+    def recover(self, found: Resumption, keep_riding: bool) -> None:
+        """Take a ride up again after a restart, or finish it."""
+        now = self._clock.monotonic()
+        crash = found.crash_mono + found.shift
+        ride = rebuild(found.records, found.setup.workout, found.shift, crash)
+        self._driver.close()
+        self.ride = ride
+        self._driver = MachineDriver(ride, self._clock, self._perform, Tick())
+        self._setup = found.setup
+        self.summary = None
+        self._record = _restored(found)
+        self._recorder.open_ride(str(found.meta["ride_id"]))
+        self._journal(Journal("recovered", ride.ride_time(crash),
+                              {"outage": found.outage}))
+        if not keep_riding:
+            self._post(Finish())
+            return
+        actions = ride.handle(TrainerLink(False), crash)
+        actions += ride.handle(HrmLink(False), crash)
+        self._perform(actions + tick_until(ride, now))
+        self._restart_sampler(found, now)
+        self._driver.post(TrainerLink(
+            self._trainer.link() == LinkState.CONNECTED))
+
+    def ride_id(self) -> str | None:
+        """Return the ID of the ride being recorded, if any."""
+        current = self._record
+        return None if current is None else str(current.meta["ride_id"])
 
     def trainer_sample(self, sample: TrainerSample) -> None:
         """Take a trainer reading."""
@@ -264,6 +309,19 @@ class RideController:
             self._recorder.write_file(ride_dir / WORKOUT, setup.raw)
         self._write_meta(self._record)
 
+    def _restart_sampler(self, found: Resumption, now: float) -> None:
+        self._sampler = Sampler()
+        self._sampling.close()
+        self._sampling = MachineDriver(self._sampler, self._clock,
+                                       self._samples, SampleTick())
+        current = self._record
+        paused = None if current is None or current.paused_at is None else (
+            current.paused_at[1])
+        at = now if paused is None else paused
+        origin = at - self.ride.ride_time(at)
+        first = int(found.samples[-1]["t"]) + 1 if found.samples else 0
+        self._sampling.post(Restored(origin, first, paused))
+
     def _samples(self, samples: list[Sample]) -> None:
         current = self._record
         if current is None:
@@ -333,6 +391,7 @@ class RideController:
             write_atomic(ride_dir / META, json.dumps(meta).encode())
 
         self._recorder.run(write_files)
+        self.on_finished(self.summary)
 
     def _write_meta(self, current: _Record) -> None:
         self._recorder.write_file(current.ride_dir / META,
@@ -372,3 +431,28 @@ def _metrics_json(metrics: Metrics) -> dict[str, object]:
         "time_in_zone": list(metrics.time_in_zone),
         "avg_hr_bpm": metrics.avg_hr_bpm, "max_hr_bpm": metrics.max_hr_bpm,
     }
+
+
+def _restored(found: Resumption) -> _Record:
+    record = _Record(found.ride_dir, found.setup, dict(found.meta))
+    record.samples = [RecordedSample(
+        int(s["t"]), _utc(str(s["utc"])), s.get("power"), s.get("hr_bpm"),
+        s.get("cadence_rpm"), s.get("target")) for s in found.samples]
+    for item in found.records:
+        kind, t_ride = item.get("type"), item.get("t_ride")
+        mono = record_mono(item) + found.shift
+        if kind in ("step_started", "workout_done") and t_ride is not None:
+            record.lap_starts.append(float(t_ride))
+        elif kind == "paused" and t_ride is not None:
+            record.paused_at = (float(t_ride), mono)
+        elif kind == "resumed" and record.paused_at is not None:
+            t_paused, since = record.paused_at
+            record.pauses.append(Pause(t_paused, mono - since))
+            record.paused_at = None
+    start = found.meta.get("start_utc")
+    record.start_utc = None if start is None else _utc(str(start))
+    return record
+
+
+def _utc(text: str) -> datetime:
+    return datetime.fromisoformat(text.replace("Z", "+00:00"))

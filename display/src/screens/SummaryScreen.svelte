@@ -1,12 +1,19 @@
 <script lang="ts">
   import type { CommandName, SummaryScreen } from "../types/protocol";
   import { UPLOAD_WORDS, clock, dateTime, fixed, watts } from "../format";
+  import Sheet from "../ui/Sheet.svelte";
 
   interface Props {
     screen: SummaryScreen;
     send: (name: CommandName, args?: Record<string, unknown>) => void;
   }
   let { screen, send }: Props = $props();
+
+  const RETRY_WORDS: Record<string, string> = {
+    off: "Upload now", failed: "Try again", auth_error: "Try again", retrying: "Try now", done: "Upload again",
+  };
+  let deleting = $state(false);
+  const retry = $derived(RETRY_WORDS[screen.upload] ?? null);
 
   const m = $derived(screen.metrics);
   const zoneTotal = $derived(m.time_in_zone.reduce((a, b) => a + b, 0) || 1);
@@ -37,10 +44,26 @@
         <span style:flex-grow={seconds / zoneTotal} style:background={`var(--zone-${i + 1})`}></span>
       {/each}
     </div>
-    <p class="label">{UPLOAD_WORDS[screen.upload] ?? screen.upload}</p>
+    <div class="row upload">
+      <span class="label grow">{UPLOAD_WORDS[screen.upload] ?? screen.upload}</span>
+      {#if retry}
+        <button class="small" onclick={() => send("upload_retry", { ride_id: screen.ride_id })}>{retry}</button>
+      {/if}
+    </div>
+    <a class="button" href={`/rides/${screen.ride_id}/ride.fit`} download>Download FIT file</a>
+    {#if screen.past}
+      <button class="secondary" onclick={() => (deleting = true)}>Delete ride</button>
+    {/if}
   </div>
-  <button class="primary" onclick={() => send("back")}>Done</button>
+  <button class="primary" onclick={() => send("back")}>{screen.past ? "Back" : "Done"}</button>
 </div>
+
+{#if deleting}
+  <Sheet title="Delete this ride?" text="Its FIT file and logs go; intervals.icu keeps what it already has.">
+    <button class="danger" onclick={() => { deleting = false; send("delete_ride", { ride_id: screen.ride_id }); }}>Delete</button>
+    <button class="secondary" onclick={() => (deleting = false)}>Keep</button>
+  </Sheet>
+{/if}
 
 <style>
   .grid {
@@ -61,5 +84,24 @@
   }
   .zones span {
     flex-basis: 0;
+  }
+  .upload {
+    align-items: center;
+  }
+  a.button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 62px;
+    border-radius: 16px;
+    border: 2px solid var(--line);
+    color: var(--moon);
+    text-decoration: none;
+    font-weight: 650;
+    font-size: 20px;
+  }
+  button.danger {
+    background: var(--fault);
+    color: var(--ink);
   }
 </style>

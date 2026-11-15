@@ -1,6 +1,6 @@
 # Phase 5 — Implementation
 
-**Status:** revision 9, 14 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator (sections 20 to 26), awaiting the rides on the Pi. SL-13 (route simulation) added to the slice plan. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
+**Status:** revision 10, 15 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) planned, built and gated on the laptop (sections 27 to 32). SL-13 (route simulation) added to the slice plan. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
 
 ## 1 How Phase 5 works
 
@@ -491,6 +491,8 @@ If the screen is off from what 3C shows, a screenshot per screen is enough; layo
 16. SL-03 and SL-04 are approved (14 Nov 2026); the changes of 16.5 are approved with them.
 17. SL-05 and SL-06 are built together with decisions IM-69 to IM-87 (section 21); findings SF-16 to SF-21 and two test-plan deviations are recorded (22.4); the changes of 22.5 are proposed. After the first simulated ride: changes IM-88 to IM-90, findings SF-22 to SF-24 (section 25).
 18. SL-13, route simulation after the ride, is the last slice, run with lighter documentation and testing; its requirements are written when it starts (section 2).
+19. SL-05 and SL-06 are approved (15 Nov 2026); their rides move to the next Pi session.
+20. SL-07 to SL-09 are built together with decisions IM-91 to IM-103 (section 28), findings SF-25 to SF-27 and three test-plan deviations (29.4); the changes of 29.5 are proposed. A start screen comes before Home (IM-102).
 
 ## 13 First test on the Pi, 12 Nov 2026
 
@@ -947,6 +949,165 @@ Tests: S-VIEW-01 and S-SHL-03 for the plan at an intensity, S-DSP-02 for the mar
 
 Do you approve SL-05 and SL-06 as built, with decisions IM-69 to IM-87, the changes IM-88 to IM-90 of section 25, the deviations of 22.4 and the proposed document changes of 22.5, closing when the rides of section 24 pass?
 
+**Approved by Ferran on 15 Nov 2026.** The rides of section 24 move to the next session on the Pi, together with those of SL-07 to SL-09 (section 31). The changes of 22.5 join those of 13.6 and 16.5.
+
+## 27 SL-07, SL-08 and SL-09 plan
+
+Built together at Ferran's request (15 Nov 2026), with a start screen in front of Home.
+
+### 27.1 Scope
+
+| Slice | Requirements | Tests |
+|-------|--------------|-------|
+| SL-07 crash recovery, service | APP-318 (outage), APP-809 to APP-811, APP-826 | T-RID-19, T-RCV-01 to -05, T-HK-03, T-SYS-03, -04, -06 (on the Pi) |
+| SL-08 upload, history | APP-607 to APP-612 | T-UPL-01 to -05, T-VIEW-07, T-WEB-03, T-REC-06, T-HK-01 |
+| SL-09 calibration | APP-501 to APP-506 | T-CAL-01 to -06 |
+
+### 27.2 Modules
+
+| Module | New or changed | What it does |
+|--------|----------------|--------------|
+| `core/replay` | new | Rebuilds a ride from its journal (AD-09) |
+| `core/sampler` | changed | `Restored`: sampling goes on after a restart without repeating a second |
+| `app/recovery` | new | Finds the ride left running, reads it back, works out the outage |
+| `app/ride_controller` | changed | `recover`: continue with the outage as a dropout, or finish |
+| `app/status_led`, `ports/led`, `adapters/led_sysfs` | new | The ACT LED |
+| `deploy/wow.service`, `deploy/install.sh`, `deploy/wow.pi.toml` | new | The service under its own user |
+| `core/upload`, `ports/upload` | new | Upload states and the uploader port |
+| `adapters/intervals_icu` | changed | Upload |
+| `app/upload_worker`, `app/history`, `app/housekeeping` | new | Uploads, past rides, free space |
+| `web/server` | changed | FIT download |
+| `core/ftms_session` | changed | Spin Down Control |
+| `core/spindown`, `app/calibration_controller` | new | The spin-down |
+| `adapters/ble_sim/d100` | changed | Spin-down: band, speed-up, Stop Pedaling, result; a spin-down request |
+| Display | changed | Start screen; Home recovery offer, warnings, Past rides and Calibrate; History; Summary with download, upload retry and delete; Calibration |
+
+### 27.3 Exit criteria
+
+Gate green through SL-09; on the Pi: the service installed (DS-5, D-21 boot time), T-SYS-03, -04 and -06, the fault steps of DS-3 including D-18 (kill during a ride), DS-6 (files and upload) and DS-4 (calibration).
+
+## 28 Decisions taken while building SL-07 to SL-09
+
+| ID | Decision | Why |
+|----|----------|-----|
+| IM-91 | The `armed` record carries the trainer's `capabilities` and the `free_ride_level_pct`, so `core/replay` can rebuild the ride: Start from `armed`, the first power from `ride_started`, each rider `command`, the trainer and strap dropouts, and the Ticks between them, all at their journal times plus a shift. The ride timelines were regenerated; only these two fields changed. | AD-09; T-RID-19; SF-25 |
+| IM-92 | At start the newest ride whose `meta.json` says `running` is read back. Without `ride_started` it is closed as cancelled; otherwise Home offers it. The crash time is the later of the last journal record and the last sample. Outage: from the monotonic clock in the same boot, from UTC after a reboot with a synchronised clock; otherwise unknown and only Finish is offered. | ICD 4.9.4; APP-809 |
+| IM-93 | Continue: the ride is rebuilt with the crash an outage before now, so the step position is that of a ride that never stopped; the journal gets `dropout_start` at the crash's ride time, `recovered` with the outage, the step starts of the outage, and `dropout_end` when the trainer is back. The sampler goes on from the next second, so the outage is recorded as samples without values. Same directory, one FIT file. A ride paused at the crash comes back paused. | APP-809, APP-318, APP-603 |
+| IM-94 | Finish from the offer: the ride is rebuilt with the crash at now and finished as with Finish, so its ride time is that at the crash. | APP-809, T-RCV-03 |
+| IM-95 | Service (AD-13): `deploy/install.sh` builds the wheel with the display inside, installs it with the dependencies of `uv export --frozen` into `/opt/wow/venv`, creates the system user `wow` (group `bluetooth`), `/var/lib/wow` (0750) and, once, `/etc/wow/wow.toml` from `deploy/wow.pi.toml` (ports 443 and 80, data in `/var/lib/wow`). `wow.service`: `Restart=always`, `RestartSec=2`, `StartLimitIntervalSec=0`, `CAP_NET_BIND_SERVICE`, `NoNewPrivileges`. | APP-810, APP-811, APP-822 |
+| IM-96 | LED: `[system] led` in `wow.toml`. The app sets the trigger to `none` and writes `brightness`: blinking every 0.5 s while the trainer isn't connected, steady when it is, off when the app stops. The unit gives the group `wow` write access to `trigger` and `brightness` before the start (`ExecStartPre=+`) and switches the LED off after any stop (`ExecStopPost=+`). Without write access the app logs once and runs on. | APP-826; A-36, A-64 |
+| IM-97 | Uploads: one worker; the state, the first and last attempt (UTC) and the attempt count live in `meta.json`. 201 and 200 are done; network errors, timeouts, 429 and 5xx are retried 15 min after the last attempt until 7 days after the first, then failed; 401 and 403 are a refused key with no automatic retry; other 4xx failed. A manual retry starts over (also after done, APP-609). An upload found in `uploading` at start is retried. The worker waits until the ride's final `meta.json` is written. Without an intervals.icu account nothing is sent and rides stay pending. | ICD 4.8.3; APP-607 to APP-609; SF-26 |
+| IM-98 | Past rides: Home's Past rides lists the finished rides newest first with date, title, duration, TSS and upload state, and the free space. A ride opens its Summary, which offers Download FIT file, the upload retry and Delete ride with a confirmation; `delete_ride` is also accepted there. The FIT file downloads as `wow-<yyyy-mm-dd>-<title>.fit`, the title reduced to letters, digits and dashes; ride IDs are checked against their pattern, so no path leaves `rides/`. A ride being recorded, offered for recovery or uploading can't be deleted. | APP-610 to APP-612; ICD IF-07 |
+| IM-99 | Storage: free space of the data directory read at most once a minute; `storage_low` below 1000 MB (1 GB, decimal) on Home and History. | APP-612 |
+| IM-100 | Spin-down: `SpinDown` event in the trainer session, written once control is held; the answer's band goes to `core/spindown`, which follows Stop Pedaling, Success and Error, stops at 120 s, and puts the trainer at its lowest level after any end. Results go to `logs/calibration.jsonl` (UTC, ok, outcome, bytes); the last one shows on the Calibration screen. Refused while a ride is armed, running, paused or done. A trainer request (`14 01`) shows `spindown_requested` on Home once no ride runs, until a calibration succeeds. | ICD S-5; APP-501 to APP-506 |
+| IM-101 | Simulated D100 spin-down: band 0 to 40 km/h, speed 32, 36, 39, 41 km/h over 4 s, Stop Pedaling three times, 26 s coast, then Success with the bytes `97 6C` (F-37), Error, or nothing (`spin_down_outcome`). | T-CAL-01 to -06 |
+| IM-102 | Start screen: when the page loads, a screen with the app's name, the link state and one Start button comes before Home. It is skipped when the Pi is in a ride or a running calibration, so a reload mid-ride still shows the ride at once (APP-807). Display only. | Ferran, 15 Nov 2026 |
+| IM-103 | Supporting tests: S-LED-01 (sysfs LED), S-ICU-02 (status to outcome), S-DSP-06 (Vitest of the new screens). App version 0.5.0. | Trace rule |
+
+## 29 SL-07 to SL-09 result
+
+### 29.1 What was built
+
+The modules of 27.2. `wow --sim` now recovers a ride after a kill, uploads finished rides when an intervals.icu account is set, lists past rides with download and delete, runs a spin-down on the simulated D100, and greets with a start screen.
+
+### 29.2 Test results
+
+| Gate step | Result (laptop, 15 Nov 2026) |
+|-----------|------------------------------|
+| flake8, mypy strict | clean, 137 files |
+| pytest without `pi` and `slow` | 429 passed, 6 deselected (T-SYS-01, -03, -04, -06, T-REC-03 kill runs, S-FIT-01) |
+| Coverage | core 96.4 % branches; app and web 93.9 % lines; testable adapters 96.8 % lines |
+| Vitest | 59 passed |
+| `tools/trace.py --through SL-09` | 0 problems; T-SYS-03, -04, -06 due on the Pi |
+| Screens of `wow --sim` | start, Home, Calibration through the spin-down, Summary with download, Past rides, a past ride: checked in Chromium screenshots |
+| Wheel | `uv build` includes the display; `uv export --frozen --no-dev --no-emit-project` gives the pinned set |
+
+### 29.3 Assumptions
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A-36 the app can drive the ACT LED | Open | IM-96; D-23 |
+| A-44 control regained after a crash | Open | T-SYS-06, D-18 |
+| A-50 outage from UTC after a reboot | Open | T-RCV-04 on the simulator; D-22 |
+| A-53 intervals.icu answers 200 for a file it has | Open | T-UPL-01 against a local server; D-27 |
+| A-64 (new) `ExecStartPre=+` may change the group of the LED's sysfs files, and the files keep it until the next boot | Open | systemd.service, "+" prefix runs with full privileges; D-23 |
+
+### 29.4 Findings
+
+| ID | Finding | What changed |
+|----|---------|--------------|
+| SF-25 | The journal could not rebuild a ride: `armed` lacked the trainer's ranges and the free-ride level that `Start` needs. | IM-91 |
+| SF-26 | The upload worker read and rewrote `meta.json`; started before the recorder had written the final one, it could put back the `running` state. | IM-97: it waits for `finished` |
+| SF-27 | Core branch coverage was 95.4 % after the slices, close to the floor. | A test of the spin-down machine's edge cases |
+
+Deviations from the test plan:
+
+1. T-SYS-03, T-SYS-04 and T-SYS-06 are written (`tests/system/test_service.py`) but run only on the Pi with the service installed and `simulate = true` for the run.
+2. T-RCV-01 to -05 simulate the kill by copying the data directory mid-ride; the real kill is T-SYS-06 and D-18.
+3. S-PW-01 taps Start before Free ride (IM-102).
+
+### 29.5 Proposed changes to approved documents
+
+| Document | Change |
+|----------|--------|
+| 3A architecture | `core/replay`, `core/upload`, `app/history`, `app/housekeeping`; deployment as in IM-95. |
+| ICD | 4.4.2 `armed` fields (IM-91); 4.1 `SpinDown` and `SpinDownAnswered` (IM-100); 4.6.3 `SummaryScreen.past`, nullable `HomeScreen.recovery.started_utc`, `HistoryScreen` `start_utc` and `duration`; 4.6.5 `delete_ride` and `upload_retry` on a past ride's Summary; 4.8.3 upload fields in `meta.json` and the waiting rule without an account; 4.10 `[system] led`; `logs/calibration.jsonl` in 4.9. |
+| 3C display | Start screen (IM-102); Home's recovery card and the 2 × 2 buttons; History; Summary actions; Calibration. |
+| Test plan | The deviations of 29.4. |
+
+## 30 Traceability notes SL-07 to SL-09
+
+From `tools/trace.py --through SL-09`, 15 Nov 2026.
+
+### 30.1 SL-07
+
+| Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
+|---|---|---|---|
+| APP-318 | T-DEV-06 passed, T-DEV-08 passed, T-DEV-09 passed, T-DEV-10 passed, T-E2E-03 passed, T-RCV-02 passed, T-RID-16 passed | D-14 pending, D-16 pending | passed |
+| APP-320 | T-DEV-04 due SL-10, T-RID-13 passed, T-SES-10 passed, T-SYS-04 due on the Pi | D-13 pass, RR-10 pending | passed so far |
+| APP-809 | T-RCV-01 passed, T-RCV-02 passed, T-RCV-03 passed, T-RCV-04 passed, T-RCV-05 passed, T-RID-19 passed, T-SYS-06 due on the Pi | D-18 pending, D-22 pending | passed so far |
+| APP-811 | T-SYS-03 due on the Pi, T-SYS-06 due on the Pi | D-18 pending | not yet due |
+| APP-826 | T-HK-03 passed | D-23 pending | passed |
+
+### 30.2 SL-08
+
+| Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
+|---|---|---|---|
+| APP-607 | T-UPL-01 passed | D-25 pending | passed |
+| APP-608 | T-UPL-02 passed, T-UPL-03 passed, T-UPL-04 passed | I-20 pending | passed |
+| APP-609 | T-UPL-05 passed | D-27 pending | passed |
+| APP-610 | T-WEB-03 passed | D-26 pending | passed |
+| APP-611 | T-VIEW-07 passed | D-26 pending, I-20 pending | passed |
+| APP-612 | T-HK-01 passed, T-REC-06 passed | D-31 pending, I-14 pending | passed |
+
+### 30.3 SL-09
+
+| Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
+|---|---|---|---|
+| APP-501 | T-CAL-01 passed | D-20 pending | passed |
+| APP-502 | T-CAL-02 passed, T-COD-08 passed, T-SES-08 passed | D-20 pending, I-20 pending | passed |
+| APP-503 | T-CAL-03 passed, T-COD-08 passed | D-20 pending, I-20 pending | passed |
+| APP-504 | T-CAL-04 passed | I-20 pending | passed |
+| APP-505 | T-CAL-05 passed | — | passed |
+| APP-506 | T-CAL-06 passed | I-14 pending | passed |
+
+## 31 On the Pi: SL-05 to SL-09
+
+The rides of section 24 and these, in one or two sessions. Install first; from then on the app runs as the service, on `https://wow.local` (ports 443 and 80).
+
+1. Laptop: apply the patches, gate through SL-09, build the display, copy it to the Pi as before.
+2. Pi: `sudo deploy/install.sh`; copy the data: `sudo cp -a ~/wow/wow-data/. /var/lib/wow/`, the TLS files to `/var/lib/wow/tls/`, `sudo chown -R wow:wow /var/lib/wow`, `sudo chmod 600 /var/lib/wow/secrets.json`; `sudo systemctl restart wow`.
+3. DS-5: boot time to the page (D-21), the LED (D-23).
+4. With `simulate = true` in `/etc/wow/wow.toml`: `uv run pytest -m "pi and slow" -s tests/system/test_service.py`; then back to `simulate = false`.
+5. The rides of section 24, plus DS-3's D-18: `sudo systemctl kill --signal=KILL wow` during an easy ride, Continue on Home.
+6. DS-6: Past rides, download, delete a test ride, an upload to intervals.icu (D-25, D-27).
+7. DS-4: a calibration after a ride (D-20).
+8. `tools/check_ride.py` on each ride; results into `docs/verification-log.md`.
+
+## 32 Approval question
+
+Do you approve SL-07, SL-08 and SL-09 as built, with decisions IM-91 to IM-103, the start screen, the deviations of 29.4 and the proposed document changes of 29.5, closing when the steps of section 31 pass?
+
 ## Change log
 
 | Rev. | Date | Change |
@@ -960,6 +1121,7 @@ Do you approve SL-05 and SL-06 as built, with decisions IM-69 to IM-87, the chan
 | 7 | 14 Nov 2026 | RR-01 passed on the second run; SL-03 and SL-04 approved by Ferran. |
 | 8 | 14 Nov 2026 | SL-05 and SL-06 planned, built and gated on the laptop (sections 20 to 25); decisions IM-69 to IM-87; findings SF-16 to SF-21; SL-13 route simulation added to the slice plan. |
 | 9 | 14 Nov 2026 | First ride on the simulator (section 25): findings SF-22 to SF-24, changes IM-88 to IM-90. |
+| 10 | 15 Nov 2026 | SL-05 and SL-06 approved by Ferran. SL-07 to SL-09 planned, built and gated on the laptop (sections 27 to 32); decisions IM-91 to IM-103; findings SF-25 to SF-27; start screen. |
 
 ## Sources
 
@@ -976,6 +1138,8 @@ Do you approve SL-05 and SL-06 as built, with decisions IM-69 to IM-87, the chan
 - intervals.icu developer's post "API access to Intervals.icu": basic authentication with user `API_KEY`; `GET /api/v1/athlete/{id}/events` with `oldest` and `newest` as local dates: https://forum.intervals.icu/t/api-access-to-intervals-icu/609
 - aiohttp 3.14.5 as installed: `aiohttp.encode_basic_auth(login, password)` and the deprecation warnings of `BasicAuth` and `ClientSession(auth=...)`
 - npm registry, `@playwright/test` 1.65.1, and its device list (`iPhone 17` in `playwright-core/types/types.d.ts`), read 14 Nov 2026: https://registry.npmjs.org/@playwright/test
+- systemd.service(5), command line prefixes ("+": full privileges) and `StartLimitIntervalSec=`: https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html
+- uv 0.11 command reference (`uv export --frozen --no-dev --no-emit-project`, `uv pip install --python`, `uv build --wheel`): https://docs.astral.sh/uv/reference/cli/
 - Phase 3C display design, revision 2: `claude/phase3-display.md`
 - Phase 4 test plan, revision 2: `docs/phase4-test-plan.md`
 - Phase 3B Interface Control Document, revision 4: `claude/phase3-icd.md`

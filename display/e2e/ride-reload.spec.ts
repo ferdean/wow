@@ -10,6 +10,7 @@ test("a reload mid-ride brings the ride screen back within 5 s", async ({ page }
   });
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
+  await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.getByRole("button", { name: "Free ride", exact: true }).click();
   const start = page.getByRole("button", { name: "Start ride", exact: true });
   await expect(start).toBeEnabled({ timeout: 30_000 });

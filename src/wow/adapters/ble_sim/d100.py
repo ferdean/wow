@@ -14,7 +14,7 @@ from wow.adapters.ble_sim.scheduler import SimScheduler
 from wow.adapters.ble_sim.server import SimServerBase
 from wow.core import ftms_codec as codec
 from wow.core import uuids
-from wow.core.ftms_codec import ResultCode
+from wow.core.ftms_codec import ResultCode, SpinDownStatus
 from wow.ports.gatt import Advertisement, Uuid
 from typing import Final
 
@@ -35,6 +35,11 @@ ERG_TAU: Final[float] = (ERG_T90 - ERG_DEAD_TIME) / math.log(10)
 RESISTANCE_POWER: Final[tuple[tuple[int, float], ...]] = (
     (0, 59.0), (25, 82.0), (50, 138.0), (75, 231.0), (100, 313.0))
 RIDER_SPEED_KMH: Final[float] = 28.6
+SPIN_DOWN_BAND: Final[bytes] = bytes.fromhex("0000a00f")
+SPIN_DOWN_SPEEDS: Final[tuple[float, ...]] = (32.0, 36.0, 39.0, 41.0)
+SPIN_DOWN_COAST: Final[float] = 26.0
+SPIN_DOWN_VENDOR: Final[bytes] = bytes.fromhex("976c")
+STATUS_REPEATS: Final[tuple[float, ...]] = (0.0, 0.05, 0.1)
 
 
 def resistance_power(level_raw: int) -> float:
@@ -124,6 +129,7 @@ class SimD100Server(SimServerBase):
         self._answers = 0
         self._data_task: asyncio.Task[None] | None = None
         self.data_chars = frozenset({uuids.INDOOR_BIKE_DATA})
+        self.spin_down_outcome: SpinDownStatus | None = SpinDownStatus.SUCCESS
 
     def advertising(self) -> bool:
         """Return whether the trainer advertises."""
@@ -205,8 +211,44 @@ class SimD100Server(SimServerBase):
 
     def _answer(self, op: int, result: ResultCode) -> None:
         self.answer_times.append(self.scheduler.now())
+        spin = op == codec.SPIN_DOWN_CONTROL and result == ResultCode.SUCCESS
         self.send(uuids.FITNESS_MACHINE_CONTROL_POINT,
-                  bytes([codec.RESPONSE_CODE, op, result]))
+                  bytes([codec.RESPONSE_CODE, op, result])
+                  + (SPIN_DOWN_BAND if spin else b""))
+        if spin:
+            self._spin_down(self.scheduler.now())
+
+    def request_spin_down(self) -> None:
+        """Ask the app for a spin-down (status 14 01)."""
+        self.send(uuids.FITNESS_MACHINE_STATUS,
+                  bytes([codec.STATUS_SPIN_DOWN, SpinDownStatus.REQUESTED]))
+
+    def _spin_down(self, now: float) -> None:
+        for second, speed in enumerate(SPIN_DOWN_SPEEDS, start=1):
+            self.scheduler.call_at(now + second,
+                                   functools.partial(self._speed, speed))
+        top = now + len(SPIN_DOWN_SPEEDS)
+        for offset in STATUS_REPEATS:
+            self.scheduler.call_at(top + offset, functools.partial(
+                self._spin_status, bytes([SpinDownStatus.STOP_PEDALING])))
+        for second in range(1, int(SPIN_DOWN_COAST) + 1):
+            speed = SPIN_DOWN_SPEEDS[-1] * (1 - second / SPIN_DOWN_COAST)
+            self.scheduler.call_at(top + second,
+                                   functools.partial(self._speed, speed))
+        outcome = self.spin_down_outcome
+        if outcome is not None:
+            extra = (SPIN_DOWN_VENDOR if outcome == SpinDownStatus.SUCCESS
+                     else b"")
+            self.scheduler.call_at(
+                top + SPIN_DOWN_COAST, functools.partial(
+                    self._spin_status, bytes([outcome]) + extra))
+
+    def _speed(self, speed_kmh: float) -> None:
+        self.rider_speed_kmh = speed_kmh
+
+    def _spin_status(self, data: bytes) -> None:
+        self.send(uuids.FITNESS_MACHINE_STATUS,
+                  bytes([codec.STATUS_SPIN_DOWN]) + data)
 
     def _carry_out(self, data: bytes, now: float) -> ResultCode:
         op = data[0]
@@ -216,10 +258,14 @@ class SimD100Server(SimServerBase):
             self.in_control = True
             return ResultCode.SUCCESS
         if op not in (codec.START_OR_RESUME, codec.SET_TARGET_POWER,
-                      codec.SET_TARGET_RESISTANCE_LEVEL):
+                      codec.SET_TARGET_RESISTANCE_LEVEL,
+                      codec.SPIN_DOWN_CONTROL):
             return ResultCode.NOT_SUPPORTED
         if not self.in_control:
             return ResultCode.CONTROL_NOT_PERMITTED
+        if op == codec.SPIN_DOWN_CONTROL:
+            return (ResultCode.SUCCESS if data[1:] == b"\x01"
+                    else ResultCode.INVALID_PARAMETER)
         if op == codec.SET_TARGET_POWER and len(data) == 3:
             power = int.from_bytes(data[1:3], "little", signed=True)
             if not 50 <= power <= 600:

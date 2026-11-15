@@ -10,6 +10,8 @@ class Screen(StrEnum):
     PRE_RIDE = "pre_ride"
     RIDE = "ride"
     SUMMARY = "summary"
+    HISTORY = "history"
+    CALIBRATION = "calibration"
 
 
 class Mode(StrEnum):
@@ -84,3 +86,5 @@ class WarningKind(StrEnum):
     """Kind of a warning outside the ride."""
 
     WORKOUTS_OFFLINE = "workouts_offline"
+    STORAGE_LOW = "storage_low"
+    SPINDOWN_REQUESTED = "spindown_requested"

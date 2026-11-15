@@ -24,6 +24,18 @@ class Began:
 
 
 @dataclass(frozen=True)
+class Restored:
+    """Event: after a restart, ride second first falls at origin.
+
+    The ride clock stands still from paused_at when it is set.
+    """
+
+    origin: float
+    first: int
+    paused_at: float | None = None
+
+
+@dataclass(frozen=True)
 class TrainerValue:
     """Event: a trainer record arrived."""
 
@@ -66,8 +78,8 @@ class Tick:
     """Event: the next sample is due."""
 
 
-SamplerEvent = (Began | TrainerValue | HrValue | Paused | Resumed | Stopped
-                | Tick)
+SamplerEvent = (Began | Restored | TrainerValue | HrValue | Paused | Resumed
+                | Stopped | Tick)
 
 
 @dataclass(frozen=True)
@@ -82,7 +94,8 @@ class Sample:
 
 
 SAMPLER_FORMS: Final[Registry] = Registry(
-    Began, TrainerValue, HrValue, Paused, Resumed, Stopped, Tick, Sample)
+    Began, Restored, TrainerValue, HrValue, Paused, Resumed, Stopped, Tick,
+    Sample)
 
 
 class _Channel:
@@ -125,6 +138,10 @@ class Sampler:
         match event:
             case Began(mono=mono):
                 self._origin, self._next = mono, 0
+                return self._due(now)
+            case Restored(origin=origin, first=first, paused_at=paused):
+                self._origin, self._next = origin, first
+                self._paused_at = paused
                 return self._due(now)
             case TrainerValue(mono=mono, power=power, cadence_rpm=cadence):
                 self._power.add(mono, power)

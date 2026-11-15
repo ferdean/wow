@@ -55,7 +55,7 @@ export interface WorkoutCard {
 export interface HomeScreen {
   name: "home";
   today: WorkoutCard[]; library: WorkoutCard[]; builtin: WorkoutCard[];
-  recovery: { ride_id: string; started_utc: string; outage: number | null; can_continue: boolean } | null;
+  recovery: { ride_id: string; started_utc: string | null; outage: number | null; can_continue: boolean } | null;
 }
 
 export interface PreRideScreen {
@@ -88,11 +88,13 @@ export interface Metrics {
 }
 export interface SummaryScreen {
   name: "summary"; ride_id: string; title: string; start_utc: string; metrics: Metrics; upload: UploadState;
+  past: boolean;
 }
 
 export interface HistoryScreen {
   name: "history";
-  rides: { ride_id: string; start_utc: string; title: string; duration: number; tss: number | null; upload: UploadState }[];
+  rides: { ride_id: string; start_utc: string | null; title: string; duration: number | null; tss: number | null;
+           upload: UploadState }[];
   free_mb: number;
 }
 

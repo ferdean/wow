@@ -38,6 +38,7 @@ class Config:
     data: Path
     static: Path
     listen: str | None = None
+    led: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,7 @@ def load_config(path: Path) -> Config:
     bluetooth = raw.get("bluetooth", {})
     web = raw.get("web", {})
     paths = raw.get("paths", {})
+    system = raw.get("system", {})
     return Config(
         adapter=bluetooth.get("adapter", "hci0"),
         simulate=bool(bluetooth.get("simulate", False)),
@@ -84,6 +86,7 @@ def load_config(path: Path) -> Config:
         data=Path(paths.get("data", "/var/lib/wow")),
         static=Path(web["static"]) if "static" in web else default_static(),
         listen=web.get("listen"),
+        led=Path(system["led"]) if "led" in system else None,
     )
 
 

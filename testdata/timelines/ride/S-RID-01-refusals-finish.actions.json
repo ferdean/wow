@@ -4,7 +4,7 @@
   {"at": 2.0, "action": {"type": "refused", "reason": "not_armed"}},
   {"at": 3.0, "action": {"type": "refused", "reason": "erg_unavailable"}},
   {"at": 4.0, "action": {"type": "journal", "event": "command", "t_ride": null, "data": {"name": "start", "args": {}}}},
-  {"at": 4.0, "action": {"type": "journal", "event": "armed", "t_ride": null, "data": {"workout_ref": "test:w3030", "plan_id": "test:w3030@250", "ftp": 250, "lead_time": 1.5, "block_modes": []}}},
+  {"at": 4.0, "action": {"type": "journal", "event": "armed", "t_ride": null, "data": {"workout_ref": "test:w3030", "plan_id": "test:w3030@250", "ftp": 250, "lead_time": 1.5, "block_modes": [], "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": {"type": "range", "minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}, "free_ride_level_pct": 0}}},
   {"at": 4.0, "action": {"type": "set_trainer", "command": {"type": "erg", "power": 140}}},
   {"at": 4.0, "action": {"type": "journal", "event": "trainer_command", "t_ride": null, "data": {"mode": "erg", "power": 140, "due_mono_ms": 4000.0}}},
   {"at": 5.0, "action": {"type": "refused", "reason": "ride_running"}},
@@ -17,7 +17,7 @@
   {"at": 20.0, "action": {"type": "journal", "event": "trainer_command", "t_ride": 14.0, "data": {"mode": "resistance", "level_raw": 0, "due_mono_ms": 20000.0}}},
   {"at": 20.0, "action": {"type": "ended", "cause": "finished"}},
   {"at": 30.0, "action": {"type": "journal", "event": "command", "t_ride": null, "data": {"name": "start", "args": {}}}},
-  {"at": 30.0, "action": {"type": "journal", "event": "armed", "t_ride": null, "data": {"workout_ref": "test:w3030", "plan_id": "test:w3030@250", "ftp": 250, "lead_time": 1.5, "block_modes": []}}},
+  {"at": 30.0, "action": {"type": "journal", "event": "armed", "t_ride": null, "data": {"workout_ref": "test:w3030", "plan_id": "test:w3030@250", "ftp": 250, "lead_time": 1.5, "block_modes": [], "capabilities": {"type": "trainer_capabilities", "power": {"type": "range", "minimum": 50, "maximum": 600, "step": 1}, "resistance": {"type": "range", "minimum": 0, "maximum": 100, "step": 1}, "spin_down": true, "cadence": false}, "free_ride_level_pct": 0}}},
   {"at": 30.0, "action": {"type": "set_trainer", "command": {"type": "erg", "power": 140}}},
   {"at": 30.0, "action": {"type": "journal", "event": "trainer_command", "t_ride": null, "data": {"mode": "erg", "power": 140, "due_mono_ms": 30000.0}}}
  ]}

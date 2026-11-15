@@ -22,7 +22,7 @@ from typing import Final
 from wow.core.devices import (
     Erg, Range, Resistance, TrainerCapabilities, TrainerCommand,
 )
-from wow.core.jsonform import Registry
+from wow.core.jsonform import Registry, to_json
 from wow.core.numbers import round_half_up
 from wow.core.plan import Plan, make_plan
 from wow.core.target_policy import (
@@ -556,7 +556,9 @@ class Ride:
         armed = Journal("armed", None, {
             "workout_ref": event.workout.ref, "plan_id": plan.plan_id,
             "ftp": event.ftp, "lead_time": event.lead_time,
-            "block_modes": [str(m) for m in event.block_modes]})
+            "block_modes": [str(m) for m in event.block_modes],
+            "capabilities": to_json(event.capabilities),
+            "free_ride_level_pct": self._free_pct})
         return [Journal("command", None, {"name": "start", "args": {}}), armed,
                 *self._send(self._target(0), now)]
 

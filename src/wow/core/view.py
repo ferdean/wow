@@ -108,11 +108,20 @@ def workout_card(workout: Workout | None, plan: Plan | None, source: str,
 
 
 def home_screen(builtin: Sequence[Json], today: Sequence[Json] = (),
-                library: Sequence[Json] = ()) -> Json:
+                library: Sequence[Json] = (),
+                recovery: Json | None = None) -> Json:
     """Return the Home screen."""
     return {"name": Screen.HOME, "today": list(today),
             "library": list(library), "builtin": list(builtin),
-            "recovery": None}
+            "recovery": recovery}
+
+
+def recovery_offer(ride_id: str, started_utc: str | None,
+                   outage: float | None) -> Json:
+    """Return the Home offer of a ride the app stopped in (APP-809)."""
+    return {"ride_id": ride_id, "started_utc": started_utc,
+            "outage": None if outage is None else _ms(outage),
+            "can_continue": outage is not None}
 
 
 def pre_ride_screen(plan: Plan, trainer: LinkState,
@@ -225,11 +234,39 @@ def ride_screen(ride: Ride, now: float, power: int | None,
 
 
 def summary_screen(ride_id: str, title: str, start_utc: str,
-                   metrics: Metrics, upload: str) -> Json:
-    """Return the Summary screen of a finished ride."""
+                   metrics: Metrics, upload: str, past: bool = False) -> Json:
+    """Return the Summary of a ride just finished, or a past one."""
     return {"name": Screen.SUMMARY, "ride_id": ride_id, "title": title,
             "start_utc": start_utc, "metrics": metrics_view(metrics),
-            "upload": upload}
+            "upload": upload, "past": past}
+
+
+def calibration_screen(phase: str, band_kmh: tuple[float, float] | None,
+                       speed_kmh: float | None, elapsed: float,
+                       last: tuple[str, bool] | None,
+                       blocked: str | None) -> Json:
+    """Return the Calibration screen (APP-502 to APP-505)."""
+    return {"name": Screen.CALIBRATION, "phase": phase,
+            "band_kmh": None if band_kmh is None else list(band_kmh),
+            "speed_kmh": None if speed_kmh is None else round(speed_kmh, 1),
+            "elapsed": _ms(elapsed),
+            "last": None if last is None else {
+                "utc": last[0], "ok": last[1]},
+            "blocked": blocked}
+
+
+def history_screen(rides: Sequence[Json], free_mb: int) -> Json:
+    """Return the ride history (APP-611)."""
+    return {"name": Screen.HISTORY, "rides": list(rides), "free_mb": free_mb}
+
+
+def history_entry(ride_id: str, start_utc: str | None, title: str,
+                  metrics: Metrics | None, upload: str) -> Json:
+    """Return one past ride in the history."""
+    return {"ride_id": ride_id, "start_utc": start_utc, "title": title,
+            "duration": None if metrics is None else metrics.duration,
+            "tss": None if metrics is None or metrics.tss is None
+            else round(metrics.tss, 1), "upload": upload}
 
 
 def metrics_view(metrics: Metrics) -> Json:

@@ -11,6 +11,7 @@ from wow.adapters.ble_sim import SimFaults
 from wow.adapters.clock_stepped import SteppedClock
 from wow.app.config import Config
 from wow.app.main import App
+from wow.ports.upload import ActivityUploader
 from wow.ports.workouts import ProviderError, WorkoutProvider
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -102,10 +103,12 @@ class AppSession:
 
     def __init__(self, tmp: Path, provider: WorkoutProvider | None = None,
                  sim_pedal_after: float = 3.0,
-                 sim_faults: SimFaults = SimFaults()) -> None:
+                 sim_faults: SimFaults = SimFaults(),
+                 uploader: ActivityUploader | None = None) -> None:
         self.clock = SteppedClock()
         self.app = App(app_config(tmp), self.clock, provider=provider,
-                       sim_pedal_after=sim_pedal_after, sim_faults=sim_faults)
+                       sim_pedal_after=sim_pedal_after, sim_faults=sim_faults,
+                       uploader=uploader)
         self.app.recorder.start()
 
     async def begin(self, ref: str | None) -> None:
@@ -141,4 +144,5 @@ class AppSession:
         if self.app.scheduler is not None:
             await self.app.scheduler.close()
         self.app.recorder.stop()
-        return ride_dirs(self.app.config)[-1]
+        rides = ride_dirs(self.app.config)
+        return rides[-1] if rides else self.app.config.data

@@ -14,7 +14,11 @@ from wow.core.ride import (
     TrainerLink,
 )
 from wow.core.view import (
+    calibration_screen,
+    history_entry,
+    history_screen,
     home_screen,
+    recovery_offer,
     pre_ride_screen,
     ride_screen,
     ride_warnings,
@@ -149,6 +153,54 @@ def sl05_scenes() -> dict[str, dict[str, Any]]:
         "pre_ride_block_in_resistance": envelope(view_state(pre_ride_screen(
             plan, connected, (Mode.ERG, Mode.RESISTANCE)), connected,
             connected, 80, [], None)),
+    }
+
+
+def sl07_scenes() -> dict[str, dict[str, Any]]:
+    builtin = [card_of(ramp_test()), card_of(THIRTY_THIRTY)]
+    links = (LinkState.NOT_FOUND, LinkState.NOT_FOUND, None)
+    metrics = ride_metrics([180] * 3600, [130] * 3600, 250,
+                           (55, 75, 90, 105, 120))
+    return {
+        "home_recovery": envelope(view_state(home_screen(
+            builtin, recovery=recovery_offer(
+                "2026-11-15T071500Z", "2026-11-15T07:15:03.120Z", 134.2)),
+            *links, [{"kind": WarningKind.STORAGE_LOW, "free_mb": 812},
+                     {"kind": WarningKind.SPINDOWN_REQUESTED}], None)),
+        "home_recovery_finish_only": envelope(view_state(home_screen(
+            builtin, recovery=recovery_offer(
+                "2026-11-15T071500Z", "2026-11-15T07:15:03.120Z", None)),
+            *links, [], None)),
+        "history": envelope(view_state(history_screen([
+            history_entry("2026-11-14T180000Z", "2026-11-14T18:00:02.400Z",
+                          "Free ride", metrics, UploadState.OFF),
+            history_entry("2026-11-13T170154Z", "2026-11-13T17:01:58.010Z",
+                          "Long ride + SS", metrics, UploadState.DONE),
+            history_entry("2026-11-12T162426Z", "2026-11-12T16:24:30.900Z",
+                          "ERG check", metrics, UploadState.FAILED)],
+            31512), *links, [], None)),
+        "summary_past": envelope(view_state(
+            summary_screen("2026-11-12T162426Z", "ERG check",
+                           "2026-11-12T16:24:30.900Z", metrics,
+                           UploadState.FAILED, past=True), *links, [],
+            None)),
+        "calibration_idle": envelope(view_state(calibration_screen(
+            "idle", None, None, 0.0, ("2026-11-10T19:02:11.000Z", True),
+            None), LinkState.CONNECTED, LinkState.NOT_FOUND, None, [],
+            None)),
+        "calibration_speed_up": envelope(view_state(calibration_screen(
+            "speed_up", (0.0, 40.0), 33.7, 3.2, None, None),
+            LinkState.CONNECTED, LinkState.NOT_FOUND, None, [], None)),
+        "calibration_stop_pedaling": envelope(view_state(calibration_screen(
+            "stop_pedaling", (0.0, 40.0), 31.5, 9.0, None, None),
+            LinkState.CONNECTED, LinkState.NOT_FOUND, None, [], None)),
+        "calibration_success": envelope(view_state(calibration_screen(
+            "success", (0.0, 40.0), 0.0, 30.4,
+            ("2026-11-15T07:40:12.000Z", True), None),
+            LinkState.CONNECTED, LinkState.NOT_FOUND, None, [], None)),
+        "calibration_blocked": envelope(view_state(calibration_screen(
+            "idle", None, None, 0.0, None, "trainer_missing"),
+            LinkState.SEARCHING, LinkState.NOT_FOUND, None, [], None)),
     }
 
 
@@ -291,4 +343,5 @@ def scenes() -> dict[str, dict[str, Any]]:
         ),
         **sl04_scenes(),
         **sl05_scenes(),
+        **sl07_scenes(),
     }
