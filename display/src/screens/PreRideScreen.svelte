@@ -3,7 +3,7 @@
   import { listDuration, percent, stepText } from "../format";
   import Banner from "../ui/Banner.svelte";
   import Profile from "../ui/Profile.svelte";
-  import { holdScreen } from "../device/wake";
+  import { holdScreen } from "../device/wake.svelte";
 
   interface Props {
     screen: PreRideScreen;

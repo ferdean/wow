@@ -6,15 +6,22 @@ from typing import Any
 
 from tests.support.timeline import load_json
 from wow.app.workout_catalog import load_builtin, planned_on, rides_of
-from wow.core.devices import LinkState, Range, TrainerCapabilities
+from wow.core.devices import (
+    DeviceKind, FoundDevice, LinkState, Range, TrainerCapabilities,
+)
 from wow.core.metrics import ride_metrics
 from wow.core.plan import make_plan
 from wow.core.ride import (
     RIDING, Pause, PowerSeen, ResistanceStep, Ride, Start, SwitchMode, Tick,
     TrainerLink,
 )
+from wow.core.settings import DeviceRef, Settings
 from wow.core.view import (
+    battery_warning,
     calibration_screen,
+    certificate_warning,
+    clock_warning,
+    settings_screen,
     history_entry,
     history_screen,
     home_screen,
@@ -243,6 +250,114 @@ def sl04_scenes() -> dict[str, dict[str, Any]]:
     }
 
 
+def _view(screen: dict[str, Any], trainer: LinkState = LinkState.CONNECTED,
+          hrm: LinkState = LinkState.CONNECTED, battery: int | None = 80,
+          warnings: list[dict[str, Any]] | None = None,
+          data_ms: float | None = None) -> dict[str, Any]:
+    return envelope(view_state(screen, trainer, hrm, battery,
+                               warnings or [], data_ms))
+
+
+def sl10_scenes() -> dict[str, dict[str, Any]]:
+    builtin = [card_of(ramp_test()), card_of(THIRTY_THIRTY)]
+    plan = make_plan(THIRTY_THIRTY, 250)
+    library = rides_of(load_json("intervals/workouts.json"))
+    today = [e for e in planned_on(load_json("intervals/events.json"),
+                                   date(2026, 11, 14))]
+    unsupported = Workout("test:hr", "Heart-rate step", None, (
+        Block(None, 1, (Step(300.0, PowerTarget(140, PowerUnit.WATTS),
+                             "Warm-up"),
+                        Step(600.0, None, "Hold 140 bpm"))),))
+    chosen = Settings(trainer=DeviceRef("94:05:BB:03:5D:9D",
+                                        "VANRYSEL-HT-9d5d"),
+                      hrm=DeviceRef("E0:E2:EF:63:14:BC", "HRM200:739158"))
+    found = (FoundDevice("94:05:BB:03:5D:9D", "VANRYSEL-HT-9d5d", -60,
+                         DeviceKind.TRAINER),
+             FoundDevice("E0:E2:EF:63:14:BC", "HRM200:739158", -55,
+                         DeviceKind.HRM),
+             FoundDevice("C8:4A:2D:11:22:33", "CADENCE-1816", -70,
+                         DeviceKind.CADENCE))
+    until = "2036-11-09T06:27:56.000Z"
+    erg = started_ride()
+    advance(erg, 180.0)
+    ride = ride_screen(erg, 180.0, 221, 158)
+    pre = pre_ride_screen(plan, LinkState.CONNECTED)
+    return {
+        "home_plan_and_library": _view(home_screen(
+            builtin, [card_of(e.workout, "plan") for e in today
+                      if e.workout],
+            [card_of(e.workout, "library") for e in library if e.workout])),
+        "home_cert_expiring": _view(
+            home_screen(builtin), LinkState.NOT_FOUND, LinkState.NOT_FOUND,
+            None, certificate_warning(12) + clock_warning(False)),
+        "pre_ride_trainer_searching": _view(
+            pre_ride_screen(plan, LinkState.SEARCHING), LinkState.SEARCHING,
+            LinkState.SEARCHING, None),
+        "pre_ride_strap_not_found": _view(pre, hrm=LinkState.NOT_FOUND,
+                                          battery=None),
+        "pre_ride_battery_low": _view(pre, battery=15,
+                                      warnings=battery_warning(15, 20)),
+        "pre_ride_unsupported_step": _view(pre_ride_screen(
+            make_plan(unsupported, 250), LinkState.CONNECTED)),
+        "ride_erg_trainer_dropout": _view(
+            ride_screen(erg, 180.0, None, 158), trainer=LinkState.DROPOUT,
+            warnings=ride_warnings(erg, [])),
+        "ride_erg_strap_dropout": _view(
+            ride_screen(erg, 180.0, 221, None), hrm=LinkState.DROPOUT,
+            battery=80, warnings=ride_warnings(erg, [])),
+        "ride_trainer_not_responding": _view(ride, warnings=ride_warnings(
+            erg, ["trainer_not_responding"])),
+        "ride_control_refused": _view(ride, warnings=ride_warnings(
+            erg, ["control_refused"])),
+        "ride_clock_unsynced": _view(ride, warnings=ride_warnings(
+            erg, [], clock_warning(False))),
+        "ride_battery_low": _view(ride, battery=10, warnings=ride_warnings(
+            erg, [], battery_warning(10, 20))),
+        "ride_erg_cadence": _view(ride_screen(erg, 180.0, 221, 158,
+                                              cadence_rpm=91)),
+        "history_empty": _view(history_screen([], 31512),
+                               LinkState.NOT_FOUND, LinkState.NOT_FOUND,
+                               None),
+        "settings_defaults": _view(settings_screen(Settings(), False, until,
+                                                   None),
+                                   LinkState.NOT_FOUND, LinkState.NOT_FOUND,
+                                   None),
+        "settings_account_saved": _view(settings_screen(chosen, True, until,
+                                                        None),
+                                        LinkState.NOT_FOUND,
+                                        LinkState.NOT_FOUND, None),
+        "settings_scan_running": _view(settings_screen(
+            chosen, True, until, (DeviceKind.HRM, True, ())),
+            LinkState.NOT_FOUND, LinkState.NOT_FOUND, None),
+        "settings_scan": _view(settings_screen(
+            chosen, True, until, (DeviceKind.HRM, False, found)),
+            LinkState.NOT_FOUND, LinkState.NOT_FOUND, None),
+    }
+
+
+def upload_scenes() -> dict[str, dict[str, Any]]:
+    metrics = ride_metrics([180] * 3600, [130] * 3600, 250,
+                           (55, 75, 90, 105, 120))
+    states = {"off": UploadState.OFF, "uploading": UploadState.UPLOADING,
+              "done": UploadState.DONE, "retrying": UploadState.RETRYING,
+              "failed": UploadState.FAILED,
+              "auth_error": UploadState.AUTH_ERROR}
+    found = {f"summary_{name}": _view(summary_screen(
+        "2026-11-15T071500Z", "Long ride + SS", "2026-11-15T07:15:03.120Z",
+        metrics, state)) for name, state in states.items()}
+    calibration = {
+        f"calibration_{phase}": _view(calibration_screen(
+            phase, band, speed, elapsed, last, None), hrm=LinkState.NOT_FOUND,
+            battery=None)
+        for phase, band, speed, elapsed, last in (
+            ("starting", None, 0.0, 0.4, None),
+            ("error", (0.0, 40.0), 0.0, 31.0,
+             ("2026-11-15T07:40:12.000Z", False)),
+            ("timeout", (0.0, 40.0), 12.3, 120.0,
+             ("2026-11-15T07:40:12.000Z", False)))}
+    return {**found, **calibration}
+
+
 def scenes() -> dict[str, dict[str, Any]]:
     plan = make_plan(THIRTY_THIRTY, 250)
     card = workout_card(THIRTY_THIRTY, plan, "builtin", THIRTY_THIRTY.ref,
@@ -347,4 +462,6 @@ def scenes() -> dict[str, dict[str, Any]]:
         **sl04_scenes(),
         **sl05_scenes(),
         **sl07_scenes(),
+        **sl10_scenes(),
+        **upload_scenes(),
     }

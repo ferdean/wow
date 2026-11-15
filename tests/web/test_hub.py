@@ -17,7 +17,9 @@ from tests.support.page import FakeSocket, open_page
 from wow.adapters.clock_stepped import SteppedClock
 from wow.adapters.clock_system import SystemClock
 from wow.app.main import App
-from wow.web.hub import Command, Hub, Malformed, Painted, Ping, parse_up
+from wow.web.hub import (
+    Command, Hub, Malformed, Painted, Ping, Viewport, parse_up,
+)
 
 GOLDEN = ROOT / "testdata" / "display"
 
@@ -26,9 +28,13 @@ GOLDEN = ROOT / "testdata" / "display"
 @pytest.mark.parametrize("text, expected", [
     ('{"type": "command", "id": 3, "name": "skip"}', Command(3, "skip", {})),
     ('{"type": "command", "id": 4, "name": "intensity", "args": {"step": 1},'
-     ' "tap_mono_ms": 12.5}', Command(4, "intensity", {"step": 1})),
+     ' "tap_mono_ms": 12.5, "rtt_ms": 20.1}',
+     Command(4, "intensity", {"step": 1}, 12.5, 20.1)),
     ('{"type": "ping", "id": 9, "t_page_ms": 1234.5}', Ping(9, 1234.5)),
-    ('{"type": "painted", "seq": 18, "paint_mono_ms": 5.0}', Painted(18)),
+    ('{"type": "painted", "seq": 18, "paint_mono_ms": 5.0}',
+     Painted(18, 5.0)),
+    ('{"type": "viewport", "width": 402, "height": 664}',
+     Viewport(402, 664)),
     ("{", Malformed(None, "not JSON")),
     ("[1, 2]", Malformed(None, "not an object")),
     ('{"type": "command", "id": true, "name": "skip"}',

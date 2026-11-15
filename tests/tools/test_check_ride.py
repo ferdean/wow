@@ -30,7 +30,8 @@ async def test_a_simulated_ride_passes_every_check(tmp_path: Path) -> None:
         **{check: "pass" for check in (
             "RR-01", "RR-02", "RR-03", "RR-04", "RR-05", "RR-06", "RR-10",
             "RR-11", "RR-12", "RR-13", "RR-14")},
-        "RR-09": "not applicable"}
+        **{check: "not applicable"
+           for check in ("RR-07", "RR-08", "RR-09")}}
     assert check_ride.main([str(ride)]) == 0
 
 
@@ -213,3 +214,46 @@ async def test_strap_end_and_log_faults_fail(tmp_path: Path) -> None:
     _rewrite(ride / "ble.jsonl", log)
     results = _results(ride, system)
     assert [results[c] for c in ("RR-06", "RR-10", "RR-11")] == ["fail"] * 3
+
+
+def _tap(at: float, write: float | None, pending: bool = False,
+         rtt: float = 20.0) -> dict[str, object]:
+    return {"kind": "tap", "name": "resistance", "tap_mono_ms": at,
+            "recv_mono_ms": at + 15.0, "write_mono_ms": write,
+            "pending": pending, "rtt_ms": rtt}
+
+
+@pytest.mark.case("S-RR-01")
+def test_rr07_counts_taps_from_the_tap() -> None:
+    answers = [{"op": "indicate", "uuid": check_ride.CONTROL_POINT,
+                "mono_ms": 1000.0 * k + 300.0} for k in range(200)]
+    fast = [_tap(1000.0 * k, 1000.0 * k + 30.0) for k in range(100)]
+    assert check_ride.rr07(fast[:99], answers).result == "not applicable"
+    assert check_ride.rr07(fast + [_tap(0.0, None)], answers).result == (
+        "pass")
+    waited = [_tap(1000.0 * k, 1000.0 * k + 340.0, True) for k in range(100)]
+    assert check_ride.rr07(waited, answers).result == "pass"
+    slow = [_tap(1000.0 * k, 1000.0 * k + 340.0) for k in range(100)]
+    outcome = check_ride.rr07(slow, answers)
+    assert outcome.result == "fail" and "worst 350.0 ms" in outcome.detail
+    stuck = fast[:99] + [_tap(0.0, 1200.0, True)]
+    assert check_ride.rr07(stuck, answers).result == "fail"
+
+
+@pytest.mark.case("S-RR-01")
+def test_rr08_counts_every_value_to_its_paint() -> None:
+    events = [{"type": "ride_started", "mono_ms": 0.0},
+              {"type": "finished", "mono_ms": 700000.0}]
+    values = [{"op": "notify", "uuid": check_ride.INDOOR_BIKE_DATA,
+               "mono_ms": 250.0 * k} for k in range(2801)]
+    paints = [{"kind": "paint", "data_mono_ms": 250.0 * k,
+               "paint_mono_ms": 250.0 * k + 60.0, "rtt_ms": 20.0}
+              for k in range(2801)]
+    assert check_ride.rr08(paints, values, events).result == "pass"
+    late = [{**p, "paint_mono_ms": 250.0 * k + 260.0}
+            for k, p in enumerate(paints)]
+    assert check_ride.rr08(late, values, events).result == "fail"
+    assert check_ride.rr08(paints[:100], values, events).result == (
+        "not applicable")
+    assert check_ride.rr08(paints, values, events[:1] + [
+        {"type": "finished", "mono_ms": 1000.0}]).result == "not applicable"

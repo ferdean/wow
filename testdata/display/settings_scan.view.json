@@ -1,0 +1,60 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "not_found",
+  "hrm": "not_found"
+ },
+ "hrm_battery_pct": null,
+ "warnings": [],
+ "screen": {
+  "name": "settings",
+  "ftp": 250,
+  "zones_pct": [
+   55,
+   75,
+   90,
+   105,
+   120
+  ],
+  "lead_time": 1.0,
+  "battery_warn_pct": 20,
+  "upload_on": true,
+  "intervals_account_set": true,
+  "cert_valid_until": "2036-11-09T06:27:56.000Z",
+  "trainer": {
+   "address": "94:05:BB:03:5D:9D",
+   "name": "VANRYSEL-HT-9d5d"
+  },
+  "hrm": {
+   "address": "E0:E2:EF:63:14:BC",
+   "name": "HRM200:739158"
+  },
+  "scan": {
+   "kind": "hrm",
+   "running": false,
+   "found": [
+    {
+     "address": "94:05:BB:03:5D:9D",
+     "name": "VANRYSEL-HT-9d5d",
+     "rssi_dbm": -60,
+     "kind": "trainer"
+    },
+    {
+     "address": "E0:E2:EF:63:14:BC",
+     "name": "HRM200:739158",
+     "rssi_dbm": -55,
+     "kind": "hrm"
+    },
+    {
+     "address": "C8:4A:2D:11:22:33",
+     "name": "CADENCE-1816",
+     "rssi_dbm": -70,
+     "kind": "cadence"
+    }
+   ]
+  }
+ }
+}

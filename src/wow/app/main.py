@@ -48,9 +48,11 @@ from wow.app.ride_controller import RideController, Summary
 from wow.app.settings_panel import SettingsPanel
 from wow.app.upload_worker import UploadWorker
 from wow.app.status_led import LedController
+from wow.app.timing_log import TimingLog
 from wow.app.workout_catalog import (
     Entry, Source, WorkoutCatalog, builtin_entries,
 )
+from wow.core.ride import RIDING
 from wow.core.settings import Settings
 from wow.core.workout import Workout
 from wow.ports.clock import Clock
@@ -152,7 +154,11 @@ class App:
         self.hrm.on_sample = self.console.hr_sample
         self.trainer.on_link = self.console.link_changed
         self.hrm.on_link = self.console.link_changed
-        self.hub = Hub(clock, self.console, app_version())
+        self.timing = TimingLog(
+            clock, self.recorder.timing,
+            lambda: self.rides.ride.phase in RIDING, self.trainer.pending)
+        self.trainer.on_write = self.timing.written
+        self.hub = Hub(clock, self.console, app_version(), self.timing)
         self.lag = LoopLagMonitor(clock)
         self.led = None if led is None else LedController(
             clock, led, self.trainer.link)
@@ -188,6 +194,7 @@ class App:
         self.calibration.close()
         await self.settings.close()
         await self.devices.close()
+        await self.timing.close()
         await self.rides.close()
         await self.catalog.close()
         await self.hub.close()

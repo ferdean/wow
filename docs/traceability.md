@@ -1,4 +1,4 @@
-# Traceability (generated; finished slices through SL-10)
+# Traceability (generated; finished slices through SL-11)
 
 | Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
 |---|---|---|---|
@@ -49,7 +49,7 @@
 | APP-318 | T-DEV-06 passed, T-DEV-08 passed, T-DEV-09 passed, T-DEV-10 passed, T-E2E-03 passed, T-RCV-02 passed, T-RID-16 passed | D-14 pending, D-16 pending | passed |
 | APP-319 | T-DEV-07 passed, T-DEV-10 passed, T-E2E-03 passed, T-RID-16 passed | D-15 pending, D-16 pending | passed |
 | APP-320 | T-DEV-04 passed, T-RID-13 passed, T-SES-10 passed, T-SYS-04 due on the Pi | D-13 pass, RR-10 pending | passed so far |
-| APP-401 | T-VIEW-01 passed, T-VIEW-09 due SL-11 | D-07 pending, I-16 pending | passed so far |
+| APP-401 | T-VIEW-01 passed, T-VIEW-09 passed | D-07 pending, I-16 pending | passed |
 | APP-402 | T-VIEW-02 passed | — | passed |
 | APP-403 | — | D-07 pending, I-16 pending | no automated test |
 | APP-404 | — | D-08 pending, I-16 pending | no automated test |
@@ -62,7 +62,7 @@
 | APP-411 | T-VIEW-06 passed | D-13 pass, I-20 pending | passed |
 | APP-412 | — | I-04 pending | no automated test |
 | APP-413 | — | D-08 pending | no automated test |
-| APP-414 | T-VIEW-09 due SL-11 | D-09 pending, I-03 pending, I-17 pending | not yet due |
+| APP-414 | T-VIEW-09 passed | D-09 pending, I-03 pending, I-17 pending | passed |
 | APP-415 | T-RID-07 passed, T-RID-08 passed, T-VIEW-04 passed | D-09 pending, I-17 pending | passed |
 | APP-416 | — | D-17 pending, I-19 pending | no automated test |
 | APP-501 | T-CAL-01 passed | D-20 pending | passed |
@@ -92,8 +92,8 @@
 | APP-707 | T-SET-06 passed | — | passed |
 | APP-708 | T-SET-01 passed | — | passed |
 | APP-801 | T-SES-09 passed, T-SYS-01 passed on the Pi | RR-02 pass | passed |
-| APP-802 | T-WEB-08 due SL-11 | D-19 pending, RR-07 pending | not yet due |
-| APP-803 | T-WEB-04 passed, T-WEB-07 due SL-11 | RR-08 pending | passed so far |
+| APP-802 | T-WEB-08 due on the Pi | D-19 pending, RR-07 pending | not yet due |
+| APP-803 | T-WEB-04 passed, T-WEB-07 due on the Pi | RR-08 pending | passed so far |
 | APP-804 | T-E2E-04 due SL-12, T-RID-17 due SL-12, T-SYS-02 due SL-12 | RR-03 pass | not yet due |
 | APP-805 | T-DEV-06 passed, T-E2E-03 passed | D-14 pending, D-16 pending, RR-09 pending | passed |
 | APP-806 | T-DEV-07 passed, T-E2E-03 passed | D-15 pending, RR-09 pending | passed |
@@ -113,7 +113,7 @@
 | APP-820 | T-LOG-02 passed, T-LOG-03 passed, T-LOG-04 passed, T-LOG-05 due SL-12 | — | passed so far |
 | APP-821 | — | I-11 pending | no automated test |
 | APP-822 | T-TOOL-04 passed | I-12 pending | passed |
-| APP-823 | T-TOOL-01 passed | I-13 pending | passed |
+| APP-823 | T-TOOL-01 failed | I-13 pending | open |
 | APP-824 | T-VIEW-08 passed | D-24 pending, I-18 pending | passed |
 | APP-825 | T-RID-18 passed | — | passed |
 | APP-826 | T-HK-03 passed | D-23 pending | passed |

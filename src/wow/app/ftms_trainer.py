@@ -56,6 +56,7 @@ class FtmsTrainer:
         self.on_status = on_status or (lambda _data: None)
         self.on_spin_down: Callable[[int, tuple[float, float] | None],
                                     None] = lambda _result, _band: None
+        self.on_write: Callable[[float], None] = lambda _mono: None
 
     def capabilities(self) -> TrainerCapabilities | None:
         """Return the capabilities, if known."""
@@ -96,6 +97,10 @@ class FtmsTrainer:
     def in_control(self) -> bool:
         """Return whether the app holds control."""
         return self._session.in_control()
+
+    def pending(self) -> bool:
+        """Return whether a control point procedure awaits its answer."""
+        return self._session.pending
 
     def warnings(self) -> frozenset[str]:
         """Return the active warnings."""
@@ -200,6 +205,7 @@ class FtmsTrainer:
         client = self._client
         if client is None:
             return
+        self.on_write(self._clock.monotonic())
         try:
             await client.write(uuids.FITNESS_MACHINE_CONTROL_POINT, data)
         except GattError as error:

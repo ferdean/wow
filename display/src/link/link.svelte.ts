@@ -61,6 +61,7 @@ export class Link implements LinkView {
     const up: Up = { type: "command", id: this.nextId, name, args };
     if (offset !== null) {
       up.tap_mono_ms = Math.round((performance.now() + offset.offset_ms) * 10) / 10;
+      up.rtt_ms = Math.round(offset.rtt_ms * 10) / 10;
     }
     this.write(up);
   }
@@ -109,6 +110,7 @@ export class Link implements LinkView {
           location.reload();
         }
         this.lastSeq = 0;
+        this.write({ type: "viewport", width: window.innerWidth, height: window.innerHeight });
         break;
       case "plan":
         this.plan = message;
@@ -149,7 +151,8 @@ export class Link implements LinkView {
       const offset = best(this.pings, performance.now());
       if (offset !== null) {
         this.write({ type: "painted", seq: view.seq,
-                     paint_mono_ms: Math.round((performance.now() + offset.offset_ms) * 10) / 10 });
+                     paint_mono_ms: Math.round((performance.now() + offset.offset_ms) * 10) / 10,
+                     rtt_ms: Math.round(offset.rtt_ms * 10) / 10 });
       }
     });
   }

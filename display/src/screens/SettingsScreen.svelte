@@ -178,7 +178,7 @@
     </div>
 
     <h2>The Pi</h2>
-    <div class="panel row">
+    <div class="panel pi">
       <span class="grow">Certificate valid until</span>
       <span class="label">{screen.cert_valid_until ? dateTime(screen.cert_valid_until) : "unknown"}</span>
     </div>
@@ -190,6 +190,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    padding: 6px 16px;
   }
   .line,
   .found {
@@ -197,7 +198,7 @@
     align-items: center;
     gap: var(--gap);
     width: 100%;
-    min-height: 48px;
+    min-height: 44px;
     padding: 0;
     background: transparent;
     text-align: left;
@@ -227,6 +228,11 @@
     border-radius: 10px;
     padding: 4px 10px;
     font-weight: 700;
+  }
+  .pi {
+    flex-direction: row;
+    align-items: center;
+    min-height: 56px;
   }
   .switch {
     border-radius: 12px;

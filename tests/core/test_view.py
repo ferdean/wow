@@ -194,3 +194,55 @@ def test_golden_views(name: str) -> None:
         GOLDEN.mkdir(exist_ok=True)
         path.write_text(json.dumps(actual, indent=1) + "\n")
     assert json.loads(path.read_text()) == actual
+
+
+STATES_3_1 = {
+    "Home": ["home_plan_and_library", "home", "home_offline_with_lists",
+             "home_recovery", "home_cert_expiring"],
+    "Pre-ride": ["pre_ride_ramp_test", "pre_ride_trainer_searching",
+                 "pre_ride_trainer_missing", "pre_ride_strap_not_found",
+                 "pre_ride_battery_low", "pre_ride_unsupported_step",
+                 "pre_ride_block_in_resistance", "pre_ride_free_ride"],
+    "Ride": ["ride_waiting_for_power", "ride_erg", "ride_erg_last_5_s",
+             "ride_erg_target_limited", "ride_erg_trainer_dropout",
+             "ride_erg_strap_dropout", "ride_trainer_not_responding",
+             "ride_control_refused", "ride_paused", "ride_resistance_block",
+             "ride_workout_done", "ride_free_ride_by_power",
+             "ride_clock_unsynced"],
+    "Summary": ["summary_off", "summary", "summary_uploading",
+                "summary_done", "summary_retrying", "summary_failed",
+                "summary_auth_error"],
+    "Ride history": ["history", "history_empty"],
+    "Calibration": ["calibration_idle", "calibration_blocked",
+                    "calibration_starting", "calibration_speed_up",
+                    "calibration_stop_pedaling", "calibration_success",
+                    "calibration_error", "calibration_timeout"],
+    "Settings": ["settings_defaults", "settings_account_saved",
+                 "settings_scan_running", "settings_scan"],
+}
+
+
+@pytest.mark.case("T-VIEW-09")
+@pytest.mark.req("APP-401", "APP-414")
+@pytest.mark.parametrize("screen", sorted(STATES_3_1))
+def test_every_golden_state_of_the_plan(screen: str) -> None:
+    made = scenes()
+    for name in STATES_3_1[screen]:
+        assert name in made, name
+        stored = json.loads((GOLDEN / f"{name}.view.json").read_text())
+        assert stored == made[name], name
+    home = {"home_recovery": ["storage_low", "spindown_requested"],
+            "home_cert_expiring": ["cert_expiring", "clock_unsynced"]}
+    for name, kinds in home.items():
+        assert [w["kind"] for w in made[name]["warnings"]] == kinds
+    uploads = {made[n]["screen"]["upload"] for n in STATES_3_1["Summary"]}
+    assert uploads == {"off", "pending", "uploading", "done", "retrying",
+                       "failed", "auth_error"}
+    phases = {made[n]["screen"]["phase"] for n in STATES_3_1["Calibration"]}
+    assert phases == {"idle", "starting", "speed_up", "stop_pedaling",
+                      "success", "error", "timeout"}
+    erg = made["ride_erg"]["screen"]
+    assert erg["mode"] == "erg" and erg["target"] is not None
+    resistance = made["ride_resistance_block"]["screen"]
+    assert resistance["mode"] == "resistance"
+    assert resistance["resistance_pct"] is not None

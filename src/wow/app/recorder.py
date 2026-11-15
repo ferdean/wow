@@ -28,7 +28,8 @@ SYNC_INTERVAL: Final[float] = 2.0
 JOURNAL: Final[str] = "events.jsonl"
 SAMPLES: Final[str] = "samples.jsonl"
 BLE_LOG: Final[str] = "ble.jsonl"
-RIDE_LINES: Final[tuple[str, ...]] = (JOURNAL, SAMPLES, BLE_LOG)
+TIMING: Final[str] = "timing.jsonl"
+RIDE_LINES: Final[tuple[str, ...]] = (JOURNAL, SAMPLES, BLE_LOG, TIMING)
 SYNC_EVENTS: Final[frozenset[str]] = frozenset(
     {"paused", "dropout_start", "dropout_end", "finished", "discarded"})
 
@@ -105,6 +106,12 @@ class Recorder:
         """Queue a sample line."""
         if self._ride is not None:
             self._queue.put(_Item(_Kind.LINE, self._ride / SAMPLES,
+                                  json.dumps(dict(record))))
+
+    def timing(self, record: Mapping[str, object]) -> None:
+        """Queue a line of the ride's latency log (ICD 4.9.5)."""
+        if self._ride is not None:
+            self._queue.put(_Item(_Kind.LINE, self._ride / TIMING,
                                   json.dumps(dict(record))))
 
     def ble(self, record: BleLogRecord) -> None:

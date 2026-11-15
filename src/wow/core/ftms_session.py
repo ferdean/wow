@@ -220,6 +220,11 @@ class FtmsSession:
         """Return whether the app holds control."""
         return self._phase in (Phase.STARTING, Phase.READY, Phase.RELEASING)
 
+    @property
+    def pending(self) -> bool:
+        """Return whether a control point procedure awaits its answer."""
+        return self._pending is not None
+
     def handle(self, event: SessionEvent, now: float) -> list[SessionAction]:
         """Handle an event and return the actions to carry out."""
         match event:

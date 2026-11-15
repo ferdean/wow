@@ -2,11 +2,10 @@
 
 Ride checks over one ride directory (test plan, section 6).
 
-Reads `events.jsonl`, `samples.jsonl`, `ble.jsonl`, `meta.json` and
-`ride.fit` of the ride, and the system Bluetooth log for the connection
-made before the ride began, and prints one line per check: pass, fail
-with the worst value, or not applicable. RR-07 and RR-08 follow with
-`timing.jsonl` (SL-11).
+Reads `events.jsonl`, `samples.jsonl`, `ble.jsonl`, `timing.jsonl`,
+`meta.json` and `ride.fit` of the ride, and the system Bluetooth log for
+the connection made before the ride began, and prints one line per
+check: pass, fail with the worst value, or not applicable.
 
 Usage:
     uv run python tools/check_ride.py /var/lib/wow/rides/<ride id>
@@ -50,6 +49,11 @@ LOG_FIELDS: Final[frozenset[str]] = frozenset(
 LOG_GAP_MS: Final[float] = 5000.0
 CHANNELS: Final[tuple[tuple[str, str, str], ...]] = (
     ("power", "trainer", INDOOR_BIKE_DATA), ("hr_bpm", "hrm", HEART_RATE))
+TAPS_NEEDED: Final[int] = 100
+SPAN_NEEDED_MS: Final[float] = 600000.0
+DISPLAY_LIMIT_MS: Final[float] = 250.0
+CEILING_MS: Final[float] = 1000.0
+SHARE: Final[float] = 0.95
 
 Record = dict[str, Any]
 
@@ -190,6 +194,73 @@ def _delay(due: float, written: float, writes: Sequence[Record],
     if answer is not None and answer > due:
         return written - answer
     return delay
+
+
+def _verdict(check: str, delays: Sequence[float], passed: int,
+             what: str) -> Outcome:
+    share = passed / len(delays)
+    worst = max(delays)
+    ok = share >= SHARE and worst <= CEILING_MS
+    return Outcome(check, "pass" if ok else "fail",
+                   f"{len(delays)} {what}, {share * 100:.1f} % in time, "
+                   f"worst {worst:.1f} ms")
+
+
+def rr07(timing: Sequence[Record], ride_log: Sequence[Record]) -> Outcome:
+    """Tap to the start of the write (APP-802).
+
+    Half the round trip the page's clock offset came from counts against
+    the app; a tap made while a procedure was pending passes within
+    100 ms of that procedure's answer.
+    """
+    taps = [t for t in timing if t.get("kind") == "tap"
+            and t.get("write_mono_ms") is not None]
+    if len(taps) < TAPS_NEEDED:
+        return Outcome("RR-07", "not applicable",
+                       f"{len(taps)} taps with a write, fewer than "
+                       f"{TAPS_NEEDED}")
+    answers = sorted(float(r["mono_ms"]) for r in indications(ride_log))
+    delays, passed = [], 0
+    for tap in taps:
+        written = float(tap["write_mono_ms"])
+        delay = written - float(tap["tap_mono_ms"]) + float(
+            tap.get("rtt_ms") or 0.0) / 2
+        delays.append(delay)
+        index = bisect.bisect_left(answers, float(tap["recv_mono_ms"]))
+        answered = answers[index] if index < len(answers) else None
+        if delay <= DISPLAY_LIMIT_MS or (
+                tap.get("pending") and answered is not None
+                and written - answered <= LIMIT_MS):
+            passed += 1
+    return _verdict("RR-07", delays, passed, "taps")
+
+
+def rr08(timing: Sequence[Record], ride_log: Sequence[Record],
+         events: Sequence[Record]) -> Outcome:
+    """Arrival of each value to the paint that showed it (APP-803)."""
+    paints = sorted(((float(p["data_mono_ms"]), float(p["paint_mono_ms"])
+                      + float(p.get("rtt_ms") or 0.0) / 2)
+                     for p in timing if p.get("kind") == "paint"))
+    start = _ride_start(events)
+    ends = [float(e["mono_ms"]) for e in events
+            if e.get("type") in ("finished", "discarded")]
+    end = ends[0] if ends else float("inf")
+    shown = [p[0] for p in paints]
+    arrivals = [float(r["mono_ms"]) for r in ride_log
+                if r.get("op") == "notify"
+                and r.get("uuid") in (INDOOR_BIKE_DATA, HEART_RATE)
+                and start is not None and start <= float(r["mono_ms"]) < end
+                and shown and float(r["mono_ms"]) <= shown[-1] + TOLERANCE_MS]
+    if not arrivals or arrivals[-1] - arrivals[0] < SPAN_NEEDED_MS:
+        return Outcome("RR-08", "not applicable",
+                       "less than 10 min of painted values")
+    delays, passed = [], 0
+    for arrival in arrivals:
+        index = bisect.bisect_left(shown, arrival - TOLERANCE_MS)
+        delay = paints[index][1] - arrival
+        delays.append(delay)
+        passed += delay <= DISPLAY_LIMIT_MS
+    return _verdict("RR-08", delays, passed, "values")
 
 
 def trainer_dropouts(events: Sequence[Record]) -> list[tuple[float, float]]:
@@ -589,11 +660,13 @@ def check(ride: Path, system_log: Path) -> list[Outcome]:
     events = read_lines(ride / "events.jsonl")
     samples = read_lines(ride / "samples.jsonl")
     ride_log = read_lines(ride / "ble.jsonl")
+    timing = read_lines(ride / "timing.jsonl")
     system = this_run(read_lines(system_log), ride_log)
     meta, fit = read_meta(ride), read_fit(ride)
     return [rr01(ride_log, system), rr02(events, ride_log, system),
             rr03(events), rr04(events, ride_log, system),
             rr05(events, samples, ride_log), rr06(ride_log, system),
+            rr07(timing, ride_log), rr08(timing, ride_log, events),
             rr09(events, ride_log), rr10(events, ride_log),
             rr11(events, ride_log), rr12(events, meta),
             rr13(events, meta, fit), rr14(events, samples, fit)]

@@ -6,7 +6,8 @@
   import Profile from "../ui/Profile.svelte";
   import Sheet from "../ui/Sheet.svelte";
   import StatusLine from "../ui/StatusLine.svelte";
-  import { releaseScreen } from "../device/wake";
+  import { releaseScreen } from "../device/wake.svelte";
+  import { tone } from "../device/sound";
 
   interface Props {
     screen: RideScreen;
@@ -49,6 +50,16 @@
     ].filter((b) => b !== null),
   );
   const batteryLow = $derived(warnings.some((w) => w.kind === "hrm_battery_low"));
+  const stepKey = $derived(screen.workout_done ? -1 : (screen.step?.index ?? null));
+  let lastStep: number | null | undefined;
+
+  $effect(() => {
+    const current = stepKey;
+    if (lastStep !== undefined && current !== lastStep && !screen.waiting_for_power && !screen.paused) {
+      tone();
+    }
+    lastStep = current;
+  });
 
   function nextText(next: NonNullable<RideScreen["next"]>): string {
     if (next.kind === "free_ride") {
@@ -123,7 +134,7 @@
     {:else if canErg}
       <button class="primary" disabled={screen.paused} onclick={() => send("switch_mode", { mode: "erg" })}>{free ? "Ride by power" : "Back to ERG"}</button>
     {/if}
-    <div class="profile grow"><Profile {plan} elapsed={position} /></div>
+    <div class="profile grow"><Profile {plan} elapsed={position} resistanceBlocks={screen.resistance_blocks} /></div>
     <div class="times label">
       <span><span class="number small">{clock(elapsed)}</span> ridden</span>
       {#if remaining !== null}<span><span class="number small">{timeLeft(remaining)}</span> to go</span>{/if}
@@ -170,7 +181,7 @@
         <span class="label">for {clock(screen.next.duration)}</span>
       </div>
     {/if}
-    <div class="profile grow"><Profile {plan} elapsed={position} /></div>
+    <div class="profile grow"><Profile {plan} elapsed={position} resistanceBlocks={screen.resistance_blocks} /></div>
     <div class="times label">
       <span><span class="number small">{clock(elapsed)}</span> ridden</span>
       {#if remaining !== null}<span><span class="number small">{timeLeft(remaining)}</span> to go</span>{/if}
@@ -214,6 +225,9 @@
 {/if}
 
 <style>
+  .page.fixed {
+    container-type: size;
+  }
   .info {
     display: flex;
     flex-wrap: wrap;
@@ -224,7 +238,7 @@
     color: var(--moon);
   }
   .levelnum {
-    font-size: 168px;
+    font-size: clamp(80px, calc((100cqb - 510px) / 0.86), 168px);
     display: flex;
     align-items: baseline;
     justify-content: center;
@@ -252,6 +266,7 @@
     align-items: flex-end;
     justify-content: space-between;
     transition: background-color 200ms;
+    container-type: inline-size;
   }
   .band .label {
     color: inherit;
@@ -282,7 +297,7 @@
     align-items: flex-end;
   }
   .hero {
-    font-size: 132px;
+    font-size: clamp(74px, min(calc((100cqi - 141px) / 1.578), calc((100cqb - 505px) / 0.86)), 132px);
   }
   .key {
     font-size: 74px;
@@ -336,7 +351,21 @@
     font-weight: 700;
   }
   .profile {
-    min-height: 44px;
+    min-height: 0;
+    flex-basis: 0;
+    overflow: hidden;
+  }
+  @media (max-height: 700px) {
+    .page {
+      gap: 6px;
+    }
+    .band {
+      padding: 10px 16px;
+    }
+    .cell {
+      padding: 8px 12px;
+      gap: 4px;
+    }
   }
   .times {
     display: flex;

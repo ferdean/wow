@@ -9,7 +9,8 @@
   import SettingsScreen from "./screens/SettingsScreen.svelte";
   import StartScreen from "./screens/StartScreen.svelte";
   import SummaryScreen from "./screens/SummaryScreen.svelte";
-  import { holdScreen } from "./device/wake";
+  import { holdScreen, supported, wake } from "./device/wake.svelte";
+  import { unlockSound } from "./device/sound";
 
   interface Props {
     link: LinkView;
@@ -26,6 +27,7 @@
   const busy = $derived(view?.screen.name === "ride" || (view?.screen.name === "calibration" &&
     ["starting", "speed_up", "stop_pedaling"].includes(view.screen.phase)));
   const greeting = $derived(greet && !started && !busy);
+  const prompt = $derived(busy && !wake.held && link.live);
 
   $effect(() => {
     if (busy) {
@@ -36,19 +38,32 @@
   onMount(() => {
     const timer = setInterval(() => (now = performance.now()), tick);
     const visible = (): void => {
-      if (document.visibilityState === "visible" && view?.screen.name === "ride") {
+      if (document.visibilityState === "visible" && busy) {
+        void holdScreen();
+      }
+    };
+    const tapped = (): void => {
+      unlockSound();
+      if (busy && !wake.held) {
         void holdScreen();
       }
     };
     document.addEventListener("visibilitychange", visible);
+    document.addEventListener("pointerdown", tapped, true);
     return () => {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", visible);
+      document.removeEventListener("pointerdown", tapped, true);
     };
   });
 </script>
 
-<main class:stale={!link.live && !greeting}>
+{#if prompt}
+  <button class="wake" onclick={() => void holdScreen()}>
+    {supported() ? "Tap to keep the screen on" : "This browser can't keep the screen on: set Auto-Lock to Never"}
+  </button>
+{/if}
+<main class:stale={!link.live && !greeting} class:prompted={prompt}>
   {#if greeting}
     <StartScreen connected={view !== null} start={() => (started = true)} />
   {:else if view === null}
@@ -76,6 +91,30 @@
 {/if}
 
 <style>
+  .wake {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    width: 100%;
+    min-height: calc(var(--prompt) + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 16px 0;
+    border-radius: 0;
+    background: var(--moon);
+    color: var(--ink);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .prompted {
+    padding-top: var(--prompt);
+  }
+  .prompted :global(.page) {
+    min-height: calc(100dvh - var(--prompt));
+  }
+  .prompted :global(.page.fixed) {
+    height: calc(100dvh - var(--prompt));
+  }
   .stale {
     opacity: 0.45;
     pointer-events: none;

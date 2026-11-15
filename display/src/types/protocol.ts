@@ -131,9 +131,10 @@ export type CommandName =
 
 export interface Command {
   type: "command"; id: number; name: CommandName; args?: Record<string, unknown>;
-  tap_mono_ms?: number;
+  tap_mono_ms?: number; rtt_ms?: number;
 }
 export interface Ping { type: "ping"; id: number; t_page_ms: number }
-export interface Painted { type: "painted"; seq: number; paint_mono_ms: number }
+export interface Painted { type: "painted"; seq: number; paint_mono_ms: number; rtt_ms: number }
+export interface Viewport { type: "viewport"; width: number; height: number }
 
-export type Up = Command | Ping | Painted;
+export type Up = Command | Ping | Painted | Viewport;

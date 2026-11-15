@@ -1,0 +1,41 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "not_found",
+  "hrm": "not_found"
+ },
+ "hrm_battery_pct": null,
+ "warnings": [],
+ "screen": {
+  "name": "settings",
+  "ftp": 250,
+  "zones_pct": [
+   55,
+   75,
+   90,
+   105,
+   120
+  ],
+  "lead_time": 1.0,
+  "battery_warn_pct": 20,
+  "upload_on": true,
+  "intervals_account_set": true,
+  "cert_valid_until": "2036-11-09T06:27:56.000Z",
+  "trainer": {
+   "address": "94:05:BB:03:5D:9D",
+   "name": "VANRYSEL-HT-9d5d"
+  },
+  "hrm": {
+   "address": "E0:E2:EF:63:14:BC",
+   "name": "HRM200:739158"
+  },
+  "scan": {
+   "kind": "hrm",
+   "running": true,
+   "found": []
+  }
+ }
+}

@@ -1,0 +1,39 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "connected",
+  "hrm": "connected"
+ },
+ "hrm_battery_pct": 80,
+ "warnings": [],
+ "screen": {
+  "name": "summary",
+  "ride_id": "2026-11-15T071500Z",
+  "title": "Long ride + SS",
+  "start_utc": "2026-11-15T07:15:03.120Z",
+  "metrics": {
+   "duration": 3600,
+   "avg_power": 180,
+   "max_power": 180,
+   "np": 180,
+   "intensity_factor": 0.72,
+   "tss": 51.84,
+   "work_kj": 648.0,
+   "time_in_zone": [
+    0,
+    3600,
+    0,
+    0,
+    0,
+    0
+   ],
+   "avg_hr_bpm": 130,
+   "max_hr_bpm": 130
+  },
+  "upload": "off",
+  "past": false
+ }
+}

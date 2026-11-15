@@ -1,0 +1,25 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "connected",
+  "hrm": "connected"
+ },
+ "hrm_battery_pct": 80,
+ "warnings": [],
+ "screen": {
+  "name": "pre_ride",
+  "title": "Heart-rate step",
+  "free_ride": false,
+  "ftp": 250,
+  "duration": 900.0,
+  "plan_id": "test:hr@250",
+  "block_modes": [
+   "erg"
+  ],
+  "can_start": true,
+  "blocked": null
+ }
+}

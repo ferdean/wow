@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { CalibrationScreen, CommandName } from "../types/protocol";
   import { clock, dateTime, speed } from "../format";
-  import { holdScreen } from "../device/wake";
+  import { holdScreen } from "../device/wake.svelte";
 
   interface Props {
     screen: CalibrationScreen;

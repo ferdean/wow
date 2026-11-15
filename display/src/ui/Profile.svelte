@@ -5,8 +5,9 @@
   interface Props {
     plan: Plan | null;
     elapsed?: number | null;
+    resistanceBlocks?: number[];
   }
-  let { plan, elapsed = null }: Props = $props();
+  let { plan, elapsed = null, resistanceBlocks = [] }: Props = $props();
 
   const total = $derived(plan?.segments.at(-1)?.end ?? 0);
   const top = $derived(Math.max(1, ...(plan?.segments.map((s) => Math.max(s.start_power ?? 0, s.end_power ?? 0)) ?? [1])));
@@ -28,6 +29,9 @@
         opacity={position !== null && (s.end / total) * 1000 <= position ? 0.35 : 1}
       />
     {/each}
+    {#each plan.segments.filter((s) => s.kind === "erg" && resistanceBlocks.includes(s.block)) as s (s.step)}
+      <rect class="resistance" x={(s.start / total) * 1000} width={((s.end - s.start) / total) * 1000} y="0" height="3" />
+    {/each}
     {#if position !== null}
       <rect class="marker" x={position - 2} width="4" y="0" height="100" />
     {/if}
@@ -39,9 +43,9 @@
     display: block;
     width: 100%;
     height: 100%;
-    min-height: 44px;
   }
-  .marker {
+  .marker,
+  .resistance {
     fill: var(--moon);
   }
 </style>

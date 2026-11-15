@@ -20,6 +20,7 @@
   --condensed: "Sofia Sans Condensed Variable", "Sofia Sans Variable", system-ui, sans-serif;
   --margin: 16px;
   --gap: 8px;
+  --prompt: 64px;
   color-scheme: dark;
 }
 

@@ -1,0 +1,21 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "connected",
+  "hrm": "not_found"
+ },
+ "hrm_battery_pct": null,
+ "warnings": [],
+ "screen": {
+  "name": "calibration",
+  "phase": "starting",
+  "band_kmh": null,
+  "speed_kmh": 0.0,
+  "elapsed": 0.4,
+  "last": null,
+  "blocked": null
+ }
+}

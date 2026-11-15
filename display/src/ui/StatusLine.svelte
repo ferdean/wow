@@ -37,6 +37,13 @@
     font-size: 15px;
     color: var(--mist);
     min-height: 24px;
+    white-space: nowrap;
+  }
+  @media (max-width: 389px) {
+    .status {
+      gap: 9px;
+      font-size: 14px;
+    }
   }
   .link {
     display: inline-flex;

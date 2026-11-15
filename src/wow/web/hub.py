@@ -1,11 +1,9 @@
 """Serve the display over WebSockets.
 
 Display connections (ICD IF-06; 3A, web/hub): a complete view on every
-change, at most 10 and at least 1 a second; commands, pings and paint
-reports from the page (APP-803, APP-807).
-
-Slice SL-02: views, plans, commands with their acks, pings. Tap and paint
-times go to `timing.jsonl` from SL-11.
+change, at most 10 and at least 1 a second; commands with their acks,
+pings, and the page's paint reports and viewport (APP-802, APP-803,
+APP-807). Tap and paint times go to the timing log (ICD 4.6.7).
 """
 
 import asyncio
@@ -26,6 +24,7 @@ PROTOCOL: Final[int] = 1
 MIN_GAP: Final[float] = 0.1
 MAX_GAP: Final[float] = 1.0
 HEARTBEAT: Final[float] = 5.0
+KEPT_VIEWS: Final[int] = 64
 
 Json = dict[str, Any]
 
@@ -59,6 +58,24 @@ class ViewSource(Protocol):
         ...
 
 
+class TimingSink(Protocol):
+    """Where tap and paint times go."""
+
+    def received(self) -> tuple[float, bool]:
+        """Return when a command arrived and whether a procedure pends."""
+        ...
+
+    def tap(self, name: str, tap_ms: object, rtt_ms: object,
+            arrival: tuple[float, bool]) -> None:
+        """Note a carried-out command."""
+        ...
+
+    def painted(self, seq: int, data_ms: float | None, sent_ms: float,
+                paint_ms: object, rtt_ms: object) -> None:
+        """Note a painted view."""
+        ...
+
+
 @dataclass(frozen=True)
 class Command:
     """A command from the page."""
@@ -66,6 +83,8 @@ class Command:
     id: int
     name: str
     args: Mapping[str, Any]
+    tap_mono_ms: object = None
+    rtt_ms: object = None
 
 
 @dataclass(frozen=True)
@@ -81,6 +100,16 @@ class Painted:
     """The page reports that it painted a view."""
 
     seq: int
+    paint_mono_ms: object = None
+    rtt_ms: object = None
+
+
+@dataclass(frozen=True)
+class Viewport:
+    """The page reports the size it has (A-56)."""
+
+    width: object
+    height: object
 
 
 @dataclass(frozen=True)
@@ -91,7 +120,7 @@ class Malformed:
     reason: str
 
 
-Up = Command | Ping | Painted | Malformed
+Up = Command | Ping | Painted | Viewport | Malformed
 
 
 def _whole(value: object) -> bool:
@@ -114,7 +143,8 @@ def parse_up(text: str) -> Up:
         if known_id is None or not isinstance(name, str) or not isinstance(
                 args, dict):
             return Malformed(known_id, "bad command")
-        return Command(known_id, name, args)
+        return Command(known_id, name, args, message.get("tap_mono_ms"),
+                       message.get("rtt_ms"))
     if kind == "ping":
         stamp = message.get("t_page_ms")
         if known_id is None or not isinstance(stamp, (int, float)) or (
@@ -122,7 +152,10 @@ def parse_up(text: str) -> Up:
             return Malformed(known_id, "bad ping")
         return Ping(known_id, float(stamp))
     if kind == "painted" and _whole(message.get("seq")):
-        return Painted(int(message["seq"]))
+        return Painted(int(message["seq"]), message.get("paint_mono_ms"),
+                       message.get("rtt_ms"))
+    if kind == "viewport":
+        return Viewport(message.get("width"), message.get("height"))
     return Malformed(known_id, f"unknown message type {kind!r}")
 
 
@@ -131,16 +164,18 @@ class _Client:
         self.socket = socket
         self.seq = 0
         self.plan_id: str | None = None
+        self.stamps: dict[int, tuple[float | None, float]] = {}
 
 
 class Hub:
     """The display connections."""
 
     def __init__(self, clock: Clock, source: ViewSource,
-                 app_version: str) -> None:
+                 app_version: str, timing: TimingSink | None = None) -> None:
         self._clock = clock
         self._source = source
         self._app_version = app_version
+        self._timing = timing
         self._clients: set[_Client] = set()
         self._dirty = False
         self._wake = asyncio.Event()
@@ -220,9 +255,11 @@ class Hub:
             await self._send(client, plan)
         client.plan_id = plan_id
         client.seq += 1
+        sent_ms = round(self._clock.monotonic() * 1000, 1)
+        client.stamps[client.seq] = (view.get("data_mono_ms"), sent_ms)
+        client.stamps.pop(client.seq - KEPT_VIEWS, None)
         await self._send(client, {
-            "type": "view", "seq": client.seq,
-            "sent_mono_ms": round(self._clock.monotonic() * 1000, 1),
+            "type": "view", "seq": client.seq, "sent_mono_ms": sent_ms,
             **view})
 
     async def _send(self, client: _Client, message: Json) -> None:
@@ -234,18 +271,29 @@ class Hub:
 
     async def _receive(self, client: _Client, text: str) -> None:
         match parse_up(text):
-            case Command(id=command_id, name=name, args=args):
-                error = self._source.command(name, args)
+            case Command() as command:
+                timing = self._timing
+                arrival = None if timing is None else timing.received()
+                error = self._source.command(command.name, command.args)
                 if error is not None:
-                    logger.warning("command %s refused: %s", name, error)
-                await self._send(client, _ack(command_id, error))
+                    logger.warning("command %s refused: %s", command.name,
+                                   error)
+                elif timing is not None and arrival is not None:
+                    timing.tap(command.name, command.tap_mono_ms,
+                               command.rtt_ms, arrival)
+                await self._send(client, _ack(command.id, error))
                 self.changed()
             case Ping(id=ping_id, t_page_ms=stamp):
                 await self._send(client, {
                     "type": "pong", "id": ping_id, "t_page_ms": stamp,
                     "pi_mono_ms": round(self._clock.monotonic() * 1000, 1)})
-            case Painted():
-                pass
+            case Painted(seq=seq, paint_mono_ms=paint, rtt_ms=rtt):
+                stamps = client.stamps.get(seq)
+                if self._timing is not None and stamps is not None:
+                    self._timing.painted(seq, stamps[0], stamps[1], paint,
+                                         rtt)
+            case Viewport(width=width, height=height):
+                logger.info("display viewport %.20s x %.20s", width, height)
             case Malformed(id=bad_id, reason=reason):
                 logger.warning("display message refused (%s): %.200s",
                                reason, text)
