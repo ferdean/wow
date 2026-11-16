@@ -43,6 +43,55 @@ sudo deploy/install.sh
 
 It builds the wheel, installs it with the locked dependencies into `/opt/wow/venv`, creates the user `wow` and `/var/lib/wow`, copies `deploy/wow.pi.toml` to `/etc/wow/wow.toml` the first time, and (re)starts `wow.service` (ports 443 and 80, so the page is `https://wow.local`). Put `settings.json`, `secrets.json` (mode 600) and the TLS files under `/var/lib/wow` (TLS in `tls/`), owned by `wow`. Logs: `journalctl -u wow -f`.
 
+## Start, stop and switch modes
+
+### On the Pi (the service)
+
+`wow.service` starts at boot and comes back 2 s after a crash. Control it only through systemd:
+
+```
+systemctl status wow                 # running? since when?
+journalctl -u wow -f                 # follow the log
+sudo systemctl stop wow              # stays stopped until start or the next boot
+sudo systemctl start wow
+sudo systemctl restart wow           # after any change to /etc/wow/wow.toml
+sudo systemctl disable --now wow     # stop, and don't start at boot
+sudo systemctl enable --now wow      # start, and start at boot again
+```
+
+`stop` and `restart` send SIGTERM, and wow shuts down in order. It sets the trainer to its lowest level, releases the trainer and the strap, closes the ride files and logs `wow stopped; worst event-loop lag …`. systemd waits up to 20 s for this.
+
+Stop between rides. If wow stops during a ride, the ride stays open, and at the next start Home offers Continue or Finish.
+
+Don't use `kill -9` or `systemctl kill --signal=KILL wow` except to test crash recovery (D-18): the trainer is then neither set to its lowest level nor released.
+
+Switch between the simulator and the real trainer and strap:
+
+```
+sudo sed -i 's/^simulate = .*/simulate = true/' /etc/wow/wow.toml   # false: real devices
+sudo systemctl restart wow
+journalctl -u wow -n 50 | grep started   # "... started with simulated devices" in simulation
+```
+
+Before simulating, turn **Upload** off on the Settings screen, and turn it back on afterwards. Otherwise a ride finished on the simulator is uploaded to intervals.icu like a real one. Simulated rides also show up in Past rides, where you can delete them.
+
+`wow-probe` and `uv run wow` from a checkout on the Pi need the same devices (and `uv run wow` the same ports), so stop the service first:
+
+```
+sudo systemctl stop wow
+uv run wow-probe --trainer 94:05:BB:03:5D:9D --hrm E0:E2:EF:63:14:BC --watts 150 --seconds 60
+sudo systemctl start wow
+```
+
+### On the laptop
+
+```
+uv run wow --config wow.toml          # devices as `simulate` in wow.toml says
+uv run wow --config wow.toml --sim    # simulator; --sim overrides wow.toml
+```
+
+Stop with one Ctrl-C and wait for `wow stopped …`. `kill <pid>` sends SIGTERM and does the same orderly stop. To switch modes, stop and start again with or without `--sim`. Both modes write to `wow-data/`, so the Upload note above applies here too.
+
 ## Gate
 
 ```
