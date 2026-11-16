@@ -30,7 +30,7 @@
   "hr_bpm": 150,
   "next": null,
   "intensity_pct": 100,
-  "resistance_pct": null,
+  "resistance_pct": 20,
   "free_ride_target": null
  }
 }

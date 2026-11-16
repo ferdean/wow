@@ -1,0 +1,41 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "connected",
+  "hrm": "connected"
+ },
+ "hrm_battery_pct": 80,
+ "warnings": [],
+ "screen": {
+  "name": "ride",
+  "waiting_for_power": false,
+  "mode": "resistance",
+  "paused": false,
+  "workout_done": false,
+  "elapsed": 31.0,
+  "remaining": 209.0,
+  "step": {
+   "index": 0,
+   "count": 7,
+   "left": 29.0,
+   "text": "Warm-up"
+  },
+  "target": null,
+  "target_zone": null,
+  "target_limited": false,
+  "power": 182,
+  "hr_bpm": 141,
+  "next": {
+   "kind": "erg",
+   "target": 220,
+   "zone": 3,
+   "duration": 30.0
+  },
+  "intensity_pct": 100,
+  "resistance_pct": 5,
+  "free_ride_target": null
+ }
+}

@@ -2,7 +2,8 @@
 
 Trainer control over the FTMS control point: take control, one
 procedure at a time with the latest command winning, regain control,
-time-outs and the orderly release (ICD IF-01, 4.1.5 and 4.1.6).
+time-outs, the spin-down request (S-5) and the orderly release (ICD
+IF-01, 4.1.5 and 4.1.6).
 """
 
 from dataclasses import dataclass, replace
@@ -66,6 +67,13 @@ class SetCommand:
 
 
 @dataclass(frozen=True)
+class SpinDown:
+    """Event: start a spin-down once control is held (APP-501)."""
+
+    pass
+
+
+@dataclass(frozen=True)
 class Release:
     """Event: give up control of the trainer."""
 
@@ -81,7 +89,7 @@ class Tick:
 
 SessionEvent = (
     LinkUp | LinkDown | Indication | StatusNotification | SetCommand
-    | Release | Tick
+    | SpinDown | Release | Tick
 )
 
 
@@ -122,6 +130,14 @@ class ModeUnavailable:
 
 
 @dataclass(frozen=True)
+class SpinDownAnswered:
+    """Action: the trainer answered Spin Down Control (APP-502)."""
+
+    result: int
+    band_kmh: tuple[float, float] | None
+
+
+@dataclass(frozen=True)
 class Logged:
     """Action: record a protocol event."""
 
@@ -131,13 +147,14 @@ class Logged:
 
 SessionAction = (
     Write | CloseLink | WarningChanged | StatusForwarded | ModeUnavailable
-    | Logged
+    | SpinDownAnswered | Logged
 )
 
 SESSION_FORMS: Final[Registry] = Registry(
-    LinkUp, LinkDown, Indication, StatusNotification, SetCommand, Release,
-    Tick, Write, CloseLink, WarningChanged, StatusForwarded,
-    ModeUnavailable, Logged, TrainerCapabilities, Range, Erg, Resistance,
+    LinkUp, LinkDown, Indication, StatusNotification, SetCommand, SpinDown,
+    Release, Tick, Write, CloseLink, WarningChanged, StatusForwarded,
+    ModeUnavailable, SpinDownAnswered, Logged, TrainerCapabilities, Range,
+    Erg, Resistance,
 )
 
 
@@ -182,6 +199,7 @@ class FtmsSession:
         self._responding = True
         self._warnings: set[Problem] = set()
         self._status_seen: dict[bytes, float] = {}
+        self._spin_down = False
 
     @property
     def phase(self) -> Phase:
@@ -216,6 +234,10 @@ class FtmsSession:
             case SetCommand(command=command):
                 self._desired = command
                 actions = []
+            case SpinDown():
+                self._spin_down = self._capabilities.spin_down
+                actions = [] if self._spin_down else [
+                    SpinDownAnswered(ResultCode.NOT_SUPPORTED, None)]
             case Release():
                 actions = self._on_release()
             case Tick():
@@ -262,6 +284,7 @@ class FtmsSession:
         self._release_deadline = None
         self._responding = True
         self._status_seen.clear()
+        self._spin_down = False
 
     def _on_release(self) -> list[SessionAction]:
         self._desired = None
@@ -299,6 +322,8 @@ class FtmsSession:
                 procedure, response.result, now)
         if procedure.op == codec.START_OR_RESUME:
             return actions + self._on_start_answer(response.result, data)
+        if procedure.op == codec.SPIN_DOWN_CONTROL:
+            return actions + self._on_spin_down_answer(response)
         return actions + self._on_command_answer(
             procedure, response.result, data, now)
 
@@ -323,6 +348,16 @@ class FtmsSession:
         if result != ResultCode.SUCCESS:
             return [Logged("start_not_accepted", data)]
         return []
+
+    def _on_spin_down_answer(
+        self, response: codec.ControlPointResponse
+    ) -> list[SessionAction]:
+        if response.result == ResultCode.CONTROL_NOT_PERMITTED:
+            self._spin_down = True
+            return self._lose_control()
+        band = codec.decode_spin_down_band(response.parameter)
+        return [SpinDownAnswered(
+            response.result, None if isinstance(band, Dropped) else band)]
 
     def _on_command_answer(
         self, procedure: _Procedure, result: int, data: bytes, now: float
@@ -432,6 +467,8 @@ class FtmsSession:
                 return codec.encode_request_control(), None
             case Phase.STARTING:
                 return codec.encode_start_or_resume(), None
+            case Phase.READY if self._spin_down:
+                return codec.encode_spin_down(True), None
             case Phase.READY:
                 return self._command_procedure()
             case Phase.RELEASING:
@@ -485,6 +522,8 @@ class FtmsSession:
         if gate is not None and now < gate:
             return []
         data, command = procedure
+        if data[0] == codec.SPIN_DOWN_CONTROL:
+            self._spin_down = False
         self._blocked_until = None
         self._pending = _Procedure(data, now, command, self._retry_next)
         self._retry_next = False

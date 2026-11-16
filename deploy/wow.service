@@ -1,0 +1,26 @@
+# WitchesOnWheels as a system service (3A AD-13; APP-810, APP-811, APP-826).
+# Installed by deploy/install.sh.
+
+[Unit]
+Description=WitchesOnWheels trainer app
+Wants=bluetooth.target
+After=bluetooth.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=exec
+User=wow
+Group=wow
+SupplementaryGroups=bluetooth
+ExecStartPre=+/bin/sh -c 'for f in trigger brightness; do chgrp wow /sys/class/leds/ACT/$f && chmod g+w /sys/class/leds/ACT/$f; done || true'
+ExecStart=/opt/wow/venv/bin/wow --config /etc/wow/wow.toml
+ExecStopPost=+/bin/sh -c 'echo none > /sys/class/leds/ACT/trigger; echo 0 > /sys/class/leds/ACT/brightness; true'
+Restart=always
+RestartSec=2
+TimeoutStopSec=20
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

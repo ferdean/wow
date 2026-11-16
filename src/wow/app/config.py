@@ -13,12 +13,14 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Final
 
+from wow.adapters.store_files import write_atomic
 from wow.core.numbers import DEFAULT_ZONES_PCT
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_FTP: Final[int] = 250
 DEFAULT_LEAD_TIME: Final[float] = 1.0
+SETTINGS_SCHEMA: Final[int] = 1
 
 
 @dataclass(frozen=True)
@@ -36,6 +38,7 @@ class Config:
     data: Path
     static: Path
     listen: str | None = None
+    led: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -70,6 +73,7 @@ def load_config(path: Path) -> Config:
     bluetooth = raw.get("bluetooth", {})
     web = raw.get("web", {})
     paths = raw.get("paths", {})
+    system = raw.get("system", {})
     return Config(
         adapter=bluetooth.get("adapter", "hci0"),
         simulate=bool(bluetooth.get("simulate", False)),
@@ -82,6 +86,7 @@ def load_config(path: Path) -> Config:
         data=Path(paths.get("data", "/var/lib/wow")),
         static=Path(web["static"]) if "static" in web else default_static(),
         listen=web.get("listen"),
+        led=Path(system["led"]) if "led" in system else None,
     )
 
 
@@ -105,6 +110,17 @@ def load_settings(data: Path) -> RideSettings:
         free_ride_level_pct=int(raw.get("free_ride_level_pct", 0)),
         upload_on=bool(raw.get("upload_on", True)),
     )
+
+
+def save_setting(data: Path, key: str, value: object) -> None:
+    """Replace one value in the settings file (IF-10), keeping the rest."""
+    path = data / "settings.json"
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raw = {"schema": SETTINGS_SCHEMA}
+    raw[key] = value
+    write_atomic(path, (json.dumps(raw, indent=2) + "\n").encode())
 
 
 def load_secrets(data: Path) -> Secrets | None:

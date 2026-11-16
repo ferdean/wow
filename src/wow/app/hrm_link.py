@@ -28,6 +28,7 @@ class HrmLink:
         self._client: GattClient | None = None
         self._link: LinkState = LinkState.NOT_CONFIGURED
         self._battery_pct: int | None = None
+        self._last_data = clock.monotonic()
         self.on_sample = on_sample or (lambda _sample: None)
         self.on_link: Callable[[LinkState], None] = lambda _state: None
 
@@ -40,6 +41,15 @@ class HrmLink:
         self._link = state
         self.on_link(state)
 
+    def last_data(self) -> float:
+        """Return when the strap last sent data, or connected."""
+        return self._last_data
+
+    def mark_silent(self) -> None:
+        """Show a dropout while the link is up but no data comes."""
+        if self._link == LinkState.CONNECTED:
+            self.set_link(LinkState.DROPOUT)
+
     def battery_pct(self) -> int | None:
         """Return the battery level, if known."""
         return self._battery_pct
@@ -51,6 +61,7 @@ class HrmLink:
                                self._on_heart_rate)
         await client.subscribe(uuids.BATTERY_LEVEL, self._on_battery)
         self._client = client
+        self._last_data = self._clock.monotonic()
 
     def detach(self) -> None:
         """Forget the client after the link was lost."""
@@ -67,6 +78,9 @@ class HrmLink:
             logger.warning("closing the strap link failed: %r", error)
 
     def _on_heart_rate(self, data: bytes) -> None:
+        self._last_data = self._clock.monotonic()
+        if self._link == LinkState.DROPOUT and self._client is not None:
+            self.set_link(LinkState.CONNECTED)
         decoded = hr_codec.decode_heart_rate(data)
         if isinstance(decoded, Dropped):
             logger.warning("heart rate dropped (%s): %s", decoded.reason,

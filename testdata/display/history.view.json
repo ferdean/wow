@@ -1,0 +1,42 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "not_found",
+  "hrm": "not_found"
+ },
+ "hrm_battery_pct": null,
+ "warnings": [],
+ "screen": {
+  "name": "history",
+  "rides": [
+   {
+    "ride_id": "2026-11-14T180000Z",
+    "start_utc": "2026-11-14T18:00:02.400Z",
+    "title": "Free ride",
+    "duration": 3600,
+    "tss": 51.8,
+    "upload": "off"
+   },
+   {
+    "ride_id": "2026-11-13T170154Z",
+    "start_utc": "2026-11-13T17:01:58.010Z",
+    "title": "Long ride + SS",
+    "duration": 3600,
+    "tss": 51.8,
+    "upload": "done"
+   },
+   {
+    "ride_id": "2026-11-12T162426Z",
+    "start_utc": "2026-11-12T16:24:30.900Z",
+    "title": "ERG check",
+    "duration": 3600,
+    "tss": 51.8,
+    "upload": "failed"
+   }
+  ],
+  "free_mb": 31512
+ }
+}

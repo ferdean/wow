@@ -2,7 +2,7 @@
 
 Runs structured workouts on the Van Rysel D100 from a Raspberry Pi 5; the iPhone shows the ride. Requirements, architecture, interfaces and the test plan are the phase documents in `docs/`.
 
-**State:** Phase 5, slice SL-02 (first ride on screen). SL-01 gave the Bluetooth foundation; SL-02 adds the workout plan in watts and percent of FTP, the target policy with the lead time, the ride state machine (armed, steps, workout done, finish, cancel), the view state, the ride controller, the journal and Bluetooth log of each ride, the HTTPS site with the display WebSocket, `wow` itself, and the display with Home, Pre-ride and the ERG ride screen. Two built-in workouts: "ERG check" (6 min) and "30/30 and a surge" (19 min). Recording to FIT, the Summary and intervals.icu follow in SL-03 and SL-04.
+**State:** Phase 5, slices SL-01 to SL-09 built: Bluetooth foundation, rides with recording and FIT, workouts from intervals.icu, ride controls, dropouts and reconnect, crash recovery and the systemd service, uploads and past rides, and the spin-down calibration. The phase documents in `docs/` have the details.
 
 ## Set-up
 
@@ -32,6 +32,16 @@ uv run wow --config wow.toml --sim                   # simulated devices
 Open `https://wow.local:8443` in Safari. `http://wow.local:8080/setup/root.crt` serves the root certificate; any other plain-HTTP path redirects to HTTPS. In `--sim` the simulated rider starts pedaling 3 s after the first target arrives, so the ride starts by itself.
 
 For the display alone on the laptop: `npm run dev` in `display/`, with `wow --sim` running; Vite proxies `/ws` to `https://localhost:8443` (set `WOW_PI` for another address).
+
+## Install on the Pi as a service
+
+On the Pi, from the repository, after `uv sync --frozen` and with the built display in `src/wow/web/static/`:
+
+```
+sudo deploy/install.sh
+```
+
+It builds the wheel, installs it with the locked dependencies into `/opt/wow/venv`, creates the user `wow` and `/var/lib/wow`, copies `deploy/wow.pi.toml` to `/etc/wow/wow.toml` the first time, and (re)starts `wow.service` (ports 443 and 80, so the page is `https://wow.local`). Put `settings.json`, `secrets.json` (mode 600) and the TLS files under `/var/lib/wow` (TLS in `tls/`), owned by `wow`. Logs: `journalctl -u wow -f`.
 
 ## Gate
 

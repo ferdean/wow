@@ -1,0 +1,16 @@
+# `wow --sim` for S-PW-01, started by playwright.config.ts in the repo root.
+[bluetooth]
+adapter = "hci0"
+simulate = true
+
+[web]
+host = "localhost"
+listen = "127.0.0.1"
+https_port = 18443
+http_port = 18080
+cert = "testdata/tls/server.crt"
+key = "testdata/tls/server.key"
+root_cert = "testdata/tls/root.crt"
+
+[paths]
+data = "build/e2e-data"

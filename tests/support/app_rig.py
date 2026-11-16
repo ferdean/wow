@@ -7,9 +7,11 @@ from datetime import date, tzinfo
 from pathlib import Path
 from typing import Any
 
+from wow.adapters.ble_sim import SimFaults
 from wow.adapters.clock_stepped import SteppedClock
 from wow.app.config import Config
 from wow.app.main import App
+from wow.ports.upload import ActivityUploader
 from wow.ports.workouts import ProviderError, WorkoutProvider
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -94,3 +96,53 @@ class RecordedProvider:
         if self.failing:
             raise ProviderError("offline")
         return self.workouts
+
+
+class AppSession:
+    """The app on the stepped clock, driven command by command."""
+
+    def __init__(self, tmp: Path, provider: WorkoutProvider | None = None,
+                 sim_pedal_after: float = 3.0,
+                 sim_faults: SimFaults = SimFaults(),
+                 uploader: ActivityUploader | None = None) -> None:
+        self.clock = SteppedClock()
+        self.app = App(app_config(tmp), self.clock, provider=provider,
+                       sim_pedal_after=sim_pedal_after, sim_faults=sim_faults,
+                       uploader=uploader)
+        self.app.recorder.start()
+
+    async def begin(self, ref: str | None) -> None:
+        """Open a workout (or a free ride with None) and start it."""
+        if self.app.catalog is not None and ref is not None and (
+                not ref.startswith("builtin:")):
+            await self.clock.drive(self.app.catalog.refresh(), limit=60.0)
+        if ref is None:
+            assert self.command("open_free_ride") is None
+        else:
+            assert self.command("open_workout", ref=ref) is None
+        await self.clock.advance(15.0)
+        assert self.command("start") is None
+
+    def command(self, name: str, **args: Any) -> str | None:
+        """Carry out a display command; return the problem, if any."""
+        return self.app.console.command(name, args)
+
+    def ride_time(self) -> float:
+        """Return the ride time now."""
+        return self.app.rides.ride.ride_time(self.clock.monotonic())
+
+    async def until(self, t_ride: float) -> None:
+        """Move the clock on until the ride time is reached."""
+        while self.ride_time() < t_ride - 1e-6:
+            await self.clock.advance(min(1.0, t_ride - self.ride_time()))
+
+    async def close(self) -> Path:
+        """Shut down and return the ride directory."""
+        await self.clock.advance(5.0)
+        await self.clock.drive(self.app.devices.close(), limit=60.0)
+        await self.clock.drive(self.app.rides.close(), limit=60.0)
+        if self.app.scheduler is not None:
+            await self.app.scheduler.close()
+        self.app.recorder.stop()
+        rides = ride_dirs(self.app.config)
+        return rides[-1] if rides else self.app.config.data

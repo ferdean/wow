@@ -15,7 +15,7 @@ import dataclasses
 import logging
 import signal
 import sys
-from collections.abc import Coroutine, Sequence
+from collections.abc import Callable, Coroutine, Sequence
 from importlib import metadata
 from datetime import tzinfo
 from pathlib import Path
@@ -24,15 +24,19 @@ from typing import Any, Final
 from wow.adapters.ble_bleak import BleakConnector
 from wow.adapters.ble_log import LoggingConnector
 from wow.adapters.ble_sim import (
-    D100_ADDRESS, HRM_ADDRESS, SimConnector, SimD100Server, SimHrm200Server,
+    D100_ADDRESS, HRM_ADDRESS, Faults, SimConnector, SimD100Server,
+    SimFaults, SimHrm200Server,
     SimScheduler,
 )
 from wow.adapters.clock_system import SystemClock, default_sync_marker
 from wow.app.boot import boot_id
 from wow.adapters.fit_garmin import GarminFitWriter
 from wow.adapters.intervals_icu import IntervalsIcu
+from wow.adapters.led_sysfs import SysfsLed
+from wow.app.calibration_controller import CalibrationController
 from wow.app.config import (
     Config, RideSettings, load_config, load_secrets, load_settings,
+    save_setting,
 )
 from wow.app.console import Console
 from wow.app.device_manager import DeviceChoice, DeviceManager
@@ -40,13 +44,20 @@ from wow.app.ftms_trainer import FtmsTrainer
 from wow.app.hrm_link import HrmLink
 from wow.app.loop_lag import LoopLagMonitor
 from wow.app.recorder import Recorder
-from wow.app.ride_controller import RideController
+from wow.app.recovery import close_cancelled, find_interrupted
+from wow.app.housekeeping import FreeSpace, disk_free
+from wow.app.ride_controller import RideController, Summary
+from wow.app.upload_worker import UploadWorker
+from wow.app.status_led import LedController
 from wow.app.workout_catalog import (
     Entry, Source, WorkoutCatalog, builtin_entries,
 )
 from wow.core.workout import Workout
 from wow.ports.clock import Clock
 from wow.ports.gatt import GattConnector
+from wow.ports.led import StatusLed
+from wow.ports.upload import ActivityUploader
+from wow.core.vocab import UploadState
 from wow.ports.workouts import WorkoutProvider
 from wow.web.hub import Hub
 from wow.web.server import WebServer, http_app, https_app, tls_context
@@ -73,11 +84,19 @@ class App:
                  sim_pedal_after: float = SIM_PEDAL_AFTER,
                  workouts: Sequence[Workout] | None = None,
                  provider: WorkoutProvider | None = None,
-                 zone: tzinfo | None = None) -> None:
+                 zone: tzinfo | None = None,
+                 sim_faults: SimFaults = SimFaults(),
+                 replay: GattConnector | None = None,
+                 boot: str | None = None,
+                 led: StatusLed | None = None,
+                 uploader: ActivityUploader | None = None,
+                 free_bytes: Callable[[Path], int] | None = None) -> None:
         self.config = config
         self.clock = clock
+        self._faults = sim_faults
+        self._replay = replay
         settings = load_settings(config.data)
-        self.recorder = Recorder(config.data, boot_id())
+        self.recorder = Recorder(config.data, boot or boot_id())
         self.scheduler: SimScheduler | None = None
         self.d100: SimD100Server | None = None
         self.sim: SimConnector | None = None
@@ -95,14 +114,27 @@ class App:
         self.catalog = WorkoutCatalog(
             clock, provider or self._provider(), config.data / "cache" /
             "intervals.json", builtin, self._changed, zone)
+        rides = config.data / "rides"
+        self.space = FreeSpace(clock, config.data, free_bytes or disk_free)
+        self.uploads = UploadWorker(clock, uploader or self._uploader(),
+                                    rides, self._changed)
+        self.calibration = CalibrationController(
+            clock, self.trainer, self.recorder, config.data / "logs",
+            self._changed)
+        self.trainer.on_status = self.calibration.status
         self.console = Console(clock, self.devices, self.rides, self.catalog,
-                               settings, self._changed)
+                               settings, self._changed, self.uploads,
+                               self.space, rides, self.calibration)
+        self.rides.on_finished = self._finished
+        self.rides.on_free_level = self._free_level
         self.trainer.on_sample = self.console.trainer_sample
         self.hrm.on_sample = self.console.hr_sample
         self.trainer.on_link = self.console.link_changed
         self.hrm.on_link = self.console.link_changed
         self.hub = Hub(clock, self.console, app_version())
         self.lag = LoopLagMonitor(clock)
+        self.led = None if led is None else LedController(
+            clock, led, self.trainer.link)
         self.web = WebServer()
         self.ports: tuple[int, int] = (0, 0)
         self._tasks: list[asyncio.Task[None]] = []
@@ -112,7 +144,8 @@ class App:
         config = self.config
         self.recorder.start()
         https = await self.web.start(
-            https_app(config.static, self.hub.handle), config.listen,
+            https_app(config.static, self.hub.handle, config.data / "rides"),
+            config.listen,
             config.https_port, tls_context(config.cert, config.key))
         http = await self.web.start(
             http_app(config.host, https, config.root_cert), config.listen,
@@ -120,12 +153,18 @@ class App:
         self.ports = (https, http)
         self._spawn(self.hub.run())
         self._spawn(self.lag.run())
+        self.uploads.load()
+        self._spawn(self.uploads.run())
+        if self.led is not None:
+            self._spawn(self.led.run())
+        self._offer_interrupted()
         self.console.open_home()
         logger.info("wow %s started%s", app_version(),
                     " with simulated devices" if config.simulate else "")
 
     async def stop(self) -> None:
         """Stop in order, the trainer at its lowest level first."""
+        self.calibration.close()
         await self.devices.close()
         await self.rides.close()
         await self.catalog.close()
@@ -134,18 +173,51 @@ class App:
         for task in self._tasks:
             task.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)
+        if self.led is not None:
+            self.led.stop()
         if self.scheduler is not None:
             await self.scheduler.close()
         self.recorder.stop()
         logger.info("wow stopped; worst event-loop lag %.0f ms, %d late",
                     self.lag.worst * 1000, self.lag.late)
 
+    def _offer_interrupted(self) -> None:
+        found = find_interrupted(self.config.data / "rides")
+        if found is None:
+            return
+        if not found.started:
+            logger.info("ride %s was waiting for power: cancelled",
+                        found.ride_id)
+            close_cancelled(found)
+            return
+        logger.info("ride %s was interrupted: offered on Home",
+                    found.ride_id)
+        self.console.offer(found, self.recorder.boot_id)
+
     def _provider(self) -> WorkoutProvider | None:
+        account = self._account()
+        if account is None:
+            logger.info("no intervals.icu account: built-in workouts only")
+        return account
+
+    def _uploader(self) -> ActivityUploader | None:
+        return self._account()
+
+    def _account(self) -> IntervalsIcu | None:
         secrets = load_secrets(self.config.data)
         if secrets is None:
-            logger.info("no intervals.icu account: built-in workouts only")
             return None
         return IntervalsIcu(secrets.athlete_id, secrets.api_key)
+
+    def _finished(self, summary: Summary) -> None:
+        if summary.upload == UploadState.PENDING:
+            self.uploads.queue(summary.ride_id)
+
+    def _free_level(self, pct: int) -> None:
+        self.console.set_free_ride_level(pct)
+        data = self.config.data
+        self.recorder.run(
+            lambda: save_setting(data, "free_ride_level_pct", pct))
 
     def _changed(self) -> None:
         self.hub.changed()
@@ -155,12 +227,19 @@ class App:
 
     def _bluetooth(self, settings: RideSettings, sim_pedal_after: float
                    ) -> tuple[GattConnector, DeviceChoice]:
+        if self._replay is not None:
+            choice = DeviceChoice(D100_ADDRESS, HRM_ADDRESS)
+            return self._logged(self._replay, choice), choice
         if self.config.simulate:
+            faults = self._faults
             self.scheduler = SimScheduler(self.clock)
             self.d100 = SimD100Server(self.scheduler,
-                                      pedal_after_erg=sim_pedal_after)
-            self.sim = SimConnector(
-                self.clock, [self.d100, SimHrm200Server(self.scheduler)])
+                                      pedal_after=sim_pedal_after)
+            self.d100.faults = Faults(faults.trainer)
+            strap = SimHrm200Server(self.scheduler)
+            strap.faults = Faults(faults.strap)
+            self.sim = SimConnector(self.clock, [self.d100, strap],
+                                    Faults(faults.adapter))
             inner: GattConnector = self.sim
             choice = DeviceChoice(D100_ADDRESS, HRM_ADDRESS)
             return self._logged(inner, choice), choice
@@ -212,7 +291,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     if args.sim:
         config = dataclasses.replace(config, simulate=True)
     clock = SystemClock(default_sync_marker())
-    sys.exit(asyncio.run(serve(App(config, clock))))
+    led = None if config.led is None else SysfsLed(config.led)
+    sys.exit(asyncio.run(serve(App(config, clock, led=led))))
 
 
 if __name__ == "__main__":

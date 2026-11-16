@@ -6,6 +6,7 @@ Battery Level every 2 s (F-5, F-15, F-46).
 
 import asyncio
 
+from wow.adapters.ble_sim.faults import FaultKind
 from wow.adapters.ble_sim.scheduler import SimScheduler
 from wow.adapters.ble_sim.server import SimServerBase
 from wow.core import uuids
@@ -17,6 +18,7 @@ HRM_NAME: Final[str] = "HRM200:739158"
 HEART_RATE_INTERVAL: Final[float] = 0.5
 BATTERY_INTERVAL: Final[float] = 2.0
 RR_RESOLUTION: Final[int] = 1024
+OUT_OF_RANGE_BATTERY: Final[int] = 255
 
 
 class SimHrm200Server(SimServerBase):
@@ -43,12 +45,19 @@ class SimHrm200Server(SimServerBase):
         self.heart_rate_bpm = heart_rate_bpm
         self.battery_raw = battery_pct
         self._tasks: list[asyncio.Task[None]] = []
+        self.data_chars = frozenset({uuids.HEART_RATE_MEASUREMENT})
+
+    def battery_value(self) -> bytes:
+        """Return the Battery Level as sent: 255 while that fault is on."""
+        out = self.faults.active(FaultKind.BATTERY_OUT_OF_RANGE,
+                                 self.scheduler.now())
+        return bytes([OUT_OF_RANGE_BATTERY if out else self.battery_raw])
 
     def read_value(self, char: Uuid) -> bytes:
         """Return the value of a characteristic."""
         if char != uuids.BATTERY_LEVEL:
             raise KeyError(char)
-        return bytes([self.battery_raw])
+        return self.battery_value()
 
     def heart_rate_record(self) -> bytes:
         """Return the current Heart Rate Measurement."""
@@ -65,7 +74,7 @@ class SimHrm200Server(SimServerBase):
         else:
             self._tasks.append(self.scheduler.repeat(
                 start + BATTERY_INTERVAL, (BATTERY_INTERVAL,),
-                lambda: self.send(char, bytes([self.battery_raw]))))
+                lambda: self.send(char, self.battery_value())))
 
     def stopped(self) -> None:
         """Stop all timed behaviour."""

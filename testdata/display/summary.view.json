@@ -33,6 +33,7 @@
    "avg_hr_bpm": 130,
    "max_hr_bpm": 130
   },
-  "upload": "pending"
+  "upload": "pending",
+  "past": false
  }
 }

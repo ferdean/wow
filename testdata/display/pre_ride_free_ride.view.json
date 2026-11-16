@@ -1,0 +1,23 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "connected",
+  "hrm": "connected"
+ },
+ "hrm_battery_pct": 80,
+ "warnings": [],
+ "screen": {
+  "name": "pre_ride",
+  "title": "Free ride",
+  "free_ride": true,
+  "ftp": 250,
+  "duration": null,
+  "plan_id": null,
+  "block_modes": [],
+  "can_start": true,
+  "blocked": null
+ }
+}

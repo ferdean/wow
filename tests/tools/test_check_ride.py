@@ -6,7 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from tests.support.app_rig import read_jsonl, ride_erg_check
+from tests.support.app_rig import AppSession, read_jsonl, ride_erg_check
+from wow.adapters.ble_sim import Fault, FaultKind, SimFaults
+from wow.adapters.clock_stepped import DEFAULT_START
 from tools import check_ride
 
 
@@ -25,8 +27,10 @@ async def test_a_simulated_ride_passes_every_check(tmp_path: Path) -> None:
     app, ride = await ride_erg_check(tmp_path)
     system = app.config.data / "logs" / "ble-system.jsonl"
     assert _results(ride, system) == {
-        check: "pass" for check in ("RR-01", "RR-02", "RR-03", "RR-04",
-                                    "RR-05", "RR-12", "RR-13", "RR-14")}
+        **{check: "pass" for check in (
+            "RR-01", "RR-02", "RR-03", "RR-04", "RR-05", "RR-06", "RR-10",
+            "RR-11", "RR-12", "RR-13", "RR-14")},
+        "RR-09": "not applicable"}
     assert check_ride.main([str(ride)]) == 0
 
 
@@ -167,3 +171,45 @@ async def test_an_earlier_run_with_the_same_generation_is_left_out(
     _rewrite(system_path, earlier + system)
     assert _results(ride, system_path)["RR-01"] == "pass"
     assert check_ride.this_run(earlier, []) == earlier
+
+
+@pytest.mark.case("S-RR-01")
+@pytest.mark.asyncio
+async def test_pauses_skips_and_dropouts_keep_the_checks_true(
+        tmp_path: Path) -> None:
+    faults = SimFaults(trainer=(Fault(FaultKind.LINK_LOSS, DEFAULT_START
+                                      + 200.0, DEFAULT_START + 215.0),))
+    session = AppSession(tmp_path, sim_faults=faults)
+    await session.begin("builtin:intervals-30-30")
+    await session.until(100.0)
+    assert session.command("pause") is None
+    await session.clock.advance(30.0)
+    assert session.command("resume") is None
+    await session.until(130.0)
+    assert session.command("skip") is None
+    await session.until(400.0)
+    assert session.command("finish") is None
+    ride = await session.close()
+    system = session.app.config.data / "logs" / "ble-system.jsonl"
+    results = _results(ride, system)
+    for check in ("RR-01", "RR-02", "RR-03", "RR-04", "RR-05", "RR-09",
+                  "RR-10", "RR-14"):
+        assert results[check] == "pass", check
+
+
+@pytest.mark.case("S-RR-01")
+@pytest.mark.asyncio
+async def test_strap_end_and_log_faults_fail(tmp_path: Path) -> None:
+    app, ride = await ride_erg_check(tmp_path)
+    system = app.config.data / "logs" / "ble-system.jsonl"
+    _rewrite(system, [r for r in read_jsonl(system)
+                      if not (r["dev"] == "hrm" and r["op"] == "read")])
+    log = read_jsonl(ride / "ble.jsonl")
+    last = max(r["mono_ms"] for r in log)
+    log.append({**log[-1], "op": "write", "dev": "trainer",
+                "uuid": check_ride.CONTROL_POINT, "hex": "05c800",
+                "mono_ms": last + 9000.0})
+    del log[5]["hex"]
+    _rewrite(ride / "ble.jsonl", log)
+    results = _results(ride, system)
+    assert [results[c] for c in ("RR-06", "RR-10", "RR-11")] == ["fail"] * 3

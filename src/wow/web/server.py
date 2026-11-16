@@ -4,8 +4,8 @@ The HTTPS site with the built display and the WebSocket, and the plain
 HTTP site that redirects and serves the root certificate for set-up
 (ICD IF-07; 3A, web/server; APP-410, APP-816).
 
-Slice SL-02: `/`, `/assets/*`, `/ws`, and port 80. The FIT download
-follows in SL-08.
+`/`, `/assets/*`, `/ws`, the FIT download `/rides/{ride_id}/ride.fit`
+(APP-610), and port 80.
 """
 
 import logging
@@ -15,6 +15,8 @@ from pathlib import Path
 
 from aiohttp import web
 from typing import Final
+
+from wow.app.history import FIT_FILE, fit_name, read_meta, ride_path
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +40,22 @@ def redirect_target(host: str, https_port: int, path_qs: str) -> str:
     return f"https://{authority}{path_qs}"
 
 
-def https_app(static: Path, ws: WsHandler) -> web.Application:
-    """Return the HTTPS site: display, assets and WebSocket."""
+def https_app(static: Path, ws: WsHandler,
+              rides: Path | None = None) -> web.Application:
+    """Return the HTTPS site: display, assets, WebSocket, FIT files."""
     index = static / "index.html"
+
+    async def fit_file(request: web.Request) -> web.StreamResponse:
+        ride_dir = None if rides is None else ride_path(
+            rides, request.match_info["ride_id"])
+        meta = None if ride_dir is None else read_meta(ride_dir)
+        if ride_dir is None or meta is None or not (
+                ride_dir / FIT_FILE).is_file():
+            return web.Response(status=404, text="no such ride file\n")
+        return web.FileResponse(ride_dir / FIT_FILE, headers={
+            "Content-Type": "application/vnd.ant.fit",
+            "Content-Disposition":
+                f'attachment; filename="{fit_name(meta)}"'})
 
     async def page(_request: web.Request) -> web.StreamResponse:
         if not index.is_file():
@@ -55,6 +70,7 @@ def https_app(static: Path, ws: WsHandler) -> web.Application:
     app = web.Application()
     app.router.add_get("/", page)
     app.router.add_get("/ws", ws)
+    app.router.add_get("/rides/{ride_id}/ride.fit", fit_file)
     if (static / "assets").is_dir():
         app.router.add_static("/assets", static / "assets")
     app.on_response_prepare.append(cache_assets)

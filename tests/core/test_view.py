@@ -137,6 +137,17 @@ def test_limited_target_is_a_warning_while_riding() -> None:
 
 
 @pytest.mark.case("S-VIEW-01")
+def test_plan_segments_follow_the_intensity() -> None:
+    plan = make_plan(THIRTY_THIRTY, 250)
+    message = plan_message(plan, intensity_pct=105)
+    assert message["plan_id"] == f"{plan.plan_id}@105%"
+    first = message["segments"][:2]
+    assert [(s["start_power"], s["zone"]) for s in first] == [
+        (147, 2), (231, 4)]
+    assert plan_message(plan)["plan_id"] == plan.plan_id
+
+
+@pytest.mark.case("S-VIEW-01")
 def test_plan_message_lists_segments_and_blocks() -> None:
     message = plan_message(make_plan(THIRTY_THIRTY, 250))
     assert message["type"] == "plan"

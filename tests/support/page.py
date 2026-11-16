@@ -1,13 +1,16 @@
 """A display on the real WebSocket, for L5 and L6 tests."""
 
+import asyncio
 import json
 import ssl
 import time
+from collections.abc import AsyncIterator
 from typing import Any
 
 import aiohttp
 
 from tests.support.app_rig import TLS
+from wow.ports.clock import Clock
 from wow.app.main import App
 
 
@@ -66,3 +69,28 @@ async def open_page(app: App, session: aiohttp.ClientSession) -> Page:
     first = await page.receive(5.0)
     assert first is not None and first["type"] == "hello"
     return page
+
+
+class FakeSocket:
+    """A page's socket on the test clock, for the hub."""
+
+    def __init__(self, clock: Clock) -> None:
+        self._clock = clock
+        self.sent: list[tuple[float, dict[str, Any]]] = []
+        self.incoming: asyncio.Queue[str | None] = asyncio.Queue()
+        self.closed = False
+
+    async def send_str(self, data: str) -> None:
+        self.sent.append((self._clock.monotonic(), json.loads(data)))
+
+    async def close(self, *, code: int = 1000, message: bytes = b"") -> bool:
+        self.closed = True
+        await self.incoming.put(None)
+        return True
+
+    async def messages(self) -> AsyncIterator[str]:
+        while (text := await self.incoming.get()) is not None:
+            yield text
+
+    def of_type(self, kind: str) -> list[tuple[float, dict[str, Any]]]:
+        return [(t, m) for t, m in self.sent if m["type"] == kind]

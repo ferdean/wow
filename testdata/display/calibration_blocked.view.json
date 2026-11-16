@@ -1,0 +1,21 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "searching",
+  "hrm": "not_found"
+ },
+ "hrm_battery_pct": null,
+ "warnings": [],
+ "screen": {
+  "name": "calibration",
+  "phase": "idle",
+  "band_kmh": null,
+  "speed_kmh": null,
+  "elapsed": 0.0,
+  "last": null,
+  "blocked": "trainer_missing"
+ }
+}

@@ -5,8 +5,8 @@ Ride checks over one ride directory (test plan, section 6).
 Reads `events.jsonl`, `samples.jsonl`, `ble.jsonl`, `meta.json` and
 `ride.fit` of the ride, and the system Bluetooth log for the connection
 made before the ride began, and prints one line per check: pass, fail
-with the worst value, or not applicable. RR-01 to RR-05 and RR-12 to
-RR-14 so far; the others follow with the files they need.
+with the worst value, or not applicable. RR-07 and RR-08 follow with
+`timing.jsonl` (SL-11).
 
 Usage:
     uv run python tools/check_ride.py /var/lib/wow/rides/<ride id>
@@ -17,6 +17,7 @@ import argparse
 import bisect
 import json
 import sys
+from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -41,6 +42,12 @@ HOLD_MS: Final[float] = 2000.0
 # Samples carry whole ride seconds, so ages are known to within 1 s.
 SECOND_MS: Final[float] = 1000.0
 FILES_LIMIT_MS: Final[float] = 10000.0
+BATTERY_LEVEL: Final[str] = "00002a19-0000-1000-8000-00805f9b34fb"
+LOG_FIELDS: Final[frozenset[str]] = frozenset(
+    {"utc", "mono_ms", "dev", "addr", "gen", "op", "uuid", "hex"})
+# The trainer notifies 4 times a second (F-50); 5 s without a line
+# means the log stopped.
+LOG_GAP_MS: Final[float] = 5000.0
 CHANNELS: Final[tuple[tuple[str, str, str], ...]] = (
     ("power", "trainer", INDOOR_BIKE_DATA), ("hr_bpm", "hrm", HEART_RATE))
 
@@ -137,17 +144,37 @@ def _find_writes(commands: Sequence[Record], ride_log: Sequence[Record],
         later = [float(c["due_mono_ms"]) for c in commands[index + 1:]]
         until = later[0] if later else float("inf")
         wanted = command_bytes(command)
-        match = next((float(w["mono_ms"]) for w in writes
-                      if w["hex"] == wanted
-                      and due - TOLERANCE_MS <= float(w["mono_ms"]) < until),
-                     None)
+        record = next((w for w in writes if w["hex"] == wanted
+                       and due - TOLERANCE_MS <= float(w["mono_ms"]) < until),
+                      None)
+        match = None if record is None else float(record["mono_ms"])
         repeat = index > 0 and command_bytes(commands[index - 1]) == wanted
         replaced = bool(later) and later[0] - due <= REPLACE_WINDOW_MS
         if match is None:
             found.append(_Written(None, None, replaced, repeat))
             continue
-        found.append(_Written(match, _delay(due, match, earlier, answers)))
+        delay = _delay(due, match, earlier, answers)
+        ready = _ready_after(record, due, both)
+        if ready is not None and match >= ready:
+            delay = min(delay, match - ready)
+        found.append(_Written(match, delay))
     return found
+
+
+def _ready_after(write: Record | None, due: float,
+                 log: Sequence[Record]) -> float | None:
+    """Return when the write's connection got Start or Resume answered.
+
+    A command that falls due before a new connection is ready is
+    written after Request Control and Start or Resume (APP-104).
+    """
+    if write is None:
+        return None
+    ready = sorted(float(r["mono_ms"]) for r in indications(log)
+                   if r.get("gen") == write.get("gen")
+                   and r.get("addr") == write.get("addr")
+                   and str(r.get("hex", "")).startswith("8007"))
+    return next((t for t in ready if t > due), None)
 
 
 def _delay(due: float, written: float, writes: Sequence[Record],
@@ -165,10 +192,36 @@ def _delay(due: float, written: float, writes: Sequence[Record],
     return delay
 
 
+def trainer_dropouts(events: Sequence[Record]) -> list[tuple[float, float]]:
+    """Return the trainer's dropouts in the journal, in mono ms."""
+    windows, since = [], None
+    for event in events:
+        if event.get("device") != "trainer" or "mono_ms" not in event:
+            continue
+        if event["type"] == "dropout_start":
+            since = float(event["mono_ms"])
+        elif event["type"] == "dropout_end" and since is not None:
+            windows.append((since, float(event["mono_ms"])))
+            since = None
+    if since is not None:
+        windows.append((since, float("inf")))
+    return windows
+
+
+def _reachable(events: Sequence[Record]) -> list[Record]:
+    windows = trainer_dropouts(events)
+    return [c for c in of_type(events, "trainer_command")
+            if not any(a <= float(c["due_mono_ms"]) < b for a, b in windows)]
+
+
 def rr02(events: Sequence[Record], ride_log: Sequence[Record],
          system_log: Sequence[Record] = ()) -> Outcome:
-    """Check RR-02: each target was written in time."""
-    commands = of_type(events, "trainer_command")
+    """Check RR-02: each target was written in time.
+
+    Commands that fall due while the trainer is in a dropout can't be
+    written; the command at the reconnect counts instead.
+    """
+    commands = _reachable(events)
     if not commands:
         return Outcome("RR-02", "not applicable", "no trainer commands")
     found = _find_writes(commands, ride_log, system_log)
@@ -200,8 +253,11 @@ def rr03(events: Sequence[Record]) -> Outcome:
     steps = of_type(events, "step_started")
     if start is None or not steps:
         return Outcome("RR-03", "not applicable", "the ride never started")
-    offsets = [(float(s["mono_ms"]) - start) / 1000 - float(s["scheduled"])
-               for s in steps]
+    pauses = _pauses(events)
+    offsets = [
+        (float(s["mono_ms"])
+         - _sample_ms(float(s["scheduled"]), start, pauses)) / 1000
+        for s in steps]
     worst = max(offsets, key=abs)
     detail = f"{len(steps)} steps, worst {worst * 1000:+.1f} ms"
     return Outcome("RR-03", "pass" if abs(worst) <= LIMIT_S else "fail",
@@ -218,11 +274,14 @@ def rr04(events: Sequence[Record], ride_log: Sequence[Record],
     if start is None or not armed or len(steps) < 2:
         return Outcome("RR-04", "not applicable", "no step boundary")
     lead = float(armed[0]["lead_time"])
-    commands = [c for c in of_type(events, "trainer_command")
+    commands = [c for c in _reachable(events)
                 if c.get("mode") == "erg" and c.get("t_ride") is not None]
     sent = list(zip(commands, _find_writes(commands, ride_log, system_log)))
     offsets, unchanged, unwritten = [], 0, []
+    pauses = _pauses(events)
     for previous, step in zip(steps, steps[1:]):
+        if step.get("cause") == "skip":
+            continue
         boundary = float(step["scheduled"])
         send = max(float(previous["scheduled"]), boundary - lead)
         written = next((w for c, w in sent if send - LIMIT_S
@@ -234,7 +293,7 @@ def rr04(events: Sequence[Record], ride_log: Sequence[Record],
         if write is None:
             unwritten.append(int(step["index"]))
             continue
-        offsets.append(write - (start + send * 1000))
+        offsets.append(write - _sample_ms(send, start, pauses))
     worst = max(offsets, key=abs, default=0.0)
     detail = (f"{len(offsets)} target changes, worst {worst:+.1f} ms from "
               f"one lead time ({lead} s) before the boundary; {unchanged} "
@@ -408,6 +467,103 @@ def rr14(events: Sequence[Record], samples: Sequence[Record],
     return Outcome("RR-14", "pass", detail)
 
 
+def rr06(ride_log: Sequence[Record],
+         system_log: Sequence[Record]) -> Outcome:
+    """Check RR-06: one battery read, heart rate and battery notified."""
+    links = {r["gen"] for r in [*system_log, *ride_log]
+             if r.get("dev") == "hrm" and r.get("op") == "connected"}
+    if not links:
+        return Outcome("RR-06", "not applicable", "no strap connected")
+    reads = Counter(r["gen"] for r in [*system_log, *ride_log]
+                    if r.get("dev") == "hrm" and r.get("op") == "read"
+                    and r.get("uuid") == BATTERY_LEVEL)
+    notified = {r["uuid"] for r in ride_log
+                if r.get("dev") == "hrm" and r.get("op") == "notify"}
+    bad = [g for g in sorted(links) if reads.get(g) != 1]
+    missing = {HEART_RATE, BATTERY_LEVEL} - notified
+    detail = (f"{len(links)} connection(s), battery reads "
+              f"{dict(sorted(reads.items()))}")
+    if bad or missing:
+        return Outcome("RR-06", "fail",
+                       f"{detail}; not notified: {sorted(missing)}")
+    return Outcome("RR-06", "pass", detail)
+
+
+def rr09(events: Sequence[Record], ride_log: Sequence[Record]) -> Outcome:
+    """Check RR-09: back within 10 s after each dropout.
+
+    The connect path logs no advertisement, so the time counts from the
+    start of the connect attempt that succeeded, which comes no earlier
+    than the device advertising again plus the retry pause.
+    """
+    ends = [e for e in events
+            if e.get("type") == "dropout_end" and "mono_ms" in e]
+    if not ends:
+        return Outcome("RR-09", "not applicable", "no dropout")
+    worst, faults = 0.0, []
+    for end in ends:
+        device = end["device"]
+        lines = [r for r in ride_log if r.get("dev") == device
+                 and float(r["mono_ms"]) <= float(end["mono_ms"]) + 15000]
+        connected = [r for r in lines if r.get("op") == "connected"]
+        if not connected:
+            faults.append(f"{device}: no reconnect logged")
+            continue
+        link = connected[-1]
+        starts = [float(r["mono_ms"]) for r in lines
+                  if r.get("op") == "connect_start"
+                  and float(r["mono_ms"]) <= float(link["mono_ms"])]
+        begin = starts[-1] if starts else float(link["mono_ms"])
+        done = float(link["mono_ms"])
+        if device == "trainer":
+            targets = [float(r["mono_ms"]) for r in ride_log
+                       if r.get("gen") == link["gen"]
+                       and r.get("op") == "write"
+                       and str(r.get("hex", ""))[:2] in TARGET_OPS]
+            done = targets[0] if targets else float("inf")
+        worst = max(worst, (done - begin) / 1000)
+    detail = f"{len(ends)} dropout(s), worst {worst:.1f} s back"
+    if faults or worst > 10.0:
+        return Outcome("RR-09", "fail", "; ".join([*faults, detail]))
+    return Outcome("RR-09", "pass", detail)
+
+
+def rr10(events: Sequence[Record], ride_log: Sequence[Record]) -> Outcome:
+    """Check RR-10: the last write of the ride is the lowest level."""
+    ended = [e for e in events if e.get("type") in ("finished", "discarded")]
+    writes = control_writes(ride_log)
+    if not ended or not writes:
+        return Outcome("RR-10", "not applicable", "the ride did not end")
+    after = [c for c in of_type(events, "trainer_command")
+             if float(c["mono_ms"]) >= float(ended[-1]["mono_ms"])]
+    last = max(writes, key=lambda r: float(r["mono_ms"]))
+    if not after or after[-1].get("mode") != "resistance":
+        return Outcome("RR-10", "fail", "no lowest level sent at the end")
+    wanted = command_bytes(after[-1])
+    ok = last["hex"] == wanted
+    detail = f"last write {last['hex']}, lowest level {wanted}"
+    return Outcome("RR-10", "pass" if ok else "fail", detail)
+
+
+def rr11(events: Sequence[Record], ride_log: Sequence[Record]) -> Outcome:
+    """Check RR-11: every line complete, no stretch without lines."""
+    if not ride_log:
+        return Outcome("RR-11", "not applicable", "no Bluetooth log")
+    incomplete = [i for i, r in enumerate(ride_log)
+                  if not LOG_FIELDS <= r.keys()]
+    times = sorted(float(r["mono_ms"]) for r in ride_log)
+    windows = [(float(a.get("mono_ms", 0.0)),
+                float(b.get("mono_ms", float("inf"))))
+               for a, b in zip(of_type(events, "dropout_start"),
+                               of_type(events, "dropout_end"))]
+    gaps = [(a, b) for a, b in zip(times, times[1:])
+            if b - a > LOG_GAP_MS and not any(
+                s <= b and a <= e for s, e in windows)]
+    detail = (f"{len(ride_log)} lines, {len(incomplete)} incomplete, "
+              f"{len(gaps)} gaps over {LOG_GAP_MS / 1000:.0f} s")
+    return Outcome("RR-11", "fail" if incomplete or gaps else "pass", detail)
+
+
 def this_run(system_log: Sequence[Record],
              ride_log: Sequence[Record]) -> list[Record]:
     """Return the system log from the ride's connection to its start.
@@ -437,7 +593,9 @@ def check(ride: Path, system_log: Path) -> list[Outcome]:
     meta, fit = read_meta(ride), read_fit(ride)
     return [rr01(ride_log, system), rr02(events, ride_log, system),
             rr03(events), rr04(events, ride_log, system),
-            rr05(events, samples, ride_log), rr12(events, meta),
+            rr05(events, samples, ride_log), rr06(ride_log, system),
+            rr09(events, ride_log), rr10(events, ride_log),
+            rr11(events, ride_log), rr12(events, meta),
             rr13(events, meta, fit), rr14(events, samples, fit)]
 
 

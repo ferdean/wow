@@ -11,12 +11,16 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Protocol
 
+from wow.adapters.ble_sim.faults import FaultKind, Faults
 from wow.adapters.ble_sim.scheduler import SimScheduler
 from wow.ports.gatt import Advertisement, Uuid
 
 
 class GattServer(Protocol):
     """A simulated GATT server."""
+
+    scheduler: SimScheduler
+    drop_link: Callable[[], None]
 
     def advertisement(self) -> Advertisement:
         """Return the advertisement of the device."""
@@ -70,10 +74,13 @@ class SimServerBase:
     ) -> None:
         self.scheduler = scheduler
         self.notifiable = notifiable
+        self.data_chars: frozenset[Uuid] = frozenset()
         self.traffic = Traffic()
         self._advertisement = advertisement
         self._subscribers: dict[Uuid, Callable[[bytes], None]] = {}
         self._linked = False
+        self.faults = Faults()
+        self.drop_link: Callable[[], None] = lambda: None
 
     def advertisement(self) -> Advertisement:
         """Return the advertisement of the device."""
@@ -81,16 +88,32 @@ class SimServerBase:
 
     def advertising(self) -> bool:
         """Return whether the device advertises."""
-        return True
+        return not self.away()
+
+    def away(self) -> bool:
+        """Return whether a fault keeps the device out of reach."""
+        now = self.scheduler.now()
+        return (self.faults.active(FaultKind.LINK_LOSS, now)
+                or self.faults.active(FaultKind.ABSENT_STRAP, now))
 
     def linked(self) -> bool:
         """Return whether a client is connected."""
         return self._linked
 
     def on_connect(self) -> None:
-        """Handle a connection."""
+        """Handle a connection and arm the faults still to come."""
         self._linked = True
         self._subscribers.clear()
+        now = self.scheduler.now()
+        for start in self.faults.starts((FaultKind.LINK_LOSS,
+                                         FaultKind.ABSENT_STRAP)):
+            if start >= now:
+                self.scheduler.call_at(start, self._lose)
+        self.connected(now)
+
+    def _lose(self) -> None:
+        if self._linked and self.away():
+            self.drop_link()
 
     def on_disconnect(self) -> None:
         """Handle a disconnection."""
@@ -122,7 +145,8 @@ class SimServerBase:
     def send(self, char: Uuid, data: bytes) -> None:
         """Notify a characteristic."""
         notify = self._subscribers.get(char)
-        if notify is None:
+        silent = self.faults.active(FaultKind.SILENCE, self.scheduler.now())
+        if notify is None or (silent and char in self.data_chars):
             return
         self.traffic.sent.append((char, data))
         notify(data)
@@ -141,4 +165,8 @@ class SimServerBase:
 
     def stopped(self) -> None:
         """Stop all timed behaviour."""
+        return None
+
+    def connected(self, now: float) -> None:
+        """Arm timed behaviour of a new connection."""
         return None

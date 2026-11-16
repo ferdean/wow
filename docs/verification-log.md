@@ -19,3 +19,4 @@ One line per ride check run, demonstration step and inspection (test plan, secti
 | 2026-11-13 | 0.3.0 | 2026-11-13T170154Z | RR-13 | pass | `check_ride.py` | 0.3.0 in meta.json, journal, FIT |
 | 2026-11-13 | 0.3.0 | 2026-11-13T170154Z | RR-14 | pass | `check_ride.py` | 6313 records, 6 laps, 0 pauses |
 | 2026-11-13 | 0.3.0 | 2026-11-13T170154Z | D-13 | pass | screenshot 19:47, journal | trainer to its lowest level (`04 00`) at the end; Summary with every metric and the upload state 0.3 s after Finish |
+| 2026-11-14 | 0.3.0 | 2026-11-13T170154Z | RR-01 | pass | `check_ride.py` after IM-66 | 1 connection began 00, 07, then targets |

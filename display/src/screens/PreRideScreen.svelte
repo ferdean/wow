@@ -34,18 +34,31 @@
   </div>
   <div class="scroll">
     <h1>{screen.title}</h1>
-    <div class="label">{listDuration(screen.duration)} · FTP {screen.ftp} W</div>
+    {#if screen.free_ride}
+      <div class="label">Starts at the free-ride level. Switch to riding by power, and back, at any time.</div>
+    {:else}
+      <div class="label">{listDuration(screen.duration)} · FTP {screen.ftp} W</div>
+    {/if}
     <div class="panel devices">
       <div class="row"><span class="grow">Trainer</span><span class:ok={links.trainer === "connected"}>{words[links.trainer]}</span></div>
       <div class="row"><span class="grow">Strap</span><span class:ok={links.hrm === "connected"}>{words[links.hrm]}</span><span class="label">{percent(battery)}</span></div>
     </div>
-    <div class="profile"><Profile {plan} /></div>
+    {#if !screen.free_ride}<div class="profile"><Profile {plan} /></div>{/if}
     <div class="blocks">
       {#each blocks as block (block.index)}
         <div class="panel">
           <div class="row">
             <span class="grow">{block.label || `Block ${block.index + 1}`}{block.repeats > 1 ? ` × ${block.repeats}` : ""}</span>
-            <span class="label">{listDuration(block.duration)} · {block.steps.every((s) => s.kind === "free_ride") ? "Free ride" : "ERG"}</span>
+            <span class="label">{listDuration(block.duration)}</span>
+            {#if block.steps.some((s) => s.kind === "erg")}
+              <button class="small mode" class:resistance={screen.block_modes[block.index] === "resistance"}
+                onclick={() => send("set_block_mode", { block: block.index,
+                  mode: screen.block_modes[block.index] === "resistance" ? "erg" : "resistance" })}>
+                {screen.block_modes[block.index] === "resistance" ? "Resistance" : "ERG"}
+              </button>
+            {:else}
+              <span class="label">Free ride</span>
+            {/if}
           </div>
           <div class="steps label">
             {block.steps.map(stepText).join(", ")}
@@ -81,6 +94,15 @@
   }
   .steps {
     margin-top: 4px;
+  }
+  .mode {
+    min-height: 40px;
+    min-width: 0;
+    font-size: 15px;
+  }
+  .mode.resistance {
+    background: var(--zone-4);
+    color: var(--ink);
   }
   .start {
     display: flex;

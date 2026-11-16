@@ -16,5 +16,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte", "vite.config.ts", "svelte.config.js", "eslint.config.js"]
+  "include": ["src/**/*.ts", "e2e/**/*.ts", "playwright.config.ts", "src/**/*.svelte", "vite.config.ts", "svelte.config.js", "eslint.config.js"]
 }

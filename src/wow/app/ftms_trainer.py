@@ -19,7 +19,8 @@ from wow.core.ftms_codec import Dropped
 from wow.core.ftms_session import (
     CloseLink, FtmsSession, Indication, LinkDown, LinkUp, Logged,
     ModeUnavailable, Phase, Release, SessionAction, SessionEvent, SetCommand,
-    StatusForwarded, StatusNotification, Tick, WarningChanged, Write,
+    SpinDown, SpinDownAnswered, StatusForwarded, StatusNotification, Tick,
+    WarningChanged, Write,
 )
 from wow.app.machine_driver import MachineDriver
 from wow.ports.clock import Clock
@@ -48,10 +49,13 @@ class FtmsTrainer:
         self._warnings: set[str] = set()
         self._closed = asyncio.Event()
         self._closing = False
+        self._last_data = clock.monotonic()
         self._tasks: set[asyncio.Task[None]] = set()
         self.on_sample = on_sample or (lambda _sample: None)
         self.on_link: Callable[[LinkState], None] = lambda _state: None
         self.on_status = on_status or (lambda _data: None)
+        self.on_spin_down: Callable[[int, tuple[float, float] | None],
+                                    None] = lambda _result, _band: None
 
     def capabilities(self) -> TrainerCapabilities | None:
         """Return the capabilities, if known."""
@@ -71,6 +75,19 @@ class FtmsTrainer:
     def set_command(self, command: TrainerCommand) -> None:
         """Set the command the trainer should hold."""
         self._driver.post(SetCommand(command))
+
+    def spin_down(self) -> None:
+        """Start a spin-down once control is held (APP-501)."""
+        self._driver.post(SpinDown())
+
+    def last_data(self) -> float:
+        """Return when the trainer last sent data, or connected."""
+        return self._last_data
+
+    def mark_silent(self) -> None:
+        """Show a dropout while the link is up but no data comes."""
+        if self._link == LinkState.CONNECTED:
+            self.set_link(LinkState.DROPOUT)
 
     def responding(self) -> bool:
         """Return whether the trainer answers in time."""
@@ -110,6 +127,7 @@ class FtmsTrainer:
             uuids.FITNESS_MACHINE_CONTROL_POINT,
             lambda data: self._driver.post(Indication(data)))
         self._client = client
+        self._last_data = self._clock.monotonic()
         self._closed.clear()
         self._closing = False
         self._driver.post(LinkUp(capabilities))
@@ -138,6 +156,9 @@ class FtmsTrainer:
         await asyncio.gather(*tasks, return_exceptions=True)
 
     def _on_bike_data(self, data: bytes) -> None:
+        self._last_data = self._clock.monotonic()
+        if self._link == LinkState.DROPOUT and self._client is not None:
+            self.set_link(LinkState.CONNECTED)
         record = codec.decode_indoor_bike_data(data, self._resistance_width)
         if isinstance(record, Dropped):
             logger.warning("indoor bike data dropped (%s): %s",
@@ -160,6 +181,8 @@ class FtmsTrainer:
                     self._warning(kind, active)
                 case StatusForwarded(data=data):
                     self.on_status(data)
+                case SpinDownAnswered(result=result, band_kmh=band):
+                    self.on_spin_down(result, band)
                 case ModeUnavailable(mode=mode):
                     logger.warning("trainer refused %s mode", mode)
                 case Logged(event=event, data=data):

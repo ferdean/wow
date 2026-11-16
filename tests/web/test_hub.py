@@ -5,7 +5,7 @@ import asyncio
 import json
 import logging
 import time
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +13,7 @@ import aiohttp
 import pytest
 
 from tests.support.app_rig import ERG_CHECK, ROOT, app_config
-from tests.support.page import open_page
+from tests.support.page import FakeSocket, open_page
 from wow.adapters.clock_stepped import SteppedClock
 from wow.adapters.clock_system import SystemClock
 from wow.app.main import App
@@ -61,29 +61,6 @@ class FakeSource:
     def command(self, name: str, args: Mapping[str, Any]) -> str | None:
         self.commands.append(name)
         return None if name == "start" else "invalid_state"
-
-
-class FakeSocket:
-    def __init__(self, clock: SteppedClock) -> None:
-        self._clock = clock
-        self.sent: list[tuple[float, dict[str, Any]]] = []
-        self.incoming: asyncio.Queue[str | None] = asyncio.Queue()
-        self.closed = False
-
-    async def send_str(self, data: str) -> None:
-        self.sent.append((self._clock.monotonic(), json.loads(data)))
-
-    async def close(self, *, code: int = 1000, message: bytes = b"") -> bool:
-        self.closed = True
-        await self.incoming.put(None)
-        return True
-
-    async def messages(self) -> AsyncIterator[str]:
-        while (text := await self.incoming.get()) is not None:
-            yield text
-
-    def of_type(self, kind: str) -> list[tuple[float, dict[str, Any]]]:
-        return [(t, m) for t, m in self.sent if m["type"] == kind]
 
 
 async def _connected(clock: SteppedClock, source: FakeSource

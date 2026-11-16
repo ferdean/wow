@@ -19,14 +19,21 @@
   }
   let { screen, plan, links, battery, warnings, since, send }: Props = $props();
 
-  let confirming = $state(false);
+  const SKIP_SHEET_MS = 5000;
+  let sheet = $state<"finish" | "discard" | "skip" | null>(null);
+  let skipTimer: ReturnType<typeof setTimeout> | undefined;
 
   const running = $derived(!screen.waiting_for_power && !screen.paused);
   const elapsed = $derived(screen.elapsed + (running ? since : 0));
   const left = $derived(screen.step === null ? 0 : Math.max(0, screen.step.left - (running ? since : 0)));
   const remaining = $derived(screen.remaining === null ? null : Math.max(0, screen.remaining - (running ? since : 0)));
+  const planEnd = $derived(plan?.segments.at(-1)?.end ?? 0);
+  const position = $derived(remaining === null ? elapsed : planEnd - remaining);
   const count = $derived(countdown(left));
   const lost = $derived(links.trainer === "dropout");
+  const free = $derived(!screen.waiting_for_power && !screen.workout_done && screen.step === null);
+  const segment = $derived(plan?.segments.find((s) => s.step === screen.step?.index) ?? null);
+  const canErg = $derived(free || segment?.kind === "erg");
   const banners = $derived(
     [
       lost ? { tone: "fault" as const, text: "Trainer lost. Reconnecting; the ride carries on." } : null,
@@ -39,10 +46,34 @@
     ].filter((b) => b !== null),
   );
 
-  function finish(): void {
-    confirming = false;
-    void releaseScreen();
-    send("finish");
+  function nextText(next: NonNullable<RideScreen["next"]>): string {
+    if (next.kind === "free_ride") {
+      return "Free ride";
+    }
+    return next.target === null ? "Resistance" : `${watts(next.target)} W`;
+  }
+
+  function askSkip(): void {
+    sheet = "skip";
+    clearTimeout(skipTimer);
+    skipTimer = setTimeout(() => {
+      if (sheet === "skip") {
+        sheet = null;
+      }
+    }, SKIP_SHEET_MS);
+  }
+
+  function close(): void {
+    clearTimeout(skipTimer);
+    sheet = null;
+  }
+
+  function confirm(name: "skip" | "finish" | "discard"): void {
+    close();
+    if (name !== "skip") {
+      void releaseScreen();
+    }
+    send(name);
   }
 </script>
 
@@ -56,81 +87,157 @@
     <div class="band neutral waiting">
       <div class="title">Start pedaling</div>
       <div class="label">The trainer is set to</div>
-      <div class="number key">{watts(screen.target)}<span class="unit">W</span></div>
+      <div class="number key">{screen.mode === "resistance" ? `${screen.resistance_pct ?? 0} %` : watts(screen.target)}<span class="unit">{screen.mode === "resistance" ? "level" : "W"}</span></div>
     </div>
     <p class="explain">Recording and the ride clock start with your first pedal stroke.</p>
     <div class="times"><span class="number small">{clock(0)}</span><span class="label">ridden</span></div>
     <div class="grow"></div>
     <button class="secondary" onclick={() => send("cancel_start")}>Cancel</button>
-  {:else if screen.workout_done}
-    <div class="band neutral done">
-      <div class="title">Workout done</div>
-      <div class="number hero">{watts(screen.power)}<span class="unit">W</span></div>
-      <div class="label">Keep spinning as long as you like, or finish the ride.</div>
-    </div>
-    <div class="cells">
-      <div class="cell"><span class="label">Heart rate</span><span class="number key fit" style:--em={textEm(watts(screen.hr_bpm)) + HEART_EM}>{watts(screen.hr_bpm)}<Heart /></span></div>
-      <div class="cell"><span class="label">Ride time</span><span class="number key fit" style:--em={textEm(clock(elapsed))}>{clock(elapsed)}</span></div>
-    </div>
-    <div class="profile grow"><Profile {plan} {elapsed} /></div>
-    <button class="primary" onclick={() => (confirming = true)}>Finish ride</button>
-  {:else}
-    <div class="band" class:lost style:background={lost ? "var(--rise)" : zoneColour(screen.target_zone)}>
-      <div class="power">
-        <span class="label">Power</span>
-        <span class="number hero">{lost ? "––" : watts(screen.power)}<span class="unit">W</span></span>
+  {:else if screen.mode === "resistance" || screen.workout_done}
+    {#if screen.workout_done}
+      <div class="band neutral done">
+        <div class="title">Workout done</div>
+        <div class="label">Keep spinning as long as you like, or finish the ride.</div>
       </div>
-      <div class="target">
-        <span class="label">Target</span>
-        <span class="number key">{screen.mode === "resistance" && screen.target === null ? "Free" : watts(screen.target)}</span>
-        {#if screen.target_limited}<span class="limit">limit</span>{/if}
-      </div>
-    </div>
-    <div class="cue label">
-      <span class="grow">{screen.step?.text ?? ""}</span>
-      {#if screen.step}<span>Step {screen.step.index + 1} of {screen.step.count}</span>{/if}
-    </div>
-    <div class="cells">
-      <div class="cell"><span class="label">Heart rate</span><span class="number key fit" style:--em={textEm(watts(screen.hr_bpm)) + HEART_EM}>{watts(screen.hr_bpm)}<Heart /></span></div>
-      <div class="cell" class:counting={count !== null}>
-        <span class="label">Step left</span>
-        <span class="number key fit" style:--em={textEm(count ?? timeLeft(left))}>{count ?? timeLeft(left)}</span>
-      </div>
-    </div>
-    {#if screen.next}
-      <div class="next">
-        <span class="label">Next</span>
-        <span class="chip" style:background={zoneColour(screen.next.zone)}>{screen.next.kind === "free_ride" ? "Free ride" : `${watts(screen.next.target)} W`}</span>
-        <span class="label">for {clock(screen.next.duration)}</span>
-      </div>
+    {:else if screen.paused}
+      <div class="band neutral"><div class="title">Paused</div></div>
     {/if}
-    <div class="profile grow"><Profile {plan} {elapsed} /></div>
+    <div class="info label">
+      <span>Power <b class="number">{lost ? "––" : watts(screen.power)}</b> W</span>
+      <span>Heart <b class="number">{watts(screen.hr_bpm)}</b></span>
+      {#if screen.step}<span>Step <b class="number">{count ?? timeLeft(left)}</b></span>{/if}
+      {#if segment && segment.kind !== "erg"}<span>Free ride</span>{:else if segment}<span>Plan <b class="number">{watts(segment.start_power)}</b> W</span>{/if}
+    </div>
+    <div class="number levelnum"><span class="label">Level</span>{screen.resistance_pct ?? 0}<span class="unit">%</span></div>
+    <div class="pair">
+      <button class="big" aria-label="Resistance down" disabled={screen.paused} onclick={() => send("resistance", { step: -1 })}>−</button>
+      <button class="big" aria-label="Resistance up" disabled={screen.paused} onclick={() => send("resistance", { step: 1 })}>+</button>
+    </div>
+    {#if screen.workout_done}
+      <button class="primary" onclick={() => (sheet = "finish")}>Finish ride</button>
+    {:else if canErg}
+      <button class="primary" disabled={screen.paused} onclick={() => send("switch_mode", { mode: "erg" })}>{free ? "Ride by power" : "Back to ERG"}</button>
+    {/if}
+    <div class="profile grow"><Profile {plan} elapsed={position} /></div>
     <div class="times label">
       <span><span class="number small">{clock(elapsed)}</span> ridden</span>
       {#if remaining !== null}<span><span class="number small">{timeLeft(remaining)}</span> to go</span>{/if}
     </div>
-    <div class="row">
-      <button disabled aria-label="Intensity down">−</button>
-      <span class="grow intensity"><span class="number small">{screen.intensity_pct}</span> %</span>
-      <button disabled aria-label="Intensity up">+</button>
-      <button class="secondary" disabled>Ride by resistance</button>
+    {#if !screen.workout_done}
+      <div class="controls">
+        <button class="primary" onclick={() => send(screen.paused ? "resume" : "pause")}>{screen.paused ? "Resume" : "Pause"}</button>
+        <button disabled={free || screen.paused} onclick={askSkip}>Skip step</button>
+        <button onclick={() => (sheet = "finish")}>Finish</button>
+      </div>
+    {/if}
+  {:else}
+    <div class="band" class:lost class:paused={screen.paused} style:background={lost || screen.paused ? "var(--rise)" : zoneColour(screen.target_zone)}>
+      <div class="power">
+        <span class="label">{screen.paused ? "Paused" : "Power"}</span>
+        <span class="number hero">{lost ? "––" : watts(screen.power)}<span class="unit">W</span></span>
+      </div>
+      <div class="target">
+        <span class="label">Target</span>
+        <span class="number key">{watts(screen.target)}</span>
+        {#if screen.target_limited}<span class="limit">limit</span>{/if}
+      </div>
     </div>
-    <div class="row controls">
-      <button class="primary grow" disabled>Pause</button>
-      <button class="grow" disabled>Skip step</button>
-      <button class="grow" onclick={() => (confirming = true)}>Finish</button>
+    <div class="cue label">
+      <span class="grow">{screen.step?.text ?? (free ? "Free ride by power" : "")}</span>
+      {#if screen.step}<span>Step {screen.step.index + 1} of {screen.step.count}</span>{/if}
+    </div>
+    <div class="cells">
+      <div class="cell"><span class="label">Heart rate</span><span class="number key fit" style:--em={textEm(watts(screen.hr_bpm)) + HEART_EM}>{watts(screen.hr_bpm)}<Heart /></span></div>
+      {#if screen.step}
+        <div class="cell" class:counting={count !== null}>
+          <span class="label">Step left</span>
+          <span class="number key fit" style:--em={textEm(count ?? timeLeft(left))}>{count ?? timeLeft(left)}</span>
+        </div>
+      {:else}
+        <div class="cell"><span class="label">Ride time</span><span class="number key fit" style:--em={textEm(clock(elapsed))}>{clock(elapsed)}</span></div>
+      {/if}
+    </div>
+    {#if screen.next}
+      <div class="next">
+        <span class="label">Next</span>
+        <span class="chip" style:background={zoneColour(screen.next.zone)}>{nextText(screen.next)}</span>
+        <span class="label">for {clock(screen.next.duration)}</span>
+      </div>
+    {/if}
+    <div class="profile grow"><Profile {plan} elapsed={position} /></div>
+    <div class="times label">
+      <span><span class="number small">{clock(elapsed)}</span> ridden</span>
+      {#if remaining !== null}<span><span class="number small">{timeLeft(remaining)}</span> to go</span>{/if}
+    </div>
+    <div class="adjust">
+      {#if free}
+        <button aria-label="Power down" onclick={() => send("free_ride_power", { step: -1 })}>−</button>
+        <span class="intensity"><span class="number small">{watts(screen.free_ride_target)}</span> W</span>
+        <button aria-label="Power up" onclick={() => send("free_ride_power", { step: 1 })}>+</button>
+      {:else}
+        <button aria-label="Intensity down" disabled={screen.paused} onclick={() => send("intensity", { step: -1 })}>−</button>
+        <span class="intensity"><span class="number small">{screen.intensity_pct}</span> %</span>
+        <button aria-label="Intensity up" disabled={screen.paused} onclick={() => send("intensity", { step: 1 })}>+</button>
+      {/if}
+      <button class="secondary" disabled={screen.paused} onclick={() => send("switch_mode", { mode: "resistance" })}>Ride by resistance</button>
+    </div>
+    <div class="controls">
+      <button class="primary" onclick={() => send(screen.paused ? "resume" : "pause")}>{screen.paused ? "Resume" : "Pause"}</button>
+      <button disabled={free || screen.paused} onclick={askSkip}>Skip step</button>
+      <button onclick={() => (sheet = "finish")}>Finish</button>
     </div>
   {/if}
 </div>
 
-{#if confirming}
+{#if sheet === "finish"}
   <Sheet title="Finish the ride?" text="The trainer goes to its easiest setting.">
-    <button class="primary" onclick={finish}>Finish and save</button>
-    <button class="secondary" onclick={() => (confirming = false)}>Keep riding</button>
+    <button class="primary" onclick={() => confirm("finish")}>Finish and save</button>
+    <button onclick={() => (sheet = "discard")}>Discard ride</button>
+    <button class="secondary" onclick={close}>Keep riding</button>
+  </Sheet>
+{:else if sheet === "discard"}
+  <Sheet title="Discard this ride?" text="Nothing is saved or uploaded; the logs stay for debugging.">
+    <button class="danger" onclick={() => confirm("discard")}>Discard</button>
+    <button class="secondary" onclick={close}>Keep riding</button>
+  </Sheet>
+{:else if sheet === "skip"}
+  <Sheet title="Skip the rest of this step?" text="The next step starts at once.">
+    <button class="primary" onclick={() => confirm("skip")}>Skip step</button>
+    <button class="secondary" onclick={close}>Keep riding</button>
   </Sheet>
 {/if}
 
 <style>
+  .info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+  }
+  .info b {
+    font-size: 26px;
+    color: var(--moon);
+  }
+  .levelnum {
+    font-size: 168px;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    position: relative;
+  }
+  .levelnum .label {
+    position: absolute;
+    left: 0;
+    top: 12px;
+    font-size: 15px;
+  }
+  .big {
+    min-height: 120px;
+    font-size: 48px;
+  }
+  button.danger {
+    background: var(--fault);
+    color: var(--ink);
+  }
   .band {
     border-radius: 22px;
     padding: 14px 18px;
@@ -230,9 +337,31 @@
     justify-content: space-between;
     align-items: baseline;
   }
+  .adjust {
+    display: grid;
+    grid-template-columns: 62px minmax(0, 1fr) 62px minmax(0, 1.6fr);
+    gap: var(--gap);
+    align-items: center;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--gap);
+  }
+  .pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--gap);
+  }
+  .controls button,
+  .adjust button {
+    min-width: 0;
+    padding: 0 8px;
+  }
   .intensity {
     text-align: center;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
   .explain {
     margin: 0;
