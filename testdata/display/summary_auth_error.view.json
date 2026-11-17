@@ -34,6 +34,7 @@
    "max_hr_bpm": 130
   },
   "upload": "auth_error",
-  "past": false
+  "past": false,
+  "route": null
  }
 }

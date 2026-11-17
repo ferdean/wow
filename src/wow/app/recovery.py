@@ -2,9 +2,9 @@
 
 Crash recovery (3A, app/recovery; ICD 4.9.4; APP-809): at start the ride
 directory whose `meta.json` still says `running` is read back: its
-journal, its samples and its workout. A ride that never got its first
-power is closed as cancelled; any other is offered on Home, to continue
-with the outage as a dropout or to finish.
+journal, its samples, its workout and its route (APP-908). A ride that
+never got its first power is closed as cancelled; any other is offered
+on Home, to continue with the outage as a dropout or to finish.
 """
 
 import json
@@ -16,10 +16,13 @@ from typing import Any, Final
 
 from wow.adapters.store_files import write_atomic
 from wow.app.recorder import JOURNAL, SAMPLES
-from wow.app.ride_controller import META, WORKOUT, Resumption, RideSetup
+from wow.app.ride_controller import (
+    DEFAULT_RIDER_KG, META, ROUTE_FILE, WORKOUT, Resumption, RideSetup,
+)
 from wow.app.workout_catalog import Source, entry
 from wow.core.intervals_doc import WorkoutError, parse_builtin
 from wow.core.replay import Record, record_mono
+from wow.core.route import RouteChoice
 from wow.core.vocab import Mode, UploadState
 from wow.core.workout import Workout, free_ride_workout
 
@@ -124,7 +127,9 @@ def _read(ride_dir: Path, meta: dict[str, Any]) -> Interrupted | None:
         zones_pct=tuple(meta.get("zones_pct") or ()) or RideSetup.zones_pct,
         free_ride_level_pct=int(armed.get("free_ride_level_pct", 0)),
         upload_on=meta.get("upload") != UploadState.OFF,
-        block_modes=tuple(Mode(m) for m in armed.get("block_modes", [])))
+        block_modes=tuple(Mode(m) for m in armed.get("block_modes", [])),
+        route=_route(ride_dir, meta),
+        rider_kg=int(meta.get("rider_kg", DEFAULT_RIDER_KG)))
     return Interrupted(ride_dir, meta, records, samples, setup, crash_mono,
                        crash_utc, str(last.get("boot_id", "")))
 
@@ -141,6 +146,18 @@ def _workout(ride_dir: Path, meta: dict[str, Any]) -> Workout | None:
     except (OSError, ValueError, KeyError, WorkoutError) as error:
         logger.warning("%s: workout unreadable: %s", ride_dir.name, error)
         return None
+
+
+def _route(ride_dir: Path, meta: dict[str, Any]) -> RouteChoice | None:
+    route = meta.get("route")
+    if not isinstance(route, dict):
+        return None
+    try:
+        gpx = (ride_dir / ROUTE_FILE).read_bytes()
+    except OSError as error:
+        logger.warning("%s: route unreadable: %s", ride_dir.name, error)
+        return None
+    return RouteChoice(str(route.get("file")), str(route.get("name")), gpx)
 
 
 def _utc(text: str) -> datetime:

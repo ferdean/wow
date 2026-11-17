@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 ACCOUNT_FIELD_MAX: Final[int] = 128
 CHOOSABLE: Final[tuple[DeviceKind, ...]] = (DeviceKind.TRAINER,
                                             DeviceKind.HRM)
-DEVICE_KEYS: Final[frozenset[str]] = frozenset(
-    {SettingKey.TRAINER, SettingKey.HRM})
+NOT_ON_SCREEN: Final[frozenset[str]] = frozenset(
+    {SettingKey.TRAINER, SettingKey.HRM, SettingKey.ROUTE})
 
 
 @dataclass(frozen=True)
@@ -85,7 +85,7 @@ class SettingsPanel:
 
     def set(self, key: str, value: object) -> str | None:
         """Change one setting; return the problem, if any."""
-        if key in DEVICE_KEYS:
+        if key in NOT_ON_SCREEN:
             return Problem.BAD_REQUEST
         changed = with_value(self._settings, key, value)
         if isinstance(changed, Rejected):
@@ -101,6 +101,13 @@ class SettingsPanel:
                              pct)
         if isinstance(changed, Settings):
             self._store(changed)
+
+    def keep_route(self, file: str | None) -> None:
+        """Keep the route the rider chose on Pre-ride (APP-902)."""
+        changed = with_value(self._settings, SettingKey.ROUTE, file)
+        if isinstance(changed, Settings):
+            self._store(changed)
+            logger.info("route chosen: %s", file)
 
     def set_account(self, athlete_id: object, api_key: object) -> str | None:
         """Store the intervals.icu account; return the problem, if any."""

@@ -23,6 +23,8 @@
    "erg",
    "erg"
   ],
+  "routes": [],
+  "route": null,
   "can_start": true,
   "blocked": null
  }

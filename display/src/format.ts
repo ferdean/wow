@@ -112,3 +112,11 @@ export function gone(seconds: number): string {
 export function speed(kmh: number | null): string {
   return kmh === null ? MISSING : kmh.toFixed(0);
 }
+
+export function km(metres: number | null): string {
+  return metres === null ? MISSING : `${(metres / 1000).toFixed(1)} km`;
+}
+
+export function routeLine(length_m: number, ascent_m: number): string {
+  return `${km(length_m)} · ${Math.round(ascent_m)} m up`;
+}

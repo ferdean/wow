@@ -1,7 +1,8 @@
 """Describe a recorded ride for its output files.
 
 The data a FIT file and `meta.json` are written from (IF-09, IF-12):
-the samples, the lap starts and pauses in ride time, and the metrics.
+the samples, the lap starts and pauses in ride time, the metrics, and
+the ride on a route when it has one (SL-13).
 """
 
 from collections.abc import Sequence
@@ -9,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from wow.core.metrics import Metrics
+from wow.core.virtual_ride import Track
 
 
 @dataclass(frozen=True)
@@ -44,6 +46,7 @@ class Activity:
     lap_starts: tuple[float, ...]
     pauses: tuple[Pause, ...]
     metrics: Metrics
+    track: Track | None = None
 
     def utc_at(self, t_ride: float) -> datetime:
         """Return the UTC time of a ride time, pauses counted."""

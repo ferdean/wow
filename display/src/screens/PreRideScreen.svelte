@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { CommandName, LinkState, Plan, PreRideScreen, Warning } from "../types/protocol";
-  import { listDuration, percent, stepText } from "../format";
+  import { listDuration, percent, routeLine, stepText } from "../format";
   import Banner from "../ui/Banner.svelte";
   import Profile from "../ui/Profile.svelte";
+  import Sheet from "../ui/Sheet.svelte";
   import { holdScreen } from "../device/wake.svelte";
 
   interface Props {
@@ -25,6 +26,13 @@
     not_configured: "Not set up",
   };
   const blocks = $derived(plan !== null && plan.plan_id === screen.plan_id ? plan.blocks : []);
+  const chosen = $derived(screen.routes.find((r) => r.file === screen.route) ?? null);
+  let choosing = $state(false);
+
+  function choose(file: string | null): void {
+    choosing = false;
+    send("set_route", { file });
+  }
 
   function start(): void {
     void holdScreen();
@@ -47,6 +55,16 @@
       <div class="row"><span class="grow">Trainer</span><span class:ok={links.trainer === "connected"}>{words[links.trainer]}</span></div>
       <div class="row"><span class="grow">Strap</span><span class:ok={links.hrm === "connected"}>{words[links.hrm]}</span><span class="label" class:low>{percent(battery)}{low ? " low" : ""}</span></div>
     </div>
+    {#if screen.routes.length > 0}
+      <button class="panel route" onclick={() => (choosing = true)}>
+        <span class="grow">Route</span>
+        {#if chosen === null}
+          <span class="label">None</span>
+        {:else}
+          <span class="pick"><span>{chosen.name}</span><span class="label">{routeLine(chosen.length_m, chosen.ascent_m)}</span></span>
+        {/if}
+      </button>
+    {/if}
     {#if low}
       <Banner tone="warning" text="The strap's battery is low. Replace it soon." />
     {/if}
@@ -85,7 +103,56 @@
   </div>
 </div>
 
+{#if choosing}
+  <Sheet title="Route" text="Speed, distance, height and position come from your power along it, after the ride.">
+    <div class="choices">
+      <button class:picked={chosen === null} onclick={() => choose(null)}>No route</button>
+      {#each screen.routes as route (route.file)}
+        <button class:picked={route.file === screen.route} onclick={() => choose(route.file)}>
+          <span class="grow">{route.name}</span><span class="label line">{routeLine(route.length_m, route.ascent_m)}</span>
+        </button>
+      {/each}
+    </div>
+    <button class="secondary" onclick={() => (choosing = false)}>Cancel</button>
+  </Sheet>
+{/if}
+
 <style>
+  .route {
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+    width: 100%;
+    min-height: 62px;
+    text-align: left;
+    font-size: 17px;
+    font-weight: 550;
+  }
+  .pick {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+  }
+  .line {
+    white-space: nowrap;
+  }
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+    max-height: 50dvh;
+    overflow-y: auto;
+  }
+  .choices button {
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+    text-align: left;
+  }
+  .picked {
+    border-color: var(--moon);
+  }
   .devices {
     display: flex;
     flex-direction: column;

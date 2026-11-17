@@ -4,7 +4,9 @@ The FIT writer (3A, adapters/fit_garmin; ICD IF-12; APP-601, APP-604,
 APP-605, APP-815): one Record per ride second, timer events around
 pauses, one Lap per step, and a Session with the metrics of table M.
 The target power of each second is the developer field `target_power`
-(A-28).
+(A-28). A ride on a route (APP-904) adds speed, distance, altitude and
+position to every Record, distance and speeds to the Laps and the
+Session, the climbing to the Session, and is a virtual ride.
 """
 
 from collections.abc import Sequence
@@ -16,6 +18,7 @@ from garmin_fit_sdk import Encoder, Profile
 
 from wow.core.activity import Activity, RecordedSample
 from wow.core.numbers import exact, round_half_up
+from wow.core.virtual_ride import Track, TrackPoint
 
 MESG: Final[dict[str, int]] = Profile["mesg_num"]
 FIT_EPOCH: Final[datetime] = datetime.fromisoformat(
@@ -26,6 +29,9 @@ UINT16_BASE_TYPE: Final[int] = 0x84
 APPLICATION_ID: Final[list[int]] = list(b"WitchesOnWheels!")
 SPORT: Final[dict[str, str]] = {"sport": "cycling",
                                 "sub_sport": "indoor_cycling"}
+VIRTUAL: Final[dict[str, str]] = {"sport": "cycling",
+                                  "sub_sport": "virtual_activity"}
+SEMICIRCLES_PER_DEGREE: Final[float] = 2 ** 31 / 180
 
 Message = dict[str, Any]
 
@@ -83,9 +89,14 @@ def _developer_messages() -> tuple[Message, Message]:
     )
 
 
+def _sport(activity: Activity) -> dict[str, str]:
+    return SPORT if activity.track is None else VIRTUAL
+
+
 def _body(activity: Activity) -> list[Message]:
     out: list[Message] = [_timer(activity.start_utc, "start")]
     pauses = sorted(activity.pauses, key=lambda p: p.t_ride)
+    track = {} if activity.track is None else activity.track.by_second()
     for sample in activity.samples:
         while pauses and pauses[0].t_ride <= sample.t:
             pause = pauses.pop(0)
@@ -93,19 +104,22 @@ def _body(activity: Activity) -> list[Message]:
                 seconds=pause.duration)
             out += [_timer(stop, "stop_all"),
                     _timer(activity.utc_at(pause.t_ride), "start")]
-        out.append(_record(sample))
+        out.append(_record(sample) | _place(track.get(sample.t)))
     end = activity.end_utc
     out.append(_timer(end, "stop_all"))
     laps = activity.laps()
     for index, (low, high) in enumerate(laps):
         lap_start, lap_end = activity.utc_at(low), activity.utc_at(high)
+        samples = activity.samples_between(low, high)
         out.append({
             "mesg_num": MESG["LAP"], "message_index": index,
             "event": "lap", "event_type": "stop", "lap_trigger": "manual",
             "start_time": lap_start, "timestamp": lap_end,
             "total_elapsed_time": (lap_end - lap_start).total_seconds(),
-            "total_timer_time": high - low, **SPORT,
-            **_averages(activity.samples_between(low, high))})
+            "total_timer_time": high - low, **_sport(activity),
+            **_averages(samples),
+            **_motion([track[s.t] for s in samples if s.t in track],
+                      _distance_before(track, samples), high - low)})
     out.append(_session(activity, len(laps)))
     out.append({
         "mesg_num": MESG["ACTIVITY"], "timestamp": end,
@@ -133,6 +147,48 @@ def _record(sample: RecordedSample) -> Message:
     return record
 
 
+def _place(point: TrackPoint | None) -> Message:
+    if point is None:
+        return {}
+    return {"distance": point.distance_m, "speed": point.speed_mps,
+            "enhanced_speed": point.speed_mps,
+            "altitude": point.altitude_m,
+            "enhanced_altitude": point.altitude_m,
+            "position_lat": _semicircles(point.lat),
+            "position_long": _semicircles(point.lon)}
+
+
+def _semicircles(degrees: float) -> int:
+    return round(degrees * SEMICIRCLES_PER_DEGREE)
+
+
+def _distance_before(track: dict[int, TrackPoint],
+                     samples: Sequence[RecordedSample]) -> float:
+    if not samples:
+        return 0.0
+    before = track.get(samples[0].t - 1)
+    return 0.0 if before is None else before.distance_m
+
+
+def _motion(points: Sequence[TrackPoint], start_m: float,
+            seconds: float) -> Message:
+    if not points:
+        return {}
+    distance = points[-1].distance_m - start_m
+    fastest = max(p.speed_mps for p in points)
+    average = distance / seconds if seconds > 0 else 0.0
+    return {"total_distance": distance, "avg_speed": average,
+            "enhanced_avg_speed": average, "max_speed": fastest,
+            "enhanced_max_speed": fastest}
+
+
+def _climbing(track: Track | None) -> Message:
+    if track is None:
+        return {}
+    return {"total_ascent": round_half_up(exact(track.ascent_m)),
+            "total_descent": round_half_up(exact(track.descent_m))}
+
+
 def _averages(samples: Sequence[RecordedSample]) -> Message:
     values: Message = {}
     power = [s.power for s in samples if s.power is not None]
@@ -152,13 +208,16 @@ def _session(activity: Activity, laps: int) -> Message:
     end = activity.end_utc
     session: Message = {
         "mesg_num": MESG["SESSION"], "message_index": 0, "event": "session",
-        "event_type": "stop", "trigger": "activity_end", **SPORT,
+        "event_type": "stop", "trigger": "activity_end",
+        **_sport(activity),
         "start_time": activity.start_utc, "timestamp": end,
         "total_elapsed_time": (end - activity.start_utc).total_seconds(),
         "total_timer_time": activity.duration, "first_lap_index": 0,
         "num_laps": laps, "threshold_power": activity.ftp,
         "total_work": round_half_up(exact(metrics.work_kj * 1000)),
-        **_averages(activity.samples)}
+        **_averages(activity.samples), **_climbing(activity.track),
+        **_motion(() if activity.track is None else activity.track.points,
+                  0.0, activity.duration)}
     if metrics.np is not None and metrics.intensity_factor is not None:
         session |= {"normalized_power": round_half_up(exact(metrics.np)),
                     "intensity_factor": round(metrics.intensity_factor, 3)}

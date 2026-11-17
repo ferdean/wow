@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { CommandName, SummaryScreen } from "../types/protocol";
-  import { UPLOAD_WORDS, clock, dateTime, fixed, watts } from "../format";
+  import { UPLOAD_WORDS, clock, dateTime, fixed, km, watts } from "../format";
   import Sheet from "../ui/Sheet.svelte";
 
   interface Props {
@@ -33,6 +33,16 @@
   <div class="scroll">
     <h1>{screen.title}</h1>
     <div class="label">{dateTime(screen.start_utc)}</div>
+    {#if screen.route !== null}
+      <div class="panel route">
+        <span class="label">Route: {screen.route.name}</span>
+        {#if screen.route.distance_m === null}
+          <span>Working out the ride along the route…</span>
+        {:else}
+          <span class="number small">{km(screen.route.distance_m)} · {screen.route.ascent_m ?? 0} m up</span>
+        {/if}
+      </div>
+    {/if}
     <div class="grid">
       {#each cells as [label, value] (label)}
         <div class="panel cell"><span class="label">{label}</span><span class="number small">{value}</span></div>
@@ -66,6 +76,11 @@
 {/if}
 
 <style>
+  .route {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
   .grid {
     display: grid;
     grid-template-columns: 1fr 1fr;

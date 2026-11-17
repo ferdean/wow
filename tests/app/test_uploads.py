@@ -1,4 +1,4 @@
-"""Uploads to intervals.icu (L3, T-UPL-01 to T-UPL-05, S-ICU-02)."""
+"""Uploads to intervals.icu (L3, T-UPL-01 to T-UPL-06, S-ICU-02)."""
 
 import asyncio
 import base64
@@ -131,7 +131,7 @@ async def test_finish_uploads_without_the_rider(tmp_path: Path,
     (data / "settings.json").write_text(json.dumps(
         {"schema": 1, "upload_on": upload_on}))
     uploader = FakeUploader(None, Outcome.CREATED)
-    session = AppSession(tmp_path, uploader=uploader)
+    session = AppSession(tmp_path, uploader=uploader, upload_simulated=True)
     uploader.clock = session.clock
     task = asyncio.get_running_loop().create_task(session.app.uploads.run())
     await session.begin(ERG_CHECK)
@@ -149,6 +149,30 @@ async def test_finish_uploads_without_the_rider(tmp_path: Path,
     else:
         assert uploader.calls == []
         assert meta(ride_dir)["upload"] == "off"
+
+
+@pytest.mark.case("T-UPL-06")
+@pytest.mark.req("APP-613")
+@pytest.mark.asyncio
+async def test_a_ride_on_simulated_devices_is_never_uploaded(
+        tmp_path: Path) -> None:
+    uploader = FakeUploader(None, Outcome.CREATED)
+    session = AppSession(tmp_path, uploader=uploader)
+    uploader.clock = session.clock
+    task = asyncio.get_running_loop().create_task(session.app.uploads.run())
+    assert session.app.settings.settings.upload_on
+    await session.begin(ERG_CHECK)
+    await session.until(30.0)
+    assert session.command("finish") is None
+    assert session.app.console.view()["screen"]["upload"] == "off"
+    session.app.recorder.flush()
+    await session.clock.advance(5.0)
+    ride_dir = await session.close()
+    await session.clock.advance(1.0)
+    task.cancel()
+    await asyncio.gather(task, return_exceptions=True)
+    assert uploader.calls == []
+    assert meta(ride_dir)["upload"] == "off"
 
 
 @pytest.mark.case("T-UPL-02")

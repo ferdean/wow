@@ -1,6 +1,6 @@
 # Phase 5 — Implementation
 
-**Status:** revision 11, 15 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) planned, built and gated on the laptop (sections 27 to 32); their approval is pending. SL-10 (settings, housekeeping), SL-11 (display finish) and SL-12 (endurance, close-out) planned, built and gated on the laptop at Ferran's request (sections 33 to 38). SL-13 (route simulation) added to the slice plan. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
+**Status:** revision 12, 17 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) (sections 27 to 32), and SL-10 (settings, housekeeping), SL-11 (display finish) and SL-12 (endurance, close-out) (sections 33 to 38) planned, built and gated, and **approved by Ferran on 16 Nov 2026**; their Pi steps are the closing checks. SL-13 (route simulation) planned, built and gated on 17 Nov 2026 with the closing checks waived for it (sections 39 to 44); approval pending. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
 
 ## 1 How Phase 5 works
 
@@ -494,6 +494,8 @@ If the screen is off from what 3C shows, a screenshot per screen is enough; layo
 19. SL-05 and SL-06 are approved (15 Nov 2026); their rides move to the next Pi session.
 20. SL-07 to SL-09 are built together with decisions IM-91 to IM-103 (section 28), findings SF-25 to SF-27 and three test-plan deviations (29.4); the changes of 29.5 are proposed. A start screen comes before Home (IM-102).
 21. SL-10 to SL-12 are built together at Ferran's request (15 Nov 2026), on top of SL-07 to SL-09 before their approval, with decisions IM-104 to IM-127 (section 34), findings SF-28 to SF-36 and four test-plan deviations (35.4); the changes of 35.5 are proposed. App version 0.6.0.
+22. SL-07 to SL-12 are approved (16 Nov 2026), with the changes of 29.5 and 35.5; their Pi steps (sections 31 and 37) became the closing checks, the gate for SL-13 and the 1.0 release.
+23. Ferran waived the closing checks for SL-13 (17 Nov 2026); they stay the gate for the 1.0 release and Phase 6. SL-13 is built with requirements APP-613, APP-709 and APP-901 to APP-908 (39.1), decisions IM-128 to IM-141 (section 40), findings SF-37 to SF-42 and two deviations (41.4); test plan revision 3 applied in place. App version 0.7.0.
 
 ## 13 First test on the Pi, 12 Nov 2026
 
@@ -1109,6 +1111,8 @@ The rides of section 24 and these, in one or two sessions. Install first; from t
 
 Do you approve SL-07, SL-08 and SL-09 as built, with decisions IM-91 to IM-103, the start screen, the deviations of 29.4 and the proposed document changes of 29.5, closing when the steps of section 31 pass?
 
+**Approved by Ferran on 16 Nov 2026** ("I approve everything"). The steps of section 31 are still open; they are part of the closing checks (handover, section 8).
+
 ## 33 SL-10, SL-11 and SL-12 plan
 
 Built together at Ferran's request (15 Nov 2026), on top of SL-07 to SL-09 while their approval is pending (section 32).
@@ -1305,6 +1309,151 @@ Section 31 still holds for SL-05 to SL-09; these steps add SL-10 to SL-12. Insta
 
 Do you approve SL-10, SL-11 and SL-12 as built, with decisions IM-104 to IM-127, the deviations of 35.4 and the proposed document changes of 35.5, closing when the steps of section 37 pass?
 
+**Approved by Ferran on 16 Nov 2026**, with SL-07 to SL-09. The steps of section 37 are still open. The changes of 29.5 and 35.5 join those of 13.6, 16.5 and 22.5, to be applied in each document's next revision.
+
+## 39 SL-13 plan: route simulation
+
+Built on 17 Nov 2026 at Ferran's request ("fully implement the last slice"), in the lighter form he set for it on 14 Nov. Before starting, the closing checks of the handover's section 8.2 were checked against `docs/verification-log.md`: none had been logged. **Ferran waived them for SL-13 on 17 Nov 2026**; they stay the gate for the 1.0 release and for Phase 6. He chose, the same day: routes as `.gpx` files in a folder on the Pi, the route picked on Pre-ride, and a ride longer than its route starting the route again.
+
+### 39.1 Requirements (proposed for Phase 1 revision 8)
+
+New use case **UC-09 Ride along a route:** the rider copies GPX files to the Pi, picks one on Pre-ride and rides as usual; after Finish the ride gets the speed, distance, altitude and position of a ride along that route, on the Summary and in the FIT file. The trainer is controlled exactly as without a route. The out-of-scope item "simulated speed, distance and altitude" leaves the list for this after-the-ride form; slope mode (the trainer driven by the route's grade) stays out of scope.
+
+| ID | Requirement | Rationale | Pri. | Ver. | Traces |
+|----|-------------|-----------|------|------|--------|
+| APP-613 | While the trainer and strap are simulated, the system shall record every ride with upload off. | Rides on the simulator must not land in the rider's training load (SF-37). | must | T | UC-08 |
+| APP-709 | The system shall let the rider set his weight, 40 to 150 kg in steps of 1 kg, default 75 kg, and shall use it only for routes. | The route model needs the mass that moves (APP-903). | must | T | UC-06, UC-09 |
+| APP-901 | When Pre-ride opens, the system shall list the GPX files in the data directory's `routes` folder that can be used as a route, by name, each with its length and climb. | The rider picks from what is on the Pi. | must | T | UC-09 |
+| APP-902 | When the rider chooses a route, or no route, on Pre-ride, the system shall ride the next ride with that choice and keep it for later rides, also for a free ride. | One choice for a week of rides on the same route. | must | T | UC-09 |
+| APP-903 | When a ride on a route is finished, the system shall work out from each ride second's recorded power, the route's grade and the rider's and bike's mass the speed, distance, altitude and position of each second, without changing the control of the trainer or the ride screen. | Speed and distance after the fact; nothing in the ride's control path changes. | must | T | UC-09 |
+| APP-904 | When a ride on a route is finished, the system shall write the speed, distance, altitude and position of each second into the FIT file's Records, the distance and speeds into its Laps and Session, the climb into its Session, and mark it a virtual ride. | intervals.icu and Garmin Connect show the ride with its map and keep it apart from outdoor rides. | must | T, D | UC-05, UC-09 |
+| APP-905 | When a ride is longer than its route, the system shall start the route again from its beginning. | Ferran, 17 Nov 2026. | should | T | UC-09 |
+| APP-906 | When a ride on a route is finished, the Summary and Past rides shall show the route's name, the distance ridden and the climb. | The number the rider looks for after a route ride. | should | T, D | UC-05, UC-09 |
+| APP-907 | When a file in the `routes` folder is larger than 10 MB, isn't GPX, declares a document type, has fewer than two points or is shorter than 100 m, the system shall leave it out of the list and log why. | A bad file must not stop the app or a ride; the rider needs the reason. | must | T | UC-09 |
+| APP-908 | When an interrupted ride on a route is continued or finished after a restart, the system shall keep its route. | Crash recovery (APP-809) must not lose the route. | should | T | UC-07, UC-09 |
+
+### 39.2 Modules
+
+| Module | New or changed | What it does |
+|--------|----------------|--------------|
+| `core/route` | new | GPX to a route resampled every 10 m: positions, smoothed elevation, grades |
+| `core/virtual_ride` | new | The road-cycling power model: a track of speed, distance, position and altitude from power, and the climb |
+| `core/settings` | changed | `rider_kg`, `route` |
+| `core/activity`, `adapters/fit_garmin` | changed | A track in the activity; FIT fields of APP-904 |
+| `core/view` | changed | Pre-ride `routes` and `route`; Summary `route`; Settings `rider_kg` |
+| `app/route_catalog` | new | The usable routes of the `routes` folder, read in a thread |
+| `app/console`, `app/settings_panel` | changed | `set_route`; the route and the weight at Start; no uploads from simulated devices |
+| `app/ride_controller`, `app/recovery` | changed | The route copied into the ride, ridden at Finish in the recorder's thread; read back after a restart |
+| `deploy/install.sh`, `deploy/routes/example-loop.gpx` | changed, new | `/var/lib/wow/routes`; a made-up example route |
+| Display | changed | Route row and sheet on Pre-ride, route on the Summary, weight in Settings; the gallery `#gallery` (SF-38) |
+
+### 39.3 Exit criteria
+
+Gate green through SL-13. On the Pi: D-33 (a ride on a route, in intervals.icu and Garmin Connect).
+
+## 40 Decisions taken while building SL-13
+
+| ID | Decision | Why |
+|----|----------|-----|
+| IM-128 | GPX: the track points of every track and segment in order, else the route points; GPX 1.1, 1.0 or no namespace; the name from `metadata`, then the track, then the route, then the file name. Refused with the reason: over 10 MB, a `<!DOCTYPE` or `<!ENTITY`, not XML, a root other than `gpx`, fewer than two points, a latitude or longitude outside WGS84's ranges, a number that isn't finite, a route under 100 m. Parsed with the standard library's ElementTree. | GPX 1.1 schema; Python's documentation warns that Expat before 2.7.2 may be open to entity expansion, and a GPX file needs no document type, so refusing one closes that whatever the Pi's Expat is (A-70). |
+| IM-129 | A route is resampled every 10 m of its length (haversine distance on a sphere of the IUGG mean radius, 6,371,008.8 m); elevation is a centred moving average over 5 stations (50 m) whose window narrows at the ends, so a steady climb keeps its height; each piece's grade is kept within ±25 %; a route without elevation on every point is flat. | GPS and map elevations are noisy; a spike would show as a wall (SF-39). |
+| IM-130 | Model of Martin et al. (1998) without wheel inertia and bearing losses: gravity, rolling resistance and still-air drag against a push of power ÷ max(speed, 1 m/s); 4 steps of 0.25 s per ride second; speed never below 0 (no rolling back); a second without power coasts; after a pause the rider starts from standstill; a point at the end of each second. Mass = rider weight + 9 kg bike; CdA 0.32 m², Crr 0.004, air 1.225 kg/m³, g 9.80665 m/s². No drivetrain loss is taken off, as the D100 measures at the hub (A-68). | A plain, published model is enough for "how far would this have taken me"; values A-67 to A-69. Steady speeds match the model's balance to 0.1 % (T-VRD-01); 4 hours take 0.24 s in the workspace. |
+| IM-131 | A ride longer than its route starts it again; the climb counts each piece ridden inside the route, not the jump from the end back to the start. | Ferran's choice; a point-to-point route mustn't count its whole height as descent. |
+| IM-132 | Routes live in the data directory's `routes` folder (`/var/lib/wow/routes`, made by `install.sh`, 0750 `wow`). File names: `.gpx` in any case, not hidden, no path, at most 120 characters. Read in a thread whenever Pre-ride opens; of reads that overlap, only the latest started is kept (SF-42); listed by name; a left-out file is logged with its reason. | Ferran's choice (files copied with `scp`); a large file must not stall the event loop. |
+| IM-133 | Pre-ride command `set_route` with `file` (or null); the choice is kept in `settings.json` as `route` and holds for workouts and free rides; a chosen file that has gone shows as no route. The route row is hidden when the folder has no route. Not settable through `settings_set`. | APP-902. |
+| IM-134 | At Start the route's bytes are copied to `route.gpx` in the ride directory and `meta.json` gets `route` (file, name) and `rider_kg`. At Finish the recorder's thread rides the route, writes the FIT file, then `meta.json` with the route's distance, climb, descent and highest speed, and passes the result back to the event loop; until then the Summary says the ride along the route is being worked out. A route that can't be read at Finish leaves the FIT file without a track and is logged. | The model must not run on the event loop at Finish, where the trainer's last command goes out (APP-801); a 4-hour ride takes up to about a second on the Pi (estimate). |
+| IM-135 | FIT of a ride on a route: Records get `distance`, `speed` and `enhanced_speed`, `altitude` and `enhanced_altitude`, `position_lat` and `position_long` in semicircles (2³¹ per 180°); Laps their distance and average and highest speed; the Session the same plus `total_ascent` and `total_descent`; sport cycling, sub-sport `virtual_activity` (58). Without a route nothing changes (sub-sport `indoor_cycling`). | Garmin FIT SDK profile as installed; both speed and altitude fields for readers that know only one; virtual so the ride stays apart from outdoor records (A-69). |
+| IM-136 | Settings: "Weight, for routes", 40 to 150 kg in steps of 1, default 75 kg. | APP-709. |
+| IM-137 | Rides on simulated devices (`simulate`, or a replay) start with upload off whatever the setting says; "Upload now" on their Summary still sends one when asked. Tests that check uploads pass `App(upload_simulated=True)`. | SF-37; the rider's explicit action stays possible. |
+| IM-138 | The gallery: `https://wow.local/#gallery` lists every golden view of `testdata/display` by screen and shows each through the real screens on the phone, with the Pre-ride plans from a new golden file `testdata/display/plans.json`. Loaded only behind that address (a separate chunk); no WebSocket opened, commands only logged in the page's console; not linked from the app. | SF-38: DS-8's states (D-30, D-31) and the walk-through I-14 to I-20 can be looked at on the iPhone without a fault script. |
+| IM-139 | `deploy/routes/example-loop.gpx`: a made-up 18.8 km circle with one 60 m hill, no real map data. Route tests make their GPX in code (`tests/support/routes.py`), so `testdata/` keeps JSON only (I-11). | Ferran's choice: no third-party GPX in the public repository. |
+| IM-140 | The test plan gets revision 3 in place: SL-13's catalogue rows, D-33, the golden states and the matrix rows, edited by hand. | `tools/trace.py` needs the catalogue in `docs/phase4-test-plan.md`; `tools/make_matrix.py` isn't in the repository (SF-40). |
+| IM-141 | Supporting tests S-DSP-07 (route row and sheet, Summary route, weight) and S-DSP-08 (gallery). App version 0.7.0. | Trace rule. |
+
+## 41 SL-13 result
+
+### 41.1 What was built
+
+The modules of 39.2. `wow --sim` lists the routes of its data directory on Pre-ride, keeps the choice, rides a finished ride along the route (Summary and Past rides with distance and climb; FIT with speed, distance, altitude and position as a virtual ride), keeps the route through crash recovery, never uploads a simulated ride by itself, and shows every screen state under `#gallery`.
+
+### 41.2 Test results
+
+| Gate step | Result (workspace, 17 Nov 2026) |
+|-----------|---------------------------------|
+| flake8, mypy strict | clean (mypy: 162 files in `src`, `tools`, `tests`) |
+| pytest without `pi` and `slow` | 572 passed, 12 deselected |
+| Coverage | core 96.6 to 96.7 % branches (three runs); app and web 94.9 % lines; testable adapters 97.4 % lines |
+| Vitest | 106 passed |
+| `tools/trace.py --through SL-13` | 182 catalogue tests, 584 pytest tests, 0 problems |
+| Model speed | a 4-hour ride along a 22.7 km route in 0.24 s (workspace) |
+| Screens of `wow --sim` in Chrome at 402 × 874 | Pre-ride with the route row, the route sheet, the chosen route; Summary with distance and climb; Settings with the weight; the gallery's list, `ride_battery_low` and `pre_ride_routes` |
+
+### 41.3 Assumptions
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A-67 (new) CdA 0.32 m² and Crr 0.004 give speeds close to Ferran's on the road at the same power | Open | D-33: compare with an outdoor ride of similar power |
+| A-68 (new) The D100 reports power at the hub, so no drivetrain loss applies to the model | Open | Manufacturer data, if any; otherwise accepted as a simulation choice |
+| A-69 (new) intervals.icu and Garmin Connect show a FIT with sub-sport `virtual_activity` and positions as a virtual ride with its map | Open | D-33 |
+| A-70 (new) The Pi's Python uses Expat 2.7.2 or later; the DOCTYPE refusal covers older ones | Open | On the Pi: `python3 -c "import pyexpat; print(pyexpat.EXPAT_VERSION)"` |
+
+### 41.4 Findings and deviations
+
+| ID | Finding | What changed |
+|----|---------|--------------|
+| SF-37 | A ride on the simulator was uploaded like a real one when an account was set and Upload was on (found 16 Nov from the code). | IM-137 |
+| SF-38 | DS-8 needs "the Pi with `simulate = true` and a fault script", but nothing loads a fault script, the simulated strap's battery is fixed at 80 %, and storage low or certificate expiring aren't Bluetooth faults (found 16 Nov). | IM-138 |
+| SF-39 | The first smoothing shrank its window at the ends of a route only on one side, so a steady 60 m climb lost 1.2 m. | The window narrows on both sides (IM-129). |
+| SF-40 | The test plan names `tools/make_matrix.py` as the generator of section 9, but the repository has no such tool; T-SIM-04 also counted the matrix's 116 rows as a fixed number. | Matrix edited by hand (IM-140); T-SIM-04 counts 126. |
+| SF-41 | Test plan 5.16 didn't list S-DSP-06 (SL-10 and SL-11). | Added in revision 3. |
+| SF-42 | Two reads of the routes folder could be in flight at once (Pre-ride opened again while one ran); the older one could finish last and put back a route whose file had been deleted. T-RTE-05 failed once on the fresh-clone check. | Only the latest read started is kept; a test forces the old read to finish last (T-RTE-04). |
+
+Deviations from the test plan:
+
+1. DS-8's D-30 and D-31 and the walk-through I-14 to I-20 are done in the gallery: the states are the golden views, not states the simulator is scripted into. What the scripted faults would show is covered by T-VIEW-05, T-VIEW-08, T-DEV and T-SES tests; the phone part, readability and place, is what the gallery shows.
+2. The test plan changed in place to revision 3 before approval (IM-140).
+
+### 41.5 Proposed changes to approved documents
+
+| Document | Change |
+|----------|--------|
+| Requirements (Phase 1 revision 8) | UC-09; APP-613, APP-709, APP-901 to APP-908 of 39.1; table S: rider weight; out-of-scope list as in 39.1. |
+| 3A architecture | `core/route`, `core/virtual_ride`, `app/route_catalog`; the route ridden in the recorder's thread (IM-134); the gallery as a display-only tool. |
+| ICD | IF-06: command `set_route`; `PreRideScreen.routes`, `.route`; `SummaryScreen.route`; `SettingsScreen.rider_kg`. IF-09: `route.gpx` in the ride directory; `meta.json` `route` and `rider_kg`. IF-10: `settings.json` `rider_kg`, `route`; the `routes` folder. IF-12: the FIT fields and sub-sport of IM-135. |
+| 3C display | Pre-ride route row and sheet; Summary route panel; Settings weight; the gallery. |
+| Test plan | Revision 3 as applied (IM-140), and the deviations of 41.4. |
+
+## 42 Traceability note SL-13
+
+From `tools/trace.py --through SL-13`, 17 Nov 2026.
+
+| Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
+|---|---|---|---|
+| APP-613 | T-UPL-06 passed | — | passed |
+| APP-709 | T-SET-09 passed | — | passed |
+| APP-901 | T-RTE-01 passed, T-RTE-04 passed | — | passed |
+| APP-902 | T-RTE-05 passed, T-SET-09 passed | — | passed |
+| APP-903 | T-RTE-03 passed, T-RTE-06 passed, T-VRD-01 passed, T-VRD-02 passed | — | passed |
+| APP-904 | T-FIT-07 passed, T-RTE-06 passed | D-33 pending | passed |
+| APP-905 | T-VRD-03 passed | — | passed |
+| APP-906 | T-RTE-06 passed | D-33 pending | passed |
+| APP-907 | T-RTE-02 passed, T-RTE-04 passed | — | passed |
+| APP-908 | T-RCV-06 passed | — | passed |
+
+## 43 On the Pi: SL-13
+
+With the closing checks of the handover's section 8 (sections 31 and 37 here), in the same sessions:
+
+1. Install 0.7.0 as before (laptop gate and display build, `~/wow` on the commit, the built display copied, `sudo deploy/install.sh`). Expected: `wow 0.7.0 started`; `/var/lib/wow/routes` exists.
+2. A-70: `python3 -c "import pyexpat; print(pyexpat.EXPAT_VERSION)"`; note the version.
+3. Copy a route (README, "Routes"); Pre-ride lists it with length and climb; choose it.
+4. D-33: ride with it (any planned ride will do), Upload on. The Summary shows the distance and climb a moment after Finish; intervals.icu and Garmin Connect (FIT download) show a virtual ride with map, speed, distance and elevation (A-69); note the average speed against an outdoor ride of similar power (A-67).
+5. Session G of the closing checks with the gallery: `https://wow.local/#gallery` on the iPhone (D-30, D-31, I-14 to I-20).
+
+## 44 Approval question
+
+Do you approve SL-13 as built, with requirements APP-613, APP-709 and APP-901 to APP-908 (39.1), decisions IM-128 to IM-141, the deviations of 41.4 and the proposed document changes of 41.5, closing when D-33 passes; and do you close Phase 5 with it, so that Phase 6 starts with the closing checks of the handover's section 8 (now with D-33 and Session G in the gallery)?
+
 ## Change log
 
 | Rev. | Date | Change |
@@ -1320,8 +1469,17 @@ Do you approve SL-10, SL-11 and SL-12 as built, with decisions IM-104 to IM-127,
 | 9 | 14 Nov 2026 | First ride on the simulator (section 25): findings SF-22 to SF-24, changes IM-88 to IM-90. |
 | 10 | 15 Nov 2026 | SL-05 and SL-06 approved by Ferran. SL-07 to SL-09 planned, built and gated on the laptop (sections 27 to 32); decisions IM-91 to IM-103; findings SF-25 to SF-27; start screen. |
 | 11 | 15 Nov 2026 | SL-10 to SL-12 planned, built and gated in the workspace at Ferran's request (sections 33 to 38); decisions IM-104 to IM-127; findings SF-28 to SF-36; A-65; app version 0.6.0. |
+| 12 | 17 Nov 2026 | SL-07 to SL-12 approved (16 Nov). Closing checks waived for SL-13; SL-13 planned, built and gated (sections 39 to 44): requirements APP-613, APP-709, APP-901 to APP-908; decisions IM-128 to IM-141; findings SF-37 to SF-42; A-67 to A-70; app version 0.7.0. |
 
 ## Sources
+
+- Martin, J. C., Milliken, D. L., Cobb, J. E., McFadden, K. L. and Coggan, A. R. (1998), Validation of a mathematical model for road cycling power, Journal of Applied Biomechanics 14(3), 276–291, doi:10.1123/jab.14.3.276 (the model's forces; abstract and indexes read, not the full paper): https://doi.org/10.1123/jab.14.3.276
+- GPX 1.1 schema (namespace, `trk`/`trkseg`/`trkpt`, `rte`/`rtept`, `lat`/`lon` in WGS84 decimal degrees, `ele` in metres, `name`): https://www.topografix.com/GPX/1/1/
+- Python 3.13, XML processing modules, XML security (Expat before 2.7.2 and entity expansion; `pyexpat.EXPAT_VERSION`): https://docs.python.org/3.13/library/xml.html
+- Moritz, H., Geodetic Reference System 1980 (IUGG mean radius R1 = 6,371,008.7714 m, as quoted): https://en.wikipedia.org/wiki/Geodetic_Reference_System_1980
+- Standard gravity 9.80665 m/s² (3rd CGPM, 1901) and ISA sea-level density 1.225 kg/m³ (ISO 2533), secondary sources: https://en.wikipedia.org/wiki/Standard_gravity, https://en.wikipedia.org/wiki/International_Standard_Atmosphere
+- Garmin FIT SDK 21.221.0 profile as installed: Record `position_lat`/`position_long` (sint32, semicircles), `distance` (scale 100, m), `speed` (scale 1000) and `enhanced_speed`, `altitude` and `enhanced_altitude` (scale 5, offset 500, m); Session `total_distance`, `avg_speed`, `max_speed`, `enhanced_avg_speed`, `enhanced_max_speed`, `total_ascent`, `total_descent`; `sub_sport` 58 `virtual_activity`, 6 `indoor_cycling`; the encoder applies scale and offset itself (`encoder.py`).
+- Vite `import.meta.glob` with `eager` and `import`, and `/// <reference types="vite/client" />`: used as built and type-checked here (the gallery chunk in the build output), not re-read in the documentation.
 
 - PyPI JSON API, latest versions and upload dates (bleak 3.1.0 uploaded 7 Nov 2026; pytest 9.2.0, flake8 7.5.0, mypy 2.4.1, pytest-asyncio 1.4.1.post1, pytest-cov 7.1.0, hypothesis 6.170.15), read 11 Nov 2026: https://pypi.org/pypi/bleak/json and the same URL for each package
 - bleak 3.0.2 and 3.1.0 source distributions, compared file by file (`bleak/backends/bluezdbus/client.py`, `pyproject.toml`): https://pypi.org/project/bleak/3.1.0/

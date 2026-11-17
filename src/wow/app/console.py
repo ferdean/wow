@@ -4,10 +4,11 @@ The rider's console: which screen is open, the display's commands
 carried to the controllers, and the view state put together from
 core/view (ICD IF-06, 4.6.3 and 4.6.5; IM-23).
 
-Home with today's, the library's and the built-in workouts, Pre-ride,
-the ride screen from Start to Finish, the Summary after Finish, past
-rides, Calibration and Settings; the devices are kept while Pre-ride, a
-ride or Calibration is open (APP-110).
+Home with today's, the library's and the built-in workouts, Pre-ride
+with the route choice, the ride screen from Start to Finish, the Summary
+after Finish, past rides, Calibration and Settings; the devices are kept
+while Pre-ride, a ride or Calibration is open (APP-110). Rides on
+simulated devices are never uploaded (APP-613).
 """
 
 import logging
@@ -22,7 +23,10 @@ from wow.app.history import (
 )
 from wow.app.housekeeping import CertificateWatch, FreeSpace
 from wow.app.recovery import Interrupted, outage, resumption
-from wow.app.ride_controller import RideController, RideSetup, Summary
+from wow.app.ride_controller import (
+    RideController, RideSetup, RouteSummary, Summary,
+)
+from wow.app.route_catalog import RouteCatalog
 from wow.app.settings_panel import SettingsPanel
 from wow.app.upload_worker import UploadWorker
 from wow.app.workout_catalog import Entry, Source, WorkoutCatalog
@@ -32,8 +36,9 @@ from wow.core.numbers import round_half_up
 from wow.core.view import (
     Json, Latest, PowerAverage, battery_warning, calibration_screen,
     certificate_warning, clock_warning, history_entry, history_screen,
-    home_screen, plan_message, pre_ride_screen, recovery_offer, ride_screen,
-    ride_warnings, summary_screen, view_state, workout_card,
+    home_screen, plan_message, pre_ride_screen, recovery_offer, ridden_route,
+    ride_screen, ride_warnings, route_option, summary_screen, view_state,
+    workout_card,
 )
 from wow.ports.clock import Clock
 from wow.core.ride import ACTIVE, RidePhase
@@ -54,7 +59,8 @@ class Console:
                  panel: SettingsPanel, on_change: Callable[[], None],
                  uploads: UploadWorker, space: FreeSpace,
                  rides_dir: Path, calibration: CalibrationController,
-                 certificate: CertificateWatch) -> None:
+                 certificate: CertificateWatch, routes: RouteCatalog,
+                 uploads_allowed: bool = True) -> None:
         self._clock = clock
         self._devices = devices
         self._rides = rides
@@ -79,6 +85,8 @@ class Console:
         self._rides_dir = rides_dir
         self._past: Summary | None = None
         self._calibration = calibration
+        self._routes = routes
+        self._uploads_allowed = uploads_allowed
 
     @property
     def screen(self) -> str:
@@ -179,15 +187,23 @@ class Console:
         if self._screen == Screen.SETTINGS:
             return self._panel.screen(self._certificate.valid_until)
         if self._screen == Screen.PRE_RIDE and self._plan is not None:
-            return pre_ride_screen(self._plan, trainer, self._block_modes,
-                                   self._is_free())
+            chosen = self._routes.find(self._panel.settings.route)
+            return pre_ride_screen(
+                self._plan, trainer, self._block_modes, self._is_free(),
+                [route_option(r.file, r.name, r.length_m, r.ascent_m)
+                 for r in self._routes.routes],
+                None if chosen is None else chosen.file)
         summary = self._past or self._rides.summary
         if self._screen == Screen.SUMMARY and summary is not None:
+            route = summary.route
             return summary_screen(summary.ride_id, summary.title,
                                   summary.start_utc, summary.metrics,
                                   self._upload(summary.ride_id,
                                                summary.upload),
-                                  self._past is not None)
+                                  self._past is not None,
+                                  None if route is None else ridden_route(
+                                      route.name, route.distance_m,
+                                      route.ascent_m))
         if self._screen == Screen.HISTORY:
             return history_screen(self._history(), self._space.free_mb())
         if self._screen == Screen.CALIBRATION:
@@ -326,6 +342,7 @@ class Console:
         self._block_modes = [Mode.ERG] * len(workout.blocks)
         self._screen = Screen.PRE_RIDE
         self._devices.open_pre_ride()
+        self._routes.request_refresh()
 
     def _is_free(self) -> bool:
         return self._entry is not None and (
@@ -338,6 +355,13 @@ class Console:
                 0 <= block < len(self._block_modes)) or mode not in set(Mode):
             return Problem.BAD_REQUEST
         self._block_modes[block] = Mode(mode)
+        return None
+
+    def _pre_ride_set_route(self, args: Mapping[str, Any]) -> str | None:
+        file = args.get("file")
+        if file is not None and self._routes.find(str(file)) is None:
+            return Problem.BAD_REQUEST
+        self._panel.keep_route(None if file is None else str(file))
         return None
 
     def _pre_ride_back(self, _args: Mapping[str, Any]) -> str | None:
@@ -389,7 +413,8 @@ class Console:
             return Problem.BAD_REQUEST
         self._past = Summary(str(meta["ride_id"]), str(meta.get("title")),
                              str(meta.get("start_utc")), metrics_of(metrics),
-                             UploadState(str(meta.get("upload", "off"))))
+                             UploadState(str(meta.get("upload", "off"))),
+                             _route_of(meta.get("route")))
         self._screen = Screen.SUMMARY
         return None
 
@@ -428,13 +453,16 @@ class Console:
         if self._plan is None or self._entry is None:
             return Problem.INVALID_STATE
         settings = self._panel.settings
+        route = self._routes.find(settings.route)
         refused = self._rides.start(RideSetup(
             self._plan.workout, self._plan.ftp, settings.lead_time,
             raw=self._entry.raw, source=self._entry.source,
             zones_pct=settings.zones_pct,
             free_ride_level_pct=settings.free_ride_level_pct,
-            upload_on=settings.upload_on,
-            block_modes=tuple(self._block_modes)))
+            upload_on=settings.upload_on and self._uploads_allowed,
+            block_modes=tuple(self._block_modes),
+            route=None if route is None else route.choice(),
+            rider_kg=settings.rider_kg))
         if refused is not None:
             logger.info("start refused: %s", refused)
             return Problem.INVALID_STATE
@@ -506,6 +534,16 @@ class Console:
             return Problem.BAD_REQUEST
         power = self._power.value(self._clock.monotonic())
         return _refusal(self._rides.switch_mode(Mode(mode), power))
+
+
+def _route_of(value: object) -> RouteSummary | None:
+    if not isinstance(value, dict):
+        return None
+    distance, ascent = value.get("distance_m"), value.get("ascent_m")
+    return RouteSummary(
+        str(value.get("name")),
+        float(distance) if isinstance(distance, (int, float)) else None,
+        float(ascent) if isinstance(ascent, (int, float)) else None)
 
 
 def _refusal(problem: str | None) -> str | None:

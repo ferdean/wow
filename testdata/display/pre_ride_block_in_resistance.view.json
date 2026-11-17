@@ -20,6 +20,8 @@
    "erg",
    "resistance"
   ],
+  "routes": [],
+  "route": null,
   "can_start": true,
   "blocked": null
  }

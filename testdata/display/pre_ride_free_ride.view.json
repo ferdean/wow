@@ -17,6 +17,8 @@
   "duration": null,
   "plan_id": null,
   "block_modes": [],
+  "routes": [],
+  "route": null,
   "can_start": true,
   "blocked": null
  }

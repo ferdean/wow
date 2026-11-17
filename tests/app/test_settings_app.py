@@ -193,7 +193,7 @@ async def test_the_key_appears_nowhere(
     caplog.set_level(logging.DEBUG)
     base, seen, _ = icu
     session = AppSession(tmp_path, account=lambda s: IntervalsIcu(
-        s.athlete_id, s.api_key, base))
+        s.athlete_id, s.api_key, base), upload_simulated=True)
     app = session.app
     worker = asyncio.get_running_loop().create_task(app.uploads.run())
     outputs: list[Any] = []

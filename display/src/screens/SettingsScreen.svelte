@@ -10,12 +10,13 @@
 
   // Table S (Phase 1): the stepper keeps a draft inside the range; the Pi
   // checks the value again when it is saved.
-  type NumberKey = "ftp" | "lead_time" | "battery_warn_pct";
+  type NumberKey = "ftp" | "lead_time" | "battery_warn_pct" | "rider_kg";
   interface Span { key: NumberKey; label: string; min: number; max: number; step: number; unit: string }
   const SPANS: Span[] = [
     { key: "ftp", label: "FTP", min: 100, max: 500, step: 1, unit: "W" },
     { key: "lead_time", label: "Lead time", min: 0, max: 5, step: 0.5, unit: "s" },
     { key: "battery_warn_pct", label: "Strap battery warning", min: 5, max: 50, step: 5, unit: "%" },
+    { key: "rider_kg", label: "Weight, for routes", min: 40, max: 150, step: 1, unit: "kg" },
   ];
   const ZONE_MIN = 1;
   const ZONE_MAX = 200;

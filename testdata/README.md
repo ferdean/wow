@@ -34,7 +34,9 @@ One pair per case: `<case>-<name>.events.json` (in) and `<case>-<name>.actions.j
 
 ## `display/`: golden views (L1; S-DSP-01)
 
-`<state>.view.json`: the complete `view` message (ICD IF-06) for one state of test plan 3.1, written by `tests/core/test_view.py` from the scripted scenes of `tests/support/scenes.py` and compared on every run. After an intended change, rewrite them with `WOW_UPDATE_GOLDEN=1 uv run pytest tests/core/test_view.py` and review the difference. Vitest renders every file (S-DSP-01). SL-02 has Home, Pre-ride (trainer connected and missing) and the ride screen (waiting for power, ERG, last 5 s, target limited, strap missing, workout done).
+`<state>.view.json`: the complete `view` message (ICD IF-06) for one state of test plan 3.1, written by `tests/core/test_view.py` from the scripted scenes of `tests/support/scenes.py` and compared on every run. After an intended change, rewrite them with `WOW_UPDATE_GOLDEN=1 uv run pytest tests/core/test_view.py` and review the difference. Vitest renders every file (S-DSP-01). SL-02 has Home, Pre-ride (trainer connected and missing) and the ride screen (waiting for power, ERG, last 5 s, target limited, strap missing, workout done). `plans.json` holds the plan messages of the Pre-ride states by `plan_id`, for the display's gallery (S-DSP-08); it is written and checked the same way.
+
+Route tests make their GPX files in code (`tests/support/routes.py`), with made-up coordinates; no route data is kept here.
 
 ## `ble/`: Bluetooth logs (L4, and the log parts of T-COD-01 and T-SIM-01)
 

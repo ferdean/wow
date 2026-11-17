@@ -88,3 +88,23 @@ def test_other_fields_and_the_json_form() -> None:
     partly, problems = settings_of({"ftp": 600, "lead_time": 2.0})
     assert (partly.ftp, partly.lead_time) == (250, 2.0)
     assert [p.key for p in problems] == ["ftp"]
+
+
+@pytest.mark.case("T-SET-09")
+@pytest.mark.req("APP-709", "APP-902")
+def test_rider_weight_and_the_route_file() -> None:
+    assert Settings().rider_kg == 75 and Settings().route is None
+    assert accepted("rider_kg", [39, 40, 150, 151, 75.5, True]) == [40, 150]
+    assert rejection("rider_kg", 39) == "rider_kg: 40 to 150 kg in steps of 1"
+    assert accepted("route", [None, "lake-loop.gpx", "Ride 1.GPX",
+                              "../x.gpx", "a/b.gpx", ".hidden.gpx",
+                              "x.gpx\n", "notes.txt", 7]) == [
+        None, "lake-loop.gpx", "Ride 1.GPX"]
+    assert rejection("route", "../x.gpx") == (
+        "route: null or the name of a .gpx file")
+    chosen = with_value(Settings(rider_kg=68), SettingKey.ROUTE,
+                        "lake-loop.gpx")
+    assert isinstance(chosen, Settings)
+    raw = settings_json(chosen)
+    assert (raw["rider_kg"], raw["route"]) == (68, "lake-loop.gpx")
+    assert settings_of(raw) == (chosen, [])

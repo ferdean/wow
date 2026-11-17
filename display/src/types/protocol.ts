@@ -58,10 +58,12 @@ export interface HomeScreen {
   recovery: { ride_id: string; started_utc: string | null; outage: number | null; can_continue: boolean } | null;
 }
 
+export interface RouteOption { file: string; name: string; length_m: number; ascent_m: number }
 export interface PreRideScreen {
   name: "pre_ride";
   title: string; free_ride: boolean; ftp: number; duration: number | null;
   plan_id: string | null; block_modes: Mode[];
+  routes: RouteOption[]; route: string | null;
   can_start: boolean; blocked: "trainer_missing" | null;
 }
 
@@ -88,9 +90,10 @@ export interface Metrics {
   np: number | null; intensity_factor: number | null; tss: number | null; work_kj: number;
   time_in_zone: number[]; avg_hr_bpm: number | null; max_hr_bpm: number | null;
 }
+export interface RiddenRoute { name: string; distance_m: number | null; ascent_m: number | null }
 export interface SummaryScreen {
   name: "summary"; ride_id: string; title: string; start_utc: string; metrics: Metrics; upload: UploadState;
-  past: boolean;
+  past: boolean; route: RiddenRoute | null;
 }
 
 export interface HistoryScreen {
@@ -112,7 +115,7 @@ export type DeviceKind = "trainer" | "hrm" | "cadence";
 export interface FoundDevice { address: string; name: string | null; rssi_dbm: number; kind: DeviceKind }
 export interface SettingsScreen {
   name: "settings";
-  ftp: number; zones_pct: number[]; lead_time: number; battery_warn_pct: number;
+  ftp: number; zones_pct: number[]; lead_time: number; battery_warn_pct: number; rider_kg: number;
   upload_on: boolean; intervals_account_set: boolean; cert_valid_until: string | null;
   trainer: { address: string; name: string | null } | null;
   hrm: { address: string; name: string | null } | null;
@@ -127,7 +130,7 @@ export type CommandName =
   | "free_ride_power" | "finish" | "discard" | "back" | "open_history" | "open_ride"
   | "upload_retry" | "delete_ride" | "open_calibration" | "calibration_start"
   | "calibration_cancel" | "open_settings" | "settings_set" | "intervals_account_set"
-  | "device_scan" | "device_choose" | "recovery_continue" | "recovery_finish";
+  | "device_scan" | "device_choose" | "recovery_continue" | "recovery_finish" | "set_route";
 
 export interface Command {
   type: "command"; id: number; name: CommandName; args?: Record<string, unknown>;

@@ -23,6 +23,7 @@ fi
 id wow >/dev/null 2>&1 || useradd --system --home-dir /var/lib/wow \
     --shell /usr/sbin/nologin --groups bluetooth wow
 install -d -o wow -g wow -m 0750 /var/lib/wow
+install -d -o wow -g wow -m 0750 /var/lib/wow/routes
 # The API key and the TLS key: readable by wow only (APP-817, T-SYS-05).
 [ ! -d /var/lib/wow/tls ] || chown -R wow:wow /var/lib/wow/tls
 [ ! -d /var/lib/wow/tls ] || chmod 0750 /var/lib/wow/tls

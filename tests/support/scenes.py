@@ -25,10 +25,13 @@ from wow.core.view import (
     history_entry,
     history_screen,
     home_screen,
+    plan_message,
     recovery_offer,
     pre_ride_screen,
+    ridden_route,
     ride_screen,
     ride_warnings,
+    route_option,
     summary_screen,
     view_state,
     workout_card,
@@ -105,6 +108,20 @@ def envelope(view: dict[str, Any]) -> dict[str, Any]:
 def card_of(workout: Workout, source: str = "builtin") -> dict[str, Any]:
     return workout_card(workout, make_plan(workout, 250), source,
                         workout.ref, workout.name)
+
+
+HR_STEP = Workout("test:hr", "Heart-rate step", None, (
+    Block(None, 1, (Step(300.0, PowerTarget(140, PowerUnit.WATTS),
+                         "Warm-up"),
+                    Step(600.0, None, "Hold 140 bpm"))),))
+
+
+def plans() -> dict[str, dict[str, Any]]:
+    """Return the plan messages of the golden Pre-ride states, by plan_id,
+    for the display's gallery."""
+    found = [plan_message(make_plan(w, 250))
+             for w in (THIRTY_THIRTY, ramp_test(), HR_STEP)]
+    return {str(p["plan_id"]): p for p in found}
 
 
 def ramp_test() -> Workout:
@@ -264,10 +281,7 @@ def sl10_scenes() -> dict[str, dict[str, Any]]:
     library = rides_of(load_json("intervals/workouts.json"))
     today = [e for e in planned_on(load_json("intervals/events.json"),
                                    date(2026, 11, 14))]
-    unsupported = Workout("test:hr", "Heart-rate step", None, (
-        Block(None, 1, (Step(300.0, PowerTarget(140, PowerUnit.WATTS),
-                             "Warm-up"),
-                        Step(600.0, None, "Hold 140 bpm"))),))
+    unsupported = HR_STEP
     chosen = Settings(trainer=DeviceRef("94:05:BB:03:5D:9D",
                                         "VANRYSEL-HT-9d5d"),
                       hrm=DeviceRef("E0:E2:EF:63:14:BC", "HRM200:739158"))
@@ -356,6 +370,28 @@ def upload_scenes() -> dict[str, dict[str, Any]]:
             ("timeout", (0.0, 40.0), 12.3, 120.0,
              ("2026-11-15T07:40:12.000Z", False)))}
     return {**found, **calibration}
+
+
+def sl13_scenes() -> dict[str, dict[str, Any]]:
+    plan = make_plan(THIRTY_THIRTY, 250)
+    routes = [route_option("lake-loop.gpx", "Lake loop", 24312.4, 312.6),
+              route_option("test-climb.gpx", "Test climb", 5000.0, 410.2)]
+    metrics = ride_metrics([180] * 3600, [130] * 3600, 250,
+                           (55, 75, 90, 105, 120))
+
+    def summary(distance: float | None, ascent: float | None
+                ) -> dict[str, Any]:
+        return _view(summary_screen(
+            "2026-11-17T171500Z", "Long ride + SS",
+            "2026-11-17T17:15:03.120Z", metrics, UploadState.PENDING,
+            route=ridden_route("Lake loop", distance, ascent)))
+
+    return {
+        "pre_ride_routes": _view(pre_ride_screen(
+            plan, LinkState.CONNECTED, routes=routes, route="lake-loop.gpx")),
+        "summary_route_working": summary(None, None),
+        "summary_route": summary(32456.7, 402.3),
+    }
 
 
 def scenes() -> dict[str, dict[str, Any]]:
@@ -464,4 +500,5 @@ def scenes() -> dict[str, dict[str, Any]]:
         **sl07_scenes(),
         **sl10_scenes(),
         **upload_scenes(),
+        **sl13_scenes(),
     }

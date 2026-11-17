@@ -57,7 +57,8 @@ async def ride_ref(tmp: Path, ref: str, finish_after: float,
     """Rides a workout of the catalog from Home to Finish on the stepped
     clock and shuts down: the files of the ride."""
     clock = clock or SteppedClock()
-    app = App(app_config(tmp), clock, provider=provider, zone=zone)
+    app = App(app_config(tmp), clock, provider=provider, zone=zone,
+              upload_simulated=True)
     app.recorder.start()
     try:
         if provider is not None:

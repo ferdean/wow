@@ -20,6 +20,8 @@
    "erg",
    "erg"
   ],
+  "routes": [],
+  "route": null,
   "can_start": false,
   "blocked": "trainer_missing"
  }

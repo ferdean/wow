@@ -3,9 +3,10 @@
 The domain view state the Pi sends to the display (ICD IF-06, 4.6.3;
 AD-18). Values only, no formatting.
 
-Home with planned, library and built-in workouts, Pre-ride, the ride
-screen while armed, during steps and after the last one, the Summary,
-the ride history, Calibration and Settings, and the warnings they carry.
+Home with planned, library and built-in workouts, Pre-ride with the
+routes to choose from, the ride screen while armed, during steps and
+after the last one, the Summary, the ride history, Calibration and
+Settings, and the warnings they carry.
 """
 
 from collections import deque
@@ -131,10 +132,19 @@ def recovery_offer(ride_id: str, started_utc: str | None,
             "can_continue": outage is not None}
 
 
+def route_option(file: str, name: str, length_m: float,
+                 ascent_m: float) -> Json:
+    """Return a route the rider can choose (APP-901)."""
+    return {"file": file, "name": name,
+            "length_m": round_half_up(exact(length_m)),
+            "ascent_m": round_half_up(exact(ascent_m))}
+
+
 def pre_ride_screen(plan: Plan, trainer: LinkState,
                     block_modes: Sequence[Mode] = (),
-                    free: bool = False) -> Json:
-    """Return the Pre-ride screen."""
+                    free: bool = False, routes: Sequence[Json] = (),
+                    route: str | None = None) -> Json:
+    """Return the Pre-ride screen; route is the chosen route's file."""
     ready = trainer == LinkState.CONNECTED
     modes = list(block_modes) or [Mode.ERG] * len(plan.workout.blocks)
     return {
@@ -143,6 +153,7 @@ def pre_ride_screen(plan: Plan, trainer: LinkState,
         "duration": None if free else _ms(plan.duration),
         "plan_id": None if free else plan.plan_id,
         "block_modes": [] if free else modes,
+        "routes": list(routes), "route": route,
         "can_start": ready,
         "blocked": None if ready else Problem.TRAINER_MISSING,
     }
@@ -244,12 +255,23 @@ def ride_screen(ride: Ride, now: float, power: int | None,
     return screen
 
 
+def ridden_route(name: str, distance_m: float | None,
+                 ascent_m: float | None) -> Json:
+    """Return a ride's route; no distance while it is being worked out."""
+    def whole(value: float | None) -> int | None:
+        return None if value is None else round_half_up(exact(value))
+
+    return {"name": name, "distance_m": whole(distance_m),
+            "ascent_m": whole(ascent_m)}
+
+
 def summary_screen(ride_id: str, title: str, start_utc: str,
-                   metrics: Metrics, upload: str, past: bool = False) -> Json:
+                   metrics: Metrics, upload: str, past: bool = False,
+                   route: Json | None = None) -> Json:
     """Return the Summary of a ride just finished, or a past one."""
     return {"name": Screen.SUMMARY, "ride_id": ride_id, "title": title,
             "start_utc": start_utc, "metrics": metrics_view(metrics),
-            "upload": upload, "past": past}
+            "upload": upload, "past": past, "route": route}
 
 
 def calibration_screen(phase: str, band_kmh: tuple[float, float] | None,
@@ -349,6 +371,7 @@ def settings_screen(settings: Settings, account_set: bool,
         "zones_pct": list(settings.zones_pct),
         "lead_time": settings.lead_time,
         "battery_warn_pct": settings.battery_warn_pct,
+        "rider_kg": settings.rider_kg,
         "upload_on": settings.upload_on,
         "intervals_account_set": account_set,
         "cert_valid_until": cert_valid_until,

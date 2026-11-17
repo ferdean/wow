@@ -31,7 +31,7 @@ uv run wow --config wow.toml --sim                   # simulated devices
 
 Open `https://wow.local:8443` in Safari. `http://wow.local:8080/setup/root.crt` serves the root certificate; any other plain-HTTP path redirects to HTTPS. In `--sim` the simulated rider starts pedaling 3 s after the first target arrives, so the ride starts by itself.
 
-FTP, zones, lead time, the battery warning, upload, the intervals.icu account and the trainer and strap are set on the Settings screen (from Home); `settings.json` and `secrets.json` don't need editing by hand. The devices are released 10 minutes after the last ride, Pre-ride or calibration, so Onelap can connect without stopping wow.
+FTP, zones, lead time, the battery warning, your weight (for routes), upload, the intervals.icu account and the trainer and strap are set on the Settings screen (from Home); `settings.json` and `secrets.json` don't need editing by hand. The devices are released 10 minutes after the last ride, Pre-ride or calibration, so Onelap can connect without stopping wow.
 
 For the display alone on the laptop: `npm run dev` in `display/`, with `wow --sim` running; Vite proxies `/ws` to `https://localhost:8443` (set `WOW_PI` for another address).
 
@@ -75,7 +75,7 @@ sudo systemctl restart wow
 journalctl -u wow -n 50 | grep started   # "... started with simulated devices" in simulation
 ```
 
-Before simulating, turn **Upload** off on the Settings screen, and turn it back on afterwards. Otherwise a ride finished on the simulator is uploaded to intervals.icu like a real one. Simulated rides also show up in Past rides, where you can delete them.
+Rides on the simulator are never uploaded by themselves, whatever the Upload setting says (from 0.7.0; with 0.6.0 turn Upload off first); "Upload now" on their Summary still sends one if you ask. They show up in Past rides, where you can delete them.
 
 `wow-probe` and `uv run wow` from a checkout on the Pi need the same devices (and `uv run wow` the same ports), so stop the service first:
 
@@ -93,6 +93,24 @@ uv run wow --config wow.toml --sim    # simulator; --sim overrides wow.toml
 ```
 
 Stop with one Ctrl-C and wait for `wow stopped …`. `kill <pid>` sends SIGTERM and does the same orderly stop. To switch modes, stop and start again with or without `--sim`. Both modes write to `wow-data/`, so the Upload note above applies here too.
+
+## Routes
+
+A ride can be ridden along a GPX route. The trainer and the ride screen don't change: when the ride is finished, wow moves you along the route with your recorded power (your weight from Settings plus a 9 kg bike, on the cycling power model of Martin et al., 1998) and writes speed, distance, altitude and position into `ride.fit`, marked as a virtual ride. A ride longer than the route starts it again from the beginning.
+
+Put `.gpx` files in the data directory's `routes` folder:
+
+```
+mkdir -p wow-data/routes && cp deploy/routes/example-loop.gpx wow-data/routes/         # laptop
+scp my-route.gpx pi:/tmp/                                                                # Pi, from the laptop
+ssh pi 'sudo install -o wow -g wow -m 0640 /tmp/my-route.gpx /var/lib/wow/routes/'
+```
+
+Choose the route on Pre-ride (it stays chosen until you change it). The Summary shows the distance and climb a moment after Finish. A file over 10 MB, with a DOCTYPE, with fewer than two points or shorter than 100 m is left out, and the log says why. `deploy/routes/example-loop.gpx` is a made-up 18.8 km loop with one 60 m hill, no real map data.
+
+## Gallery
+
+`https://wow.local/#gallery` (`:8443` on the laptop) lists every screen state the tests know (`testdata/display`) and shows each one through the real screens, on the phone; nothing is sent to the Pi. Swipe back to return to the list. It is how DS-8 (D-30, D-31) and the walk-through I-14 to I-20 are done.
 
 ## Gate
 

@@ -9,9 +9,12 @@ from typing import Any
 import pytest
 from garmin_fit_sdk import Decoder, Stream
 
+from tests.support.routes import climb, gpx
 from wow.adapters.fit_garmin import encode_activity, software_version
 from wow.core.activity import Activity, Pause, RecordedSample
 from wow.core.metrics import ride_metrics
+from wow.core.route import RouteChoice
+from wow.core.virtual_ride import track_of
 
 START = datetime(2026, 11, 13, 17, 0, tzinfo=UTC)
 
@@ -110,6 +113,51 @@ def test_the_session_carries_the_metrics_of_table_m() -> None:
     assert session["total_work"] == round(metrics.work_kj * 1000)
     assert (session["sport"], session["sub_sport"]) == (
         "cycling", "indoor_cycling")
+
+
+@pytest.mark.case("T-FIT-07")
+@pytest.mark.req("APP-904")
+def test_a_ride_on_a_route_carries_speed_distance_altitude_position() -> None:
+    plain = activity([220] * 120, laps=(0.0, 60.0),
+                     pauses=(Pause(80.0, 30.0),))
+    route = RouteChoice("ramp.gpx", "Ramp", gpx(climb(3000, 0.04)))
+    track = track_of(route, [(s.t, s.power) for s in plain.samples],
+                     [p.t_ride for p in plain.pauses], 75)
+    ride = Activity(plain.title, plain.app_version, plain.ftp,
+                    plain.start_utc, plain.duration, plain.samples,
+                    plain.lap_starts, plain.pauses, plain.metrics, track)
+    messages = decode(encode_activity(ride))
+    records = messages["record_mesgs"]
+    assert len(records) == 120
+    for record, point in zip(records, track.points):
+        assert record["distance"] == pytest.approx(point.distance_m, abs=0.01)
+        assert record["enhanced_speed"] == pytest.approx(point.speed_mps,
+                                                         abs=0.001)
+        assert record["enhanced_altitude"] == pytest.approx(
+            point.altitude_m, abs=0.2)
+        assert record["position_lat"] * 180 / 2 ** 31 == pytest.approx(
+            point.lat, abs=1e-6)
+        assert record["position_long"] * 180 / 2 ** 31 == pytest.approx(
+            point.lon, abs=1e-6)
+    session = messages["session_mesgs"][0]
+    assert session["sub_sport"] == "virtual_activity"
+    assert session["total_distance"] == pytest.approx(track.distance_m,
+                                                      abs=0.01)
+    assert session["enhanced_max_speed"] == pytest.approx(
+        track.max_speed_mps, abs=0.001)
+    assert session["enhanced_avg_speed"] == pytest.approx(
+        track.distance_m / 120, abs=0.001)
+    assert session["total_ascent"] == round(track.ascent_m)
+    assert session["total_descent"] == 0
+    laps = messages["lap_mesgs"]
+    assert sum(lap["total_distance"] for lap in laps) == pytest.approx(
+        track.distance_m, abs=0.05)
+    assert laps[1]["total_distance"] == pytest.approx(
+        track.distance_m - track.points[59].distance_m, abs=0.01)
+    indoor = decode(encode_activity(plain))
+    assert indoor["session_mesgs"][0]["sub_sport"] == "indoor_cycling"
+    assert "distance" not in indoor["record_mesgs"][0]
+    assert "total_distance" not in indoor["session_mesgs"][0]
 
 
 @pytest.mark.case("S-FIT-01")

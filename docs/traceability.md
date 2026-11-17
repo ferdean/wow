@@ -1,4 +1,4 @@
-# Traceability (generated; finished slices through SL-12)
+# Traceability (generated; finished slices through SL-13)
 
 | Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
 |---|---|---|---|
@@ -83,6 +83,7 @@
 | APP-610 | T-WEB-03 passed | D-26 pending | passed |
 | APP-611 | T-VIEW-07 passed | D-26 pending, I-20 pending | passed |
 | APP-612 | T-HK-01 passed, T-REC-06 passed | D-31 pending, I-14 pending | passed |
+| APP-613 | T-UPL-06 passed | — | passed |
 | APP-701 | T-MET-08 passed, T-SET-02 passed | — | passed |
 | APP-702 | T-MET-05 passed, T-SET-03 passed | — | passed |
 | APP-703 | T-SET-04 passed | — | passed |
@@ -91,6 +92,7 @@
 | APP-706 | T-SET-07 passed | — | passed |
 | APP-707 | T-SET-06 passed | — | passed |
 | APP-708 | T-SET-01 passed | — | passed |
+| APP-709 | T-SET-09 passed | — | passed |
 | APP-801 | T-SES-09 passed, T-SYS-01 passed on the Pi | RR-02 pass | passed |
 | APP-802 | T-WEB-08 due on the Pi | D-19 pending, RR-07 pending | not yet due |
 | APP-803 | T-WEB-04 passed, T-WEB-07 due on the Pi | RR-08 pending | passed so far |
@@ -118,3 +120,11 @@
 | APP-825 | T-RID-18 passed | — | passed |
 | APP-826 | T-HK-03 passed | D-23 pending | passed |
 | APP-830 | T-HK-02 passed | D-31 pending, I-14 pending | passed |
+| APP-901 | T-RTE-01 passed, T-RTE-04 passed | — | passed |
+| APP-902 | T-RTE-05 passed, T-SET-09 passed | — | passed |
+| APP-903 | T-RTE-03 passed, T-RTE-06 passed, T-VRD-01 passed, T-VRD-02 passed | — | passed |
+| APP-904 | T-FIT-07 passed, T-RTE-06 passed | D-33 pending | passed |
+| APP-905 | T-VRD-03 passed | — | passed |
+| APP-906 | T-RTE-06 passed | D-33 pending | passed |
+| APP-907 | T-RTE-02 passed, T-RTE-04 passed | — | passed |
+| APP-908 | T-RCV-06 passed | — | passed |

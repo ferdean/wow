@@ -12,10 +12,12 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from garmin_fit_sdk import Decoder, Stream
 
 from tests.support.app_rig import (
     ERG_CHECK, AppSession, app_config, read_jsonl, ride_dirs,
 )
+from tests.support.routes import climb, gpx
 from wow.adapters.clock_stepped import SteppedClock
 from wow.app.main import App
 from wow.core.ride import RidePhase
@@ -203,3 +205,35 @@ async def test_armed_is_cancelled_and_paused_is_offered(
         105.0, abs=1.1)
     await later.close()
     await paused.close()
+
+
+@pytest.mark.case("T-RCV-06")
+@pytest.mark.req("APP-908")
+@pytest.mark.asyncio
+async def test_a_recovered_ride_keeps_its_route(tmp_path: Path) -> None:
+    folder = tmp_path / "first" / "data" / "routes"
+    folder.mkdir(parents=True)
+    (folder / "ramp.gpx").write_bytes(gpx(climb(3000, 0.04), "Ramp"))
+    first = AppSession(tmp_path / "first")
+    assert first.command("open_workout", ref=ERG_CHECK) is None
+    await first.clock.drive(first.app.routes.refresh(), limit=60.0)
+    assert first.command("set_route", file="ramp.gpx") is None
+    await first.clock.advance(15.0)
+    assert first.command("start") is None
+    await first.until(130.0)
+    (folder / "ramp.gpx").unlink()
+    again = Restarted(first, tmp_path / "again")
+    await again.start()
+    assert again.command("recovery_continue") is None
+    await again.clock.advance(60.0)
+    assert again.command("finish") is None
+    ride_dir = await again.close()
+    await first.close()
+    meta = json.loads((ride_dir / "meta.json").read_text())
+    assert meta["route"]["name"] == "Ramp" and meta["rider_kg"] == 75
+    assert meta["route"]["distance_m"] > 500
+    samples = read_jsonl(ride_dir / "samples.jsonl")
+    data = bytearray((ride_dir / "ride.fit").read_bytes())
+    records = Decoder(Stream.from_byte_array(data)).read()[0]["record_mesgs"]
+    assert len(records) == len(samples)
+    assert all("distance" in r for r in records)

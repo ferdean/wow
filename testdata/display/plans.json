@@ -1,0 +1,792 @@
+{
+ "builtin:test-3030@250": {
+  "type": "plan",
+  "plan_id": "builtin:test-3030@250",
+  "segments": [
+   {
+    "start": 0.0,
+    "end": 60.0,
+    "block": 0,
+    "step": 0,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 140,
+    "end_power": 140,
+    "zone": 2,
+    "text": "Warm-up"
+   },
+   {
+    "start": 60.0,
+    "end": 90.0,
+    "block": 1,
+    "step": 1,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 220,
+    "end_power": 220,
+    "zone": 3,
+    "text": null
+   },
+   {
+    "start": 90.0,
+    "end": 120.0,
+    "block": 1,
+    "step": 2,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 140,
+    "end_power": 140,
+    "zone": 2,
+    "text": null
+   },
+   {
+    "start": 120.0,
+    "end": 150.0,
+    "block": 1,
+    "step": 3,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 220,
+    "end_power": 220,
+    "zone": 3,
+    "text": null
+   },
+   {
+    "start": 150.0,
+    "end": 180.0,
+    "block": 1,
+    "step": 4,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 140,
+    "end_power": 140,
+    "zone": 2,
+    "text": null
+   },
+   {
+    "start": 180.0,
+    "end": 210.0,
+    "block": 1,
+    "step": 5,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 220,
+    "end_power": 220,
+    "zone": 3,
+    "text": null
+   },
+   {
+    "start": 210.0,
+    "end": 240.0,
+    "block": 1,
+    "step": 6,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 140,
+    "end_power": 140,
+    "zone": 2,
+    "text": null
+   }
+  ],
+  "blocks": [
+   {
+    "index": 0,
+    "label": "",
+    "repeats": 1,
+    "duration": 60.0,
+    "mode": "erg",
+    "steps": [
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "label": "30/30",
+    "repeats": 3,
+    "duration": 180.0,
+    "mode": "erg",
+    "steps": [
+     {
+      "duration": 30.0,
+      "kind": "erg",
+      "start_power": 220,
+      "end_power": 220,
+      "zone": 3
+     },
+     {
+      "duration": 30.0,
+      "kind": "erg",
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     }
+    ]
+   }
+  ]
+ },
+ "builtin:ramp-test@250": {
+  "type": "plan",
+  "plan_id": "builtin:ramp-test@250",
+  "segments": [
+   {
+    "start": 0.0,
+    "end": 600.0,
+    "block": 0,
+    "step": 0,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 120,
+    "end_power": 120,
+    "zone": 1,
+    "text": "Warm-up"
+   },
+   {
+    "start": 600.0,
+    "end": 780.0,
+    "block": 1,
+    "step": 1,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 150,
+    "end_power": 150,
+    "zone": 2,
+    "text": "Warm-up: a little harder"
+   },
+   {
+    "start": 780.0,
+    "end": 900.0,
+    "block": 2,
+    "step": 2,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 100,
+    "end_power": 100,
+    "zone": 1,
+    "text": "Warm-up: easy before the ramp"
+   },
+   {
+    "start": 900.0,
+    "end": 960.0,
+    "block": 3,
+    "step": 3,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 120,
+    "end_power": 120,
+    "zone": 1,
+    "text": null
+   },
+   {
+    "start": 960.0,
+    "end": 1020.0,
+    "block": 3,
+    "step": 4,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 140,
+    "end_power": 140,
+    "zone": 2,
+    "text": null
+   },
+   {
+    "start": 1020.0,
+    "end": 1080.0,
+    "block": 3,
+    "step": 5,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 160,
+    "end_power": 160,
+    "zone": 2,
+    "text": null
+   },
+   {
+    "start": 1080.0,
+    "end": 1140.0,
+    "block": 3,
+    "step": 6,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 180,
+    "end_power": 180,
+    "zone": 2,
+    "text": null
+   },
+   {
+    "start": 1140.0,
+    "end": 1200.0,
+    "block": 3,
+    "step": 7,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 200,
+    "end_power": 200,
+    "zone": 3,
+    "text": null
+   },
+   {
+    "start": 1200.0,
+    "end": 1260.0,
+    "block": 3,
+    "step": 8,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 220,
+    "end_power": 220,
+    "zone": 3,
+    "text": null
+   },
+   {
+    "start": 1260.0,
+    "end": 1320.0,
+    "block": 3,
+    "step": 9,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 240,
+    "end_power": 240,
+    "zone": 4,
+    "text": null
+   },
+   {
+    "start": 1320.0,
+    "end": 1380.0,
+    "block": 3,
+    "step": 10,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 260,
+    "end_power": 260,
+    "zone": 4,
+    "text": null
+   },
+   {
+    "start": 1380.0,
+    "end": 1440.0,
+    "block": 3,
+    "step": 11,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 280,
+    "end_power": 280,
+    "zone": 5,
+    "text": null
+   },
+   {
+    "start": 1440.0,
+    "end": 1500.0,
+    "block": 3,
+    "step": 12,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 300,
+    "end_power": 300,
+    "zone": 5,
+    "text": null
+   },
+   {
+    "start": 1500.0,
+    "end": 1560.0,
+    "block": 3,
+    "step": 13,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 320,
+    "end_power": 320,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 1560.0,
+    "end": 1620.0,
+    "block": 3,
+    "step": 14,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 340,
+    "end_power": 340,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 1620.0,
+    "end": 1680.0,
+    "block": 3,
+    "step": 15,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 360,
+    "end_power": 360,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 1680.0,
+    "end": 1740.0,
+    "block": 3,
+    "step": 16,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 380,
+    "end_power": 380,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 1740.0,
+    "end": 1800.0,
+    "block": 3,
+    "step": 17,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 400,
+    "end_power": 400,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 1800.0,
+    "end": 1860.0,
+    "block": 3,
+    "step": 18,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 420,
+    "end_power": 420,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 1860.0,
+    "end": 1920.0,
+    "block": 3,
+    "step": 19,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 440,
+    "end_power": 440,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 1920.0,
+    "end": 1980.0,
+    "block": 3,
+    "step": 20,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 460,
+    "end_power": 460,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 1980.0,
+    "end": 2040.0,
+    "block": 3,
+    "step": 21,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 480,
+    "end_power": 480,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 2040.0,
+    "end": 2100.0,
+    "block": 3,
+    "step": 22,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 500,
+    "end_power": 500,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 2100.0,
+    "end": 2160.0,
+    "block": 3,
+    "step": 23,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 520,
+    "end_power": 520,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 2160.0,
+    "end": 2220.0,
+    "block": 3,
+    "step": 24,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 540,
+    "end_power": 540,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 2220.0,
+    "end": 2280.0,
+    "block": 3,
+    "step": 25,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 560,
+    "end_power": 560,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 2280.0,
+    "end": 2340.0,
+    "block": 3,
+    "step": 26,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 580,
+    "end_power": 580,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 2340.0,
+    "end": 2400.0,
+    "block": 3,
+    "step": 27,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 600,
+    "end_power": 600,
+    "zone": 6,
+    "text": null
+   },
+   {
+    "start": 2400.0,
+    "end": 2700.0,
+    "block": 4,
+    "step": 28,
+    "mode": "resistance",
+    "kind": "free_ride",
+    "start_power": null,
+    "end_power": null,
+    "zone": null,
+    "text": "Cool-down"
+   }
+  ],
+  "blocks": [
+   {
+    "index": 0,
+    "label": "",
+    "repeats": 1,
+    "duration": 600.0,
+    "mode": "erg",
+    "steps": [
+     {
+      "duration": 600.0,
+      "kind": "erg",
+      "start_power": 120,
+      "end_power": 120,
+      "zone": 1
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "label": "",
+    "repeats": 1,
+    "duration": 180.0,
+    "mode": "erg",
+    "steps": [
+     {
+      "duration": 180.0,
+      "kind": "erg",
+      "start_power": 150,
+      "end_power": 150,
+      "zone": 2
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "label": "",
+    "repeats": 1,
+    "duration": 120.0,
+    "mode": "erg",
+    "steps": [
+     {
+      "duration": 120.0,
+      "kind": "erg",
+      "start_power": 100,
+      "end_power": 100,
+      "zone": 1
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "label": "Ramp: hold each step as long as you can",
+    "repeats": 1,
+    "duration": 1500.0,
+    "mode": "erg",
+    "steps": [
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 120,
+      "end_power": 120,
+      "zone": 1
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 160,
+      "end_power": 160,
+      "zone": 2
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 180,
+      "end_power": 180,
+      "zone": 2
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 200,
+      "end_power": 200,
+      "zone": 3
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 220,
+      "end_power": 220,
+      "zone": 3
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 240,
+      "end_power": 240,
+      "zone": 4
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 260,
+      "end_power": 260,
+      "zone": 4
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 280,
+      "end_power": 280,
+      "zone": 5
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 300,
+      "end_power": 300,
+      "zone": 5
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 320,
+      "end_power": 320,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 340,
+      "end_power": 340,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 360,
+      "end_power": 360,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 380,
+      "end_power": 380,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 400,
+      "end_power": 400,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 420,
+      "end_power": 420,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 440,
+      "end_power": 440,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 460,
+      "end_power": 460,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 480,
+      "end_power": 480,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 500,
+      "end_power": 500,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 520,
+      "end_power": 520,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 540,
+      "end_power": 540,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 560,
+      "end_power": 560,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 580,
+      "end_power": 580,
+      "zone": 6
+     },
+     {
+      "duration": 60.0,
+      "kind": "erg",
+      "start_power": 600,
+      "end_power": 600,
+      "zone": 6
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "label": "",
+    "repeats": 1,
+    "duration": 300.0,
+    "mode": "erg",
+    "steps": [
+     {
+      "duration": 300.0,
+      "kind": "free_ride",
+      "start_power": null,
+      "end_power": null,
+      "zone": null
+     }
+    ]
+   }
+  ]
+ },
+ "test:hr@250": {
+  "type": "plan",
+  "plan_id": "test:hr@250",
+  "segments": [
+   {
+    "start": 0.0,
+    "end": 300.0,
+    "block": 0,
+    "step": 0,
+    "mode": "erg",
+    "kind": "erg",
+    "start_power": 140,
+    "end_power": 140,
+    "zone": 2,
+    "text": "Warm-up"
+   },
+   {
+    "start": 300.0,
+    "end": 900.0,
+    "block": 0,
+    "step": 1,
+    "mode": "resistance",
+    "kind": "unsupported",
+    "start_power": null,
+    "end_power": null,
+    "zone": null,
+    "text": "Hold 140 bpm"
+   }
+  ],
+  "blocks": [
+   {
+    "index": 0,
+    "label": "",
+    "repeats": 1,
+    "duration": 900.0,
+    "mode": "erg",
+    "steps": [
+     {
+      "duration": 300.0,
+      "kind": "erg",
+      "start_power": 140,
+      "end_power": 140,
+      "zone": 2
+     },
+     {
+      "duration": 600.0,
+      "kind": "unsupported",
+      "start_power": null,
+      "end_power": null,
+      "zone": null
+     }
+    ]
+   }
+  ]
+ }
+}

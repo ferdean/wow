@@ -46,6 +46,7 @@ from wow.app.recorder import Recorder
 from wow.app.recovery import close_cancelled, find_interrupted
 from wow.app.housekeeping import CertificateWatch, FreeSpace, disk_free
 from wow.app.ride_controller import RideController, Summary
+from wow.app.route_catalog import ROUTES, RouteCatalog
 from wow.app.settings_panel import SettingsPanel
 from wow.app.upload_worker import UploadWorker
 from wow.app.status_led import LedController
@@ -105,7 +106,8 @@ class App:
                  account: AccountFactory = intervals_account,
                  sim_trainer: Callable[[SimScheduler], SimD100Server]
                  | None = None,
-                 sim_devices: SimDevices | None = None) -> None:
+                 sim_devices: SimDevices | None = None,
+                 upload_simulated: bool = False) -> None:
         self.config = config
         self.clock = clock
         self._faults = sim_faults
@@ -145,10 +147,13 @@ class App:
             self._changed)
         self.trainer.on_status = self.calibration.status
         self.certificate = CertificateWatch(clock, config.cert)
+        self.routes = RouteCatalog(config.data / ROUTES, self._changed)
+        simulated = config.simulate or replay is not None
         self.console = Console(clock, self.devices, self.rides, self.catalog,
                                self.settings, self._changed, self.uploads,
                                self.space, rides, self.calibration,
-                               self.certificate)
+                               self.certificate, self.routes,
+                               upload_simulated or not simulated)
         self.rides.on_finished = self._finished
         self.rides.on_free_level = self._free_level
         self.trainer.on_sample = self.console.trainer_sample
@@ -198,6 +203,7 @@ class App:
         await self.timing.close()
         await self.rides.close()
         await self.catalog.close()
+        await self.routes.close()
         await self.hub.close()
         await self.web.stop()
         for task in self._tasks:

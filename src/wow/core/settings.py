@@ -2,7 +2,8 @@
 
 The settings of table S (Phase 1, revision 7, with the lead time of
 IM-41) and their JSON form in `settings.json` (ICD IF-10; APP-701 to
-APP-708, APP-114): defaults, ranges and steps; a value outside its range
+APP-708, APP-114), with the rider's weight and the route last chosen
+(APP-709, APP-902): defaults, ranges and steps; a value outside its range
 is rejected with the field and the range.
 """
 
@@ -19,6 +20,8 @@ SCHEMA: Final[int] = 1
 ZONE_COUNT: Final[int] = 5
 ADDRESS: Final[re.Pattern[str]] = re.compile(
     r"^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$")
+ROUTE_FILE: Final[re.Pattern[str]] = re.compile(
+    r"(?!\.)[^/\\\x00-\x1f]{1,120}\.gpx", re.IGNORECASE)
 
 
 class SettingKey(StrEnum):
@@ -32,6 +35,8 @@ class SettingKey(StrEnum):
     UPLOAD_ON = "upload_on"
     TRAINER = "trainer"
     HRM = "hrm"
+    RIDER_KG = "rider_kg"
+    ROUTE = "route"
 
 
 @dataclass(frozen=True)
@@ -54,6 +59,8 @@ class Settings:
     upload_on: bool = True
     trainer: DeviceRef | None = None
     hrm: DeviceRef | None = None
+    rider_kg: int = 75
+    route: str | None = None
 
 
 @dataclass(frozen=True)
@@ -85,12 +92,14 @@ SPANS: Final[Mapping[SettingKey, Span]] = {
     SettingKey.LEAD_TIME: Span(0, 5, Fraction(1, 2), "s"),
     SettingKey.BATTERY_WARN_PCT: Span(5, 50, Fraction(5), "%"),
     SettingKey.FREE_RIDE_LEVEL_PCT: Span(0, 100, Fraction(5), "%"),
+    SettingKey.RIDER_KG: Span(40, 150, Fraction(1), "kg"),
 }
 ZONES_RULE: Final[str] = (
     f"{ZONE_COUNT} increasing upper bounds, "
     f"{SPANS[SettingKey.ZONES_PCT].text()}")
 SWITCH_RULE: Final[str] = "true or false"
 DEVICE_RULE: Final[str] = "an object with a Bluetooth address and a name"
+ROUTE_RULE: Final[str] = "null or the name of a .gpx file"
 
 
 @dataclass(frozen=True)
@@ -147,6 +156,20 @@ def _device(settings: Settings, key: SettingKey,
     return replace(settings, hrm=device)
 
 
+def route_file(value: object) -> str | None:
+    """Return the route file a JSON value names, if it is one."""
+    if isinstance(value, str) and ROUTE_FILE.fullmatch(value):
+        return value
+    return None
+
+
+def _route(settings: Settings, value: object) -> Settings | Rejected:
+    file = None if value is None else route_file(value)
+    if value is not None and file is None:
+        return Rejected(SettingKey.ROUTE, ROUTE_RULE)
+    return replace(settings, route=file)
+
+
 def _numeric(settings: Settings, key: SettingKey,
              value: object) -> Settings | Rejected:
     span = SPANS[key]
@@ -160,6 +183,8 @@ def _numeric(settings: Settings, key: SettingKey,
             return replace(settings, lead_time=float(number))
         case SettingKey.BATTERY_WARN_PCT:
             return replace(settings, battery_warn_pct=int(number))
+        case SettingKey.RIDER_KG:
+            return replace(settings, rider_kg=int(number))
     return replace(settings, free_ride_level_pct=int(number))
 
 
@@ -178,6 +203,8 @@ def with_value(settings: Settings, key: str,
                 if isinstance(value, bool) else Rejected(key, SWITCH_RULE))
     if setting in (SettingKey.TRAINER, SettingKey.HRM):
         return _device(settings, setting, value)
+    if setting == SettingKey.ROUTE:
+        return _route(settings, value)
     return _numeric(settings, setting, value)
 
 
@@ -212,4 +239,5 @@ def settings_json(settings: Settings) -> dict[str, Any]:
         "free_ride_level_pct": settings.free_ride_level_pct,
         "upload_on": settings.upload_on,
         "trainer": device(settings.trainer), "hrm": device(settings.hrm),
+        "rider_kg": settings.rider_kg, "route": settings.route,
     }

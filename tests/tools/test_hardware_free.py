@@ -39,7 +39,7 @@ def matrix_rows() -> list[tuple[str, str, tuple[str, ...]]]:
 def test_every_requirement_verified_by_test_has_a_test_without_hardware(
         ) -> None:
     rows = matrix_rows()
-    assert len(rows) == 116
+    assert len(rows) == 126
     collected = {str(case) for entry in conftest._TESTS.values()
                  for case in entry["cases"]}  # type: ignore[attr-defined]
     if "T-COD-01" not in collected:

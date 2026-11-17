@@ -8,6 +8,7 @@ from tests.support.scenes import (
     LIMITED,
     THIRTY_THIRTY,
     advance,
+    plans,
     scenes,
     started_ride,
 )
@@ -196,13 +197,26 @@ def test_golden_views(name: str) -> None:
     assert json.loads(path.read_text()) == actual
 
 
+@pytest.mark.case("S-VIEW-01")
+def test_the_gallery_plans() -> None:
+    path = GOLDEN / "plans.json"
+    actual = plans()
+    if os.environ.get("WOW_UPDATE_GOLDEN") == "1":
+        path.write_text(json.dumps(actual, indent=1) + "\n")
+    assert json.loads(path.read_text()) == actual
+    used = {json.loads(f.read_text())["screen"].get("plan_id")
+            for f in GOLDEN.glob("pre_ride*.view.json")}
+    assert used - {None} <= set(actual)
+
+
 STATES_3_1 = {
     "Home": ["home_plan_and_library", "home", "home_offline_with_lists",
              "home_recovery", "home_cert_expiring"],
     "Pre-ride": ["pre_ride_ramp_test", "pre_ride_trainer_searching",
                  "pre_ride_trainer_missing", "pre_ride_strap_not_found",
                  "pre_ride_battery_low", "pre_ride_unsupported_step",
-                 "pre_ride_block_in_resistance", "pre_ride_free_ride"],
+                 "pre_ride_block_in_resistance", "pre_ride_free_ride",
+                 "pre_ride_routes"],
     "Ride": ["ride_waiting_for_power", "ride_erg", "ride_erg_last_5_s",
              "ride_erg_target_limited", "ride_erg_trainer_dropout",
              "ride_erg_strap_dropout", "ride_trainer_not_responding",
@@ -211,7 +225,8 @@ STATES_3_1 = {
              "ride_clock_unsynced"],
     "Summary": ["summary_off", "summary", "summary_uploading",
                 "summary_done", "summary_retrying", "summary_failed",
-                "summary_auth_error"],
+                "summary_auth_error", "summary_route_working",
+                "summary_route"],
     "Ride history": ["history", "history_empty"],
     "Calibration": ["calibration_idle", "calibration_blocked",
                     "calibration_starting", "calibration_speed_up",

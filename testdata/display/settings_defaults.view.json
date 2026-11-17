@@ -21,6 +21,7 @@
   ],
   "lead_time": 1.0,
   "battery_warn_pct": 20,
+  "rider_kg": 75,
   "upload_on": true,
   "intervals_account_set": false,
   "cert_valid_until": "2036-11-09T06:27:56.000Z",

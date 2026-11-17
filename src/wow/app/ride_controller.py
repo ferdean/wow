@@ -4,14 +4,15 @@ Runs the ride state machine and the sampler: rider commands, the
 trainer's power and the strap's heart rate in; trainer commands, journal
 records, samples and, on Finish, `ride.fit` and `meta.json` out (3A,
 app/ride_controller; APP-301, APP-304, APP-315, APP-601 to APP-606,
-APP-801).
+APP-801). A ride on a route keeps a copy of the route and, once
+finished, is ridden along it in the recorder's thread (APP-903, APP-908).
 """
 
 import asyncio
 import json
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Final
@@ -34,12 +35,14 @@ from wow.core.ride import (
 )
 from wow.core.ride import Pause as PauseRide
 from wow.core.replay import Record, rebuild, record_mono, tick_until
+from wow.core.route import RouteChoice, RouteError
 from wow.core.sampler import (
     Began, HrValue, Paused, Resumed, Restored, Sample, Sampler, SamplerEvent,
     Stopped, TrainerValue,
 )
 from wow.core.sampler import Tick as SampleTick
 from wow.core.timefmt import utc_text
+from wow.core.virtual_ride import Track, track_of
 from wow.core.vocab import Mode, UploadState
 from wow.core.workout import Workout
 from wow.ports.clock import Clock
@@ -54,7 +57,9 @@ RIDE_LOG_TAIL: Final[float] = 3.0
 META: Final[str] = "meta.json"
 WORKOUT: Final[str] = "workout.json"
 FIT_FILE: Final[str] = "ride.fit"
+ROUTE_FILE: Final[str] = "route.gpx"
 META_SCHEMA: Final[int] = 1
+DEFAULT_RIDER_KG: Final[int] = 75
 
 
 @dataclass(frozen=True)
@@ -70,6 +75,17 @@ class RideSetup:
     free_ride_level_pct: int = 0
     upload_on: bool = True
     block_modes: tuple[Mode, ...] = ()
+    route: RouteChoice | None = None
+    rider_kg: int = DEFAULT_RIDER_KG
+
+
+@dataclass(frozen=True)
+class RouteSummary:
+    """A ride's route and, once ridden along it, its distance and climb."""
+
+    name: str
+    distance_m: float | None = None
+    ascent_m: float | None = None
 
 
 @dataclass(frozen=True)
@@ -81,6 +97,7 @@ class Summary:
     start_utc: str
     metrics: Metrics
     upload: UploadState
+    route: RouteSummary | None = None
 
 
 @dataclass(frozen=True)
@@ -315,6 +332,11 @@ class RideController:
                                        self._samples, SampleTick())
         if setup.raw is not None:
             self._recorder.write_file(ride_dir / WORKOUT, setup.raw)
+        if setup.route is not None:
+            self._recorder.write_file(ride_dir / ROUTE_FILE, setup.route.gpx)
+            meta["route"] = {"file": setup.route.file,
+                             "name": setup.route.name}
+            meta["rider_kg"] = setup.rider_kg
         self._write_meta(self._record)
 
     def _restart_sampler(self, found: Resumption, now: float) -> None:
@@ -388,18 +410,36 @@ class RideController:
         meta = {**current.meta, "state": "finished",
                 "metrics": _metrics_json(metrics),
                 "finished_mono_ms": round(self._clock.monotonic() * 1000, 1)}
-        self.summary = Summary(str(current.meta["ride_id"]),
-                               setup.workout.name, utc_text(start), metrics,
-                               UploadState(str(meta["upload"])))
+        ride_id = str(current.meta["ride_id"])
+        route = setup.route
+        self.summary = Summary(ride_id, setup.workout.name, utc_text(start),
+                               metrics, UploadState(str(meta["upload"])),
+                               None if route is None
+                               else RouteSummary(route.name))
         ride_dir, writer, clock = current.ride_dir, self._fit, self._clock
+        loop = asyncio.get_running_loop()
 
         def write_files() -> None:
-            write_atomic(ride_dir / FIT_FILE, writer.encode(activity))
+            track = None if route is None else _ride_along(
+                route, activity, setup.rider_kg)
+            write_atomic(ride_dir / FIT_FILE,
+                         writer.encode(replace(activity, track=track)))
+            if route is not None:
+                meta["route"] = _route_json(route, track)
             meta["files_mono_ms"] = round(clock.monotonic() * 1000, 1)
             write_atomic(ride_dir / META, json.dumps(meta).encode())
+            if track is not None:
+                _call_soon(loop, self._ridden, ride_id, RouteSummary(
+                    track.route_name, track.distance_m, track.ascent_m))
 
         self._recorder.run(write_files)
         self.on_finished(self.summary)
+
+    def _ridden(self, ride_id: str, route: RouteSummary) -> None:
+        summary = self.summary
+        if summary is not None and summary.ride_id == ride_id:
+            self.summary = replace(summary, route=route)
+            self._on_change()
 
     def _write_meta(self, current: _Record) -> None:
         self._recorder.write_file(current.ride_dir / META,
@@ -428,6 +468,35 @@ class RideController:
             **record.data,
             **version,
         })
+
+
+def _ride_along(route: RouteChoice, activity: Activity,
+                rider_kg: int) -> Track | None:
+    try:
+        return track_of(route, [(s.t, s.power) for s in activity.samples],
+                        [p.t_ride for p in activity.pauses], rider_kg)
+    except RouteError as error:
+        logger.warning("route %s not ridden: %s", route.file, error)
+        return None
+
+
+def _route_json(route: RouteChoice, track: Track | None) -> dict[str, object]:
+    ridden: dict[str, object] = {} if track is None else {
+        "distance_m": round(track.distance_m, 1),
+        "ascent_m": round(track.ascent_m, 1),
+        "descent_m": round(track.descent_m, 1),
+        "max_speed_mps": round(track.max_speed_mps, 3)}
+    return {"file": route.file, "name": route.name, **ridden}
+
+
+def _call_soon(loop: asyncio.AbstractEventLoop,
+               callback: Callable[[str, RouteSummary], None], ride_id: str,
+               route: RouteSummary) -> None:
+    try:
+        loop.call_soon_threadsafe(callback, ride_id, route)
+    except RuntimeError:
+        logger.info("ride %s ridden along its route after the app stopped",
+                    ride_id)
 
 
 def _metrics_json(metrics: Metrics) -> dict[str, object]:
