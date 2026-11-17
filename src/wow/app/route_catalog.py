@@ -10,11 +10,13 @@ used is left out and logged with the reason.
 import asyncio
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Final
 
-from wow.core.route import MAX_BYTES, RouteChoice, RouteError, read_route
+from wow.core.route import (
+    MAX_BYTES, Route, RouteChoice, RouteError, read_route,
+)
 from wow.core.settings import route_file
 
 logger = logging.getLogger(__name__)
@@ -31,10 +33,11 @@ class RouteEntry:
     length_m: float
     ascent_m: float
     gpx: bytes
+    route: Route | None = field(default=None, compare=False, repr=False)
 
     def choice(self) -> RouteChoice:
         """Return the route as a ride takes it."""
-        return RouteChoice(self.file, self.name, self.gpx)
+        return RouteChoice(self.file, self.name, self.gpx, self.route)
 
 
 def read_entry(path: Path) -> RouteEntry:
@@ -44,7 +47,7 @@ def read_entry(path: Path) -> RouteEntry:
     data = path.read_bytes()
     route = read_route(data, path.stem)
     return RouteEntry(path.name, route.name, route.length_m, route.ascent_m,
-                      data)
+                      data, route)
 
 
 def scan_routes(folder: Path) -> list[RouteEntry]:

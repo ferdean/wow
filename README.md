@@ -96,7 +96,9 @@ Stop with one Ctrl-C and wait for `wow stopped …`. `kill <pid>` sends SIGTERM 
 
 ## Routes
 
-A ride can be ridden along a GPX route. The trainer and the ride screen don't change: when the ride is finished, wow moves you along the route with your recorded power (your weight from Settings plus a 9 kg bike, on the cycling power model of Martin et al., 1998) and writes speed, distance, altitude and position into `ride.fit`, marked as a virtual ride. A ride longer than the route starts it again from the beginning.
+A ride can be ridden along a GPX route. The trainer is controlled as without a route (ERG or resistance; there is no slope mode). Every second wow moves you along the route with your power (your weight from Settings plus a 9 kg bike, on the cycling power model of Martin et al., 1998); at Finish the same track goes into `ride.fit` with speed, distance, altitude and position, marked as a virtual ride. A ride longer than the route starts it again from the beginning.
+
+During the ride, tap **Route ›** on the workout profile for the route screen: speed and climb in large, power, heart rate and step time small, a drawing of the route with your place and the distance, and the elevation profile with your place and altitude. Tap the drawing or **Workout** to go back; the workout screen is where every ride starts.
 
 Put `.gpx` files in the data directory's `routes` folder:
 
@@ -106,7 +108,7 @@ scp my-route.gpx pi:/tmp/                                                       
 ssh pi 'sudo install -o wow -g wow -m 0640 /tmp/my-route.gpx /var/lib/wow/routes/'
 ```
 
-Choose the route on Pre-ride (it stays chosen until you change it). The Summary shows the distance and climb a moment after Finish. A file over 10 MB, with a DOCTYPE, with fewer than two points or shorter than 100 m is left out, and the log says why. `deploy/routes/example-loop.gpx` is a made-up 18.8 km loop with one 60 m hill, no real map data.
+Choose the route on Pre-ride (it stays chosen until you change it). The Summary shows the distance and climb. A file over 10 MB, with a DOCTYPE, with fewer than two points or shorter than 100 m is left out, and the log says why. `deploy/routes/example-loop.gpx` is a made-up 18.8 km loop with one 60 m hill, no real map data.
 
 ## Gallery
 

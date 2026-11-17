@@ -2,14 +2,15 @@
   import { onMount } from "svelte";
   import App from "../App.svelte";
   import type { LinkView } from "../link/link.svelte";
-  import type { Plan, View } from "../types/protocol";
+  import type { Plan, RouteMap, View } from "../types/protocol";
   import { galleryStates, stateOf } from "./states";
 
   interface Props {
     views: Record<string, View>;
     plans: Record<string, Plan>;
+    routes?: Record<string, RouteMap>;
   }
-  let { views, plans }: Props = $props();
+  let { views, plans, routes = {} }: Props = $props();
 
   let hash = $state(location.hash);
   const states = $derived(galleryStates(views));
@@ -18,9 +19,11 @@
   function still(view: View): LinkView {
     const planId = "plan_id" in view.screen ? view.screen.plan_id : null;
     const plan = plans[planId ?? ""] ?? Object.values(plans)[0] ?? null;
+    const routeId = view.screen.name === "ride" ? view.screen.route?.route_id : undefined;
     return {
       view,
       plan,
+      route: routes[routeId ?? ""] ?? null,
       live: true,
       get receivedAt(): number {
         return performance.now();

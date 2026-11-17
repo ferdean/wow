@@ -1,20 +1,22 @@
 """Ride a route with the power of a recorded ride.
 
-Route simulation (SL-13; APP-903, APP-905): each ride second's power
-moves a rider of the given mass along the route by the road-cycling
-power model of Martin et al. (1998), here without wheel inertia and
-bearing losses, in still air at sea-level density. A second without
-power coasts, a pause stops the rider, and a ride longer than the route
-starts it again from the beginning. The trainer reports power at the
-hub, so no drivetrain loss is taken off.
+Route simulation (SL-13 and SL-14; APP-903, APP-905, APP-910): each ride
+second's power moves a rider of the given mass along the route by the
+road-cycling power model of Martin et al. (1998), here without wheel
+inertia and bearing losses, in still air at sea-level density. A second
+without power coasts, a pause stops the rider, and a ride longer than the
+route starts it again from the beginning. The trainer reports power at
+the hub, so no drivetrain loss is taken off. The same rider runs live,
+second by second, and over the whole ride at Finish, so both agree.
 """
 
 import math
+from bisect import insort
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from typing import Final
 
-from wow.core.route import Route, RouteChoice, read_route
+from wow.core.route import Route, RouteChoice
 
 GRAVITY: Final[float] = 9.80665
 AIR_DENSITY: Final[float] = 1.225
@@ -122,6 +124,58 @@ def _second(route: Route, rider: Rider, state: _State, power: float) -> None:
         _climb(route, state, before, state.distance)
 
 
+class VirtualRider:
+    """A rider on a route, moved on one ride second at a time."""
+
+    def __init__(self, route: Route, rider: Rider) -> None:
+        self.route = route
+        self._rider = rider
+        self._state = _State()
+        self._stops: list[float] = []
+        self.points: list[TrackPoint] = []
+
+    @property
+    def last(self) -> TrackPoint | None:
+        """Return where the last second ended, if any."""
+        return self.points[-1] if self.points else None
+
+    @property
+    def ascent_m(self) -> float:
+        """Return the climbing so far."""
+        return self._state.ascent
+
+    @property
+    def descent_m(self) -> float:
+        """Return the descending so far."""
+        return self._state.descent
+
+    def stop_at(self, t_ride: float) -> None:
+        """Note a pause: from that ride time the rider starts from rest."""
+        insort(self._stops, t_ride)
+
+    def ride(self, t: int, power: int | None) -> TrackPoint:
+        """Ride one second with its power; return where it ends."""
+        state, route = self._state, self.route
+        while self._stops and self._stops[0] <= t:
+            self._stops.pop(0)
+            state.speed = 0.0
+        _second(route, self._rider, state, float(power or 0))
+        place = route.place(state.distance % route.length_m)
+        point = TrackPoint(t, state.distance, state.speed, place.lat,
+                           place.lon, place.ele)
+        self.points.append(point)
+        return point
+
+    def track(self, name: str) -> Track:
+        """Return the ride so far as a track named after the route."""
+        return Track(name, tuple(self.points), self._state.ascent,
+                     self._state.descent)
+
+    def at_m(self) -> float:
+        """Return the place on the route, from its start."""
+        return self._state.distance % self.route.length_m
+
+
 def simulate(route: Route, seconds: Sequence[tuple[int, int | None]],
              stops: Sequence[float], rider: Rider) -> Track:
     """Return the ride of each second's power along the route.
@@ -129,18 +183,12 @@ def simulate(route: Route, seconds: Sequence[tuple[int, int | None]],
     Seconds are (ride time, power); a stop is the ride time of a pause,
     after which the rider starts again from standstill.
     """
-    state = _State()
-    waiting = sorted(stops)
-    points = []
+    virtual = VirtualRider(route, rider)
+    for stop in stops:
+        virtual.stop_at(stop)
     for t, power in seconds:
-        while waiting and waiting[0] <= t:
-            waiting.pop(0)
-            state.speed = 0.0
-        _second(route, rider, state, float(power or 0))
-        place = route.place(state.distance % route.length_m)
-        points.append(TrackPoint(t, state.distance, state.speed, place.lat,
-                                 place.lon, place.ele))
-    return Track(route.name, tuple(points), state.ascent, state.descent)
+        virtual.ride(t, power)
+    return virtual.track(route.name)
 
 
 def track_of(choice: RouteChoice, seconds: Sequence[tuple[int, int | None]],
@@ -149,5 +197,5 @@ def track_of(choice: RouteChoice, seconds: Sequence[tuple[int, int | None]],
 
     The track carries the name the rider chose the route by.
     """
-    route = replace(read_route(choice.gpx, choice.name), name=choice.name)
+    route = replace(choice.route(), name=choice.name)
     return simulate(route, seconds, stops, rider_of(weight_kg))

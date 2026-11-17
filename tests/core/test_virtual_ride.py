@@ -1,4 +1,4 @@
-"""Riding a route with the recorded power (SL-13)."""
+"""Riding a route with the recorded power (SL-13, SL-14)."""
 
 import math
 from collections.abc import Callable
@@ -8,8 +8,8 @@ import pytest
 from tests.support.routes import climb, gpx, loop
 from wow.core.route import Route, RouteChoice, RouteError, read_route
 from wow.core.virtual_ride import (
-    AIR_DENSITY, BIKE_KG, CDA_M2, CRR, GRAVITY, Rider, acceleration,
-    rider_of, simulate, track_of,
+    AIR_DENSITY, BIKE_KG, CDA_M2, CRR, GRAVITY, Rider, VirtualRider,
+    acceleration, rider_of, simulate, track_of,
 )
 
 RIDER = rider_of(75)
@@ -137,3 +137,26 @@ def test_a_chosen_route_is_read_and_ridden() -> None:
     assert track.by_second()[59] == track.points[-1]
     with pytest.raises(RouteError):
         track_of(RouteChoice("bad.gpx", "Bad", b"<gpx/>"), [(0, 100)], [], 75)
+
+
+@pytest.mark.case("T-VRD-04")
+@pytest.mark.req("APP-910")
+def test_the_live_rider_agrees_with_the_ride_at_finish() -> None:
+    route = read_route(gpx(loop(radius_m=800.0, rise_m=30.0)), "loop")
+    seconds = [(t, None if 200 <= t < 215 else 150 + (t % 60) * 3)
+               for t in range(900)]
+    stops = [120.4, 600.0]
+    batch = simulate(route, seconds, stops, RIDER)
+    live = VirtualRider(route, RIDER)
+    points = []
+    for t, power in seconds:
+        for stop in stops:
+            if t - 1 < stop <= t:
+                live.stop_at(stop)
+        points.append(live.ride(t, power))
+        assert live.last == points[-1]
+    assert tuple(points) == batch.points
+    assert (live.ascent_m, live.descent_m) == (batch.ascent_m,
+                                               batch.descent_m)
+    assert live.at_m() == pytest.approx(
+        batch.distance_m % route.length_m)

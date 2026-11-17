@@ -1,4 +1,4 @@
-# Traceability (generated; finished slices through SL-13)
+# Traceability (generated; finished slices through SL-14)
 
 | Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
 |---|---|---|---|
@@ -128,3 +128,5 @@
 | APP-906 | T-RTE-06 passed | D-33 pending | passed |
 | APP-907 | T-RTE-02 passed, T-RTE-04 passed | — | passed |
 | APP-908 | T-RCV-06 passed | — | passed |
+| APP-909 | T-RTE-07 passed | D-34 pending | passed |
+| APP-910 | T-RTE-07 passed, T-VRD-04 passed | D-34 pending | passed |

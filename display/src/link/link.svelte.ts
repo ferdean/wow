@@ -1,7 +1,7 @@
 // The page's connection to the Pi (3A, display/src/link; 3C, "The page's
-// connection to the Pi"): last view and plan, commands, pings, reconnects.
+// connection to the Pi"): last view, plan and route, commands, pings, reconnects.
 
-import type { CommandName, Down, Plan, Up, View } from "../types/protocol";
+import type { CommandName, Down, Plan, RouteMap, Up, View } from "../types/protocol";
 import { best, recent, sample, type PingSample } from "./offset";
 
 const BACKOFF_MS = [500, 1000, 2000, 4000];
@@ -15,6 +15,7 @@ const PAINT_GAP_MS = 100;
 export interface LinkView {
   readonly view: View | null;
   readonly plan: Plan | null;
+  readonly route?: RouteMap | null;
   readonly live: boolean;
   readonly receivedAt: number;
   send(name: CommandName, args?: Record<string, unknown>): void;
@@ -23,6 +24,7 @@ export interface LinkView {
 export class Link implements LinkView {
   view = $state<View | null>(null);
   plan = $state<Plan | null>(null);
+  route = $state<RouteMap | null>(null);
   live = $state(false);
   receivedAt = $state(0);
 
@@ -114,6 +116,9 @@ export class Link implements LinkView {
         break;
       case "plan":
         this.plan = message;
+        break;
+      case "route":
+        this.route = message;
         break;
       case "view":
         if (message.seq > this.lastSeq) {

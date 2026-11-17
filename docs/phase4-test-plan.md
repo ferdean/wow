@@ -1,6 +1,6 @@
 # Phase 4 — Test plan
 
-**Status:** approved by Ferran, 11 Nov 2026 (revision 2). Revision 3 (17 Nov 2026) adds the tests of SL-13, route simulation, in the lighter form Ferran set for that slice: requirements APP-613, APP-709 and APP-901 to APP-908 (Phase 5 section 39), their tests in 5.8, 5.11, 5.12 and the new 5.18, demonstration step D-33, and their matrix rows; revision 3 waits for the SL-13 approval. Phase 4 is closed; Phase 5 starts with slice SL-01. On 11 Nov 2026 Ferran approved the findings of revision 1 and their changes to earlier documents, and answered the five questions: 1 to 4 as proposed, 5 with "the display is checked by inspection". Revision 2 applies that answer: automated display tests leave the verification, and a walk-through of every screen on the iPhone takes their place. The changes to earlier documents are applied in the Interface Control Document (revision 4), the Phase 3A architecture (revision 5) and the Phase 1 requirements (revision 7). The plan maps each of Phase 1's 116 requirements to automated tests, checks on real-ride files, demonstrations and inspections. It also builds on the display design (revision 2) and the Phase 2 record (revision 14).
+**Status:** approved by Ferran, 11 Nov 2026 (revision 2). Revision 3 (17 Nov 2026) adds the tests of SL-13, route simulation, in the lighter form Ferran set for that slice: requirements APP-613, APP-709 and APP-901 to APP-908 (Phase 5 section 39), their tests in 5.8, 5.11, 5.12 and the new 5.18, demonstration step D-33, and their matrix rows; revision 3 waits for the SL-13 approval. Revision 4 (17 Nov 2026) adds SL-14, the route screen: requirements APP-909 and APP-910 (Phase 5 section 45), tests T-RTE-07 and T-VRD-04, S-DSP-09, demonstration step D-34 and their matrix rows, and changes T-RTE-06 and S-DSP-07 for a Summary that has the route's totals at once; it waits for the SL-14 approval. Phase 4 is closed; Phase 5 starts with slice SL-01. On 11 Nov 2026 Ferran approved the findings of revision 1 and their changes to earlier documents, and answered the five questions: 1 to 4 as proposed, 5 with "the display is checked by inspection". Revision 2 applies that answer: automated display tests leave the verification, and a walk-through of every screen on the iPhone takes their place. The changes to earlier documents are applied in the Interface Control Document (revision 4), the Phase 3A architecture (revision 5) and the Phase 1 requirements (revision 7). The plan maps each of Phase 1's 116 requirements to automated tests, checks on real-ride files, demonstrations and inspections. It also builds on the display design (revision 2) and the Phase 2 record (revision 14).
 
 ## How to read this
 
@@ -167,8 +167,8 @@ Produced by scripted states in pytest (T-VIEW-09), and shown on the iPhone by th
 |--------|--------|
 | Home | plan and library loaded; nothing planned; offline with download time; unfinished ride offered; certificate expiring; storage low; calibration requested |
 | Pre-ride | both devices connected; trainer searching; trainer not found; strap not found; battery low; step with an unsupported target; block set to resistance; free ride; routes listed with one chosen |
-| Ride | waiting for power; ERG; ERG in the last 5 s; ERG with target limited; ERG with trainer dropout; ERG with strap dropout; trainer not responding; control refused; paused; resistance; workout done; free ride; clock not synchronised |
-| Summary | one per upload state: off, pending, uploading, done, retrying, failed, key refused; a ride on a route, being worked out and done |
+| Ride | waiting for power; ERG; ERG in the last 5 s; ERG with target limited; ERG with trainer dropout; ERG with strap dropout; trainer not responding; control refused; paused; resistance; workout done; free ride; clock not synchronised; on a route, riding and paused |
+| Summary | one per upload state: off, pending, uploading, done, retrying, failed, key refused; a ride on a route |
 | Ride history | three rides; empty |
 | Calibration | idle; blocked by a ride; starting; speed up; stop pedaling; success; error; timeout |
 | Settings | defaults; account saved; scan running with three devices |
@@ -220,6 +220,7 @@ Phase 5 plans each slice; this list only says in which slice a test first has to
 | SL-11 | Display finish: wake-lock prompt, countdown, profile, sound, sizes, latency reports | A-49, A-56 to A-58 (OP-16) |
 | SL-12 | Endurance and close-out: 4-hour runs, replay regression, full traceability | — |
 | SL-13 | Route simulation after the ride: routes from GPX files, choice on Pre-ride, speed, distance, altitude and position in the FIT file; no uploads of simulated rides; the gallery for DS-8 | A-67 to A-70 |
+| SL-14 | Route screen: the ride along the route worked out every second, a drawing of the route, the elevation profile, speed and grade during the ride; the same track in the FIT file | A-71, A-72 |
 
 Requirements without an automated test are built in these slices:
 
@@ -485,8 +486,9 @@ Display-logic tests. They catch a regression between two looks at the phone and 
 | S-DSP-04 | Wake lock mocked: granted on the Start tap; released when hidden; rejected after a reload | requested at Start and again when visible; the prompt shows only during a ride or calibration without the lock | SL-11 |
 | S-DSP-05 | Step time left on fake timers with no new view; three pings with different round trips | counts down by itself; clock offset taken from the shortest round trip | SL-11 |
 | S-DSP-06 | Step tone, Settings screen edits, the scan and its choice | one tone per step change; each edit sends one `settings_set`; a chosen device sends `device_choose` | SL-10 |
-| S-DSP-07 | Pre-ride route row and its sheet; Summary of a ride on a route; rider weight in Settings | the chosen route with its length and climb; choosing sends `set_route`; "working out" until the distance comes; the weight is sent once on Save | SL-13 |
+| S-DSP-07 | Pre-ride route row and its sheet; Summary of a ride on a route; rider weight in Settings | the chosen route with its length and climb; choosing sends `set_route`; distance and climb on the Summary, or why there are none; the weight is sent once on Save | SL-13 |
 | S-DSP-08 | The gallery (`#gallery`): every golden view and the plans of the Pre-ride states | each state listed and shown through the real screens; no WebSocket opened, no command sent | SL-13 |
+| S-DSP-09 | The route screen: Route › on the profile, the map, Workout; a ride without a route; the route message before or after the view; paused | the toggle only with a route; speed, grade, distance, altitude, power, heart rate and step time shown; the map and the profile mark the place; back with the map or Workout; "Paused" and 0.0 while paused | SL-14 |
 | S-PW-01 | Playwright, WebKit with an iPhone-sized viewport, against `wow --sim`: start a ride, reload | ride screen back within 5 s; no console error | SL-06 |
 
 ### 5.17 System on the Pi (T-SYS, L6) and tooling (T-TOOL)
@@ -513,10 +515,12 @@ Display-logic tests. They catch a regression between two looks at the phone and 
 | T-RTE-03 | A meridian of known length; a 6 % climb; a 30 m spike; a 40 % wall; no elevation; a closed loop | lengths exact to 1 µm along a meridian; stations every 10 m; the climb keeps 60 m; the spike smoothed to a fifth; grades within ±25 %; a flat route without elevation | SL-13 | APP-903 |
 | T-RTE-04 | A routes folder with good, broken, short, hidden and non-GPX files; no folder | only the usable `.gpx` files listed, by name, with length and climb; each left out file logged with its reason; no folder, no routes | SL-13 | APP-901, APP-907 |
 | T-RTE-05 | Choose a route, an unknown one, none; restart; delete the chosen file | the choice kept in `settings.json` and over a restart, also for a free ride; an unknown file refused; a deleted file chosen no more | SL-13 | APP-902 |
-| T-RTE-06 | A ride on a route from Pre-ride to Finish; the same ride from Past rides | `route.gpx` copied into the ride; the Summary says the route is being worked out, then shows distance and climb; FIT Records and Session carry the track; `meta.json` has the route's totals; Past rides shows them | SL-13 | APP-903, APP-904, APP-906 |
+| T-RTE-06 | A ride on a route from Pre-ride to Finish; the same ride from Past rides | `route.gpx` copied into the ride; the Summary shows distance and climb (from SL-14 at once); FIT Records and Session carry the track; `meta.json` has the route's totals; Past rides shows them | SL-13 | APP-903, APP-904, APP-906 |
 | T-VRD-01 | The model's forces; 10 min at 200 W flat, 250 W at 6 %, 300 W at 2 %; coasting down 5 % | forces as Martin et al. (1998) without inertia; steady speeds within 0.1 % of where power meets resistance; the terminal speed downhill | SL-13 | APP-903 |
 | T-VRD-02 | Power stops; a pause; standing on a climb without power | speed falls while coasting; zero after a pause; no rolling backwards | SL-13 | APP-903 |
 | T-VRD-03 | 30 min on a 3 km loop; a ride longer than a point-to-point climb | the route starts again; distance keeps growing; climbing counted per lap and not for the jump back | SL-13 | APP-905 |
+| T-RTE-07 | The route message; a ride on a route through the hub with a pause; a page joining mid-ride; a kill and continue mid-ride | the route sent once per page before the first view that needs it, north up, at most 401 points; every ride view carries speed, grade, altitude, distance and place; speed 0 while paused; each second's values equal the FIT Record of the same second; after the restart the ride goes on from the crash's distance | SL-14 | APP-909, APP-910 |
+| T-VRD-04 | The live rider fed second by second, with stops, against the ride worked out at once | the same track point for point | SL-14 | APP-910 |
 
 ## 6 Ride checks
 
@@ -621,6 +625,7 @@ Pi with `simulate = true`, a real-time simulated ride running where a step says 
 | D-26 | Past rides: open the ride, Download FIT file on the iPhone, import it into Garmin Connect | the list shows date, name, duration, TSS and upload state; Garmin shows power, heart rate, laps and the pause (A-54) | APP-610, APP-611, APP-601 |
 | D-27 | Ask for a new upload of the same ride | intervals.icu still has one activity (closes A-53) | APP-609 |
 | D-33 | A ride on one of your routes, Upload on | the Summary shows distance and climb; intervals.icu and Garmin Connect show a virtual ride with the map, speed, distance and elevation (A-67 to A-70) | APP-904, APP-906 |
+| D-34 | During D-33's ride: tap Route › on the profile; ride 5 min, one of them uphill if the route has one; pause and resume; tap the map; at Finish note the last distance shown | the route screen with the place moving on the drawing and the profile, speed and grade every second, power, heart rate and step time small; "Paused" and 0.0 while paused; back to the workout with the map or Workout; the Summary's distance within 0.1 km of the last shown (A-71, A-72) | APP-909, APP-910 |
 
 ### DS-7 Free ride and ramp test
 
@@ -678,7 +683,7 @@ Qualitative, as Ferran decided (answer 5): he looks at each state on the iPhone 
 Generated from sections 5 to 8 by `tools/make_matrix.py`. "Pri." and "Ver." are Phase 1's. "Slice" is the last slice in which one of the requirement's automated tests first has to pass, or the slice named in section 4.1 when it has none.
 
 <!-- matrix:start -->
-126 requirements; 182 automated tests, 14 ride checks, 33 demonstration steps, 20 inspections.
+128 requirements; 184 automated tests, 14 ride checks, 34 demonstration steps, 20 inspections.
 
 | Req. | Pri. | Ver. | Automated tests | Ride checks and demonstrations | Inspections | Slice |
 |---|---|---|---|---|---|---|
@@ -808,6 +813,8 @@ Generated from sections 5 to 8 by `tools/make_matrix.py`. "Pri." and "Ver." are 
 | APP-906 | should | T, D | T-RTE-06 | D-33 | — | SL-13 |
 | APP-907 | must | T | T-RTE-02, T-RTE-04 | — | — | SL-13 |
 | APP-908 | should | T | T-RCV-06 | — | — | SL-13 |
+| APP-909 | should | T, D | T-RTE-07 | D-34 | — | SL-14 |
+| APP-910 | must | T | T-RTE-07, T-VRD-04 | D-34 | — | SL-14 |
 <!-- matrix:end -->
 
 ## 10 How the timing requirements are measured
@@ -951,6 +958,7 @@ Phase 4 ended with the plan approved. **Approved by Ferran on 11 Nov 2026** (rev
 | 2 | 11 Nov 2026 | Ferran's answers. Findings P-1 to P-6 and N-1 to N-8 approved and applied in ICD revision 4, 3A revision 5 and Phase 1 revision 7. P-7 decided the other way: the display is checked by inspection, so the automated display tests (T-DSP, T-PW) leave the matrix, six of them stay as supporting tests, and the walk-through I-14 to I-20 is added. Levels renumbered L1 to L6. `tools/make_matrix.py` now rewrites section 9 in place and reads priorities and methods from Phase 1. |
 | 2 | 11 Nov 2026 | Approved by Ferran. Phase 4 closed. |
 | 3 | 17 Nov 2026 | SL-13: tests T-SET-09, T-FIT-07, T-RCV-06, T-UPL-06, T-RTE-01 to -06, T-VRD-01 to -03; S-DSP-06 (missing since SL-10) to S-DSP-08; D-33; golden states of 3.1; matrix rows of APP-613, APP-709, APP-901 to APP-908. Section 9 edited by hand: `tools/make_matrix.py` isn't in the repository. |
+| 4 | 17 Nov 2026 | SL-14: tests T-RTE-07, T-VRD-04; S-DSP-09; D-34; golden states of 3.1 (Ride on a route; Summary without "being worked out"); T-RTE-06 and S-DSP-07 changed for a Summary with the totals at once; matrix rows of APP-909 and APP-910. |
 
 ## Sources
 

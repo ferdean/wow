@@ -16,9 +16,9 @@ function ride(): void {
 }
 
 async function gallery(): Promise<void> {
-  const [{ default: Gallery }, { GOLDEN_PLANS, GOLDEN_VIEWS }] = await Promise.all([
+  const [{ default: Gallery }, { GOLDEN_PLANS, GOLDEN_ROUTES, GOLDEN_VIEWS }] = await Promise.all([
     import("./gallery/Gallery.svelte"), import("./gallery/load")]);
-  mount(Gallery, { target, props: { views: GOLDEN_VIEWS, plans: GOLDEN_PLANS } });
+  mount(Gallery, { target, props: { views: GOLDEN_VIEWS, plans: GOLDEN_PLANS, routes: GOLDEN_ROUTES } });
 }
 
 if (location.hash.startsWith("#gallery")) {

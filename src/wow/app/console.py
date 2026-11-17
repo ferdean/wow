@@ -37,8 +37,8 @@ from wow.core.view import (
     Json, Latest, PowerAverage, battery_warning, calibration_screen,
     certificate_warning, clock_warning, history_entry, history_screen,
     home_screen, plan_message, pre_ride_screen, recovery_offer, ridden_route,
-    ride_screen, ride_warnings, route_option, summary_screen, view_state,
-    workout_card,
+    ride_screen, ride_warnings, route_live, route_map, route_option,
+    summary_screen, view_state, workout_card,
 )
 from wow.ports.clock import Clock
 from wow.core.ride import ACTIVE, RidePhase
@@ -87,6 +87,7 @@ class Console:
         self._calibration = calibration
         self._routes = routes
         self._uploads_allowed = uploads_allowed
+        self._map: Json | None = None
 
     @property
     def screen(self) -> str:
@@ -101,6 +102,17 @@ class Console:
         intensity = self._rides.ride.intensity_pct if riding else 100
         return plan_message(self._plan, self._zones(riding),
                             intensity_pct=intensity)
+
+    def route(self) -> Json | None:
+        """Return the route message while a ride on a route is shown."""
+        rider, setup = self._rides.rider, self._rides.setup
+        if self._screen != Screen.RIDE or rider is None or setup is None or (
+                setup.route is None):
+            return None
+        choice = setup.route
+        if self._map is None or self._map["route_id"] != choice.route_id:
+            self._map = route_map(choice.route_id, choice.name, rider.route)
+        return self._map
 
     def view(self) -> Json:
         """Return the current view state."""
@@ -183,7 +195,7 @@ class Console:
         if self._screen == Screen.RIDE:
             return ride_screen(self._rides.ride, now, self._power.value(now),
                                self._hr.value(now), self._zones(True),
-                               self._cadence.value(now))
+                               self._cadence.value(now), self._live_route())
         if self._screen == Screen.SETTINGS:
             return self._panel.screen(self._certificate.valid_until)
         if self._screen == Screen.PRE_RIDE and self._plan is not None:
@@ -213,6 +225,17 @@ class Console:
                            [self._card(e) for e in catalog.today()],
                            [self._card(e) for e in catalog.library()],
                            self._recovery(now))
+
+    def _live_route(self) -> Json | None:
+        rider, setup = self._rides.rider, self._rides.setup
+        if rider is None or setup is None or setup.route is None:
+            return None
+        last = rider.last
+        return route_live(
+            setup.route.route_id, rider.route,
+            0.0 if last is None else last.distance_m,
+            0.0 if last is None else last.speed_mps,
+            self._rides.ride.phase == RidePhase.PAUSED)
 
     def _recovery(self, now: float) -> Json | None:
         found = self._interrupted

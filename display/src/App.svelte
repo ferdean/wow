@@ -75,7 +75,8 @@
       warnings={view.warnings} send={(n, a) => link.send(n, a)} />
   {:else if view.screen.name === "ride"}
     <RideScreen screen={view.screen} plan={link.plan} links={view.links} battery={view.hrm_battery_pct}
-      warnings={view.warnings} since={link.live ? since : 0} send={(n, a) => link.send(n, a)} />
+      warnings={view.warnings} since={link.live ? since : 0} route={link.route ?? null}
+      send={(n, a) => link.send(n, a)} />
   {:else if view.screen.name === "summary"}
     <SummaryScreen screen={view.screen} send={(n, a) => link.send(n, a)} />
   {:else if view.screen.name === "history"}

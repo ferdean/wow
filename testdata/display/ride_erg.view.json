@@ -38,6 +38,7 @@
   "resistance_pct": null,
   "free_ride_target": null,
   "resistance_blocks": [],
-  "cadence_rpm": null
+  "cadence_rpm": null,
+  "route": null
  }
 }

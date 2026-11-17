@@ -37,7 +37,7 @@
       <div class="panel route">
         <span class="label">Route: {screen.route.name}</span>
         {#if screen.route.distance_m === null}
-          <span>Working out the ride along the route…</span>
+          <span>The route couldn't be read, so this ride has no distance.</span>
         {:else}
           <span class="number small">{km(screen.route.distance_m)} · {screen.route.ascent_m ?? 0} m up</span>
         {/if}

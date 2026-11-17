@@ -23,6 +23,17 @@ export interface PlanBlock {
 }
 export interface Plan { type: "plan"; plan_id: string; segments: PlanSegment[]; blocks: PlanBlock[] }
 
+// Each point: distance along the route (m), x, y (north up, larger side 1000), elevation (m).
+export interface RouteMap {
+  type: "route"; route_id: string; name: string; length_m: number;
+  width: number; height: number; ele_min: number; ele_max: number;
+  points: [number, number, number, number][];
+}
+export interface RouteLive {
+  route_id: string; speed_kmh: number; grade_pct: number; altitude_m: number;
+  distance_m: number; at_m: number;
+}
+
 export type Warning =
   | { kind: "hrm_battery_low"; battery_pct: number }
   | { kind: "trainer_not_responding" }
@@ -83,6 +94,7 @@ export interface RideScreen {
   free_ride_target: number | null;
   resistance_blocks: number[];
   cadence_rpm: number | null;
+  route: RouteLive | null;
 }
 
 export interface Metrics {
@@ -122,7 +134,7 @@ export interface SettingsScreen {
   scan: { kind: "trainer" | "hrm"; running: boolean; found: FoundDevice[] } | null;
 }
 
-export type Down = Hello | Plan | View | Ack | Pong;
+export type Down = Hello | Plan | RouteMap | View | Ack | Pong;
 
 export type CommandName =
   | "open_workout" | "open_free_ride" | "set_block_mode" | "start" | "cancel_start"

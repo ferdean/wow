@@ -9,6 +9,7 @@ from tests.support.scenes import (
     THIRTY_THIRTY,
     advance,
     plans,
+    route_maps,
     scenes,
     started_ride,
 )
@@ -198,6 +199,18 @@ def test_golden_views(name: str) -> None:
 
 
 @pytest.mark.case("S-VIEW-01")
+def test_the_gallery_routes() -> None:
+    path = GOLDEN / "routes.json"
+    actual = route_maps()
+    if os.environ.get("WOW_UPDATE_GOLDEN") == "1":
+        path.write_text(json.dumps(actual, indent=1) + "\n")
+    assert json.loads(path.read_text()) == actual
+    used = {(json.loads(f.read_text())["screen"].get("route") or {}).get(
+        "route_id") for f in GOLDEN.glob("ride*.view.json")}
+    assert used - {None} == set(actual)
+
+
+@pytest.mark.case("S-VIEW-01")
 def test_the_gallery_plans() -> None:
     path = GOLDEN / "plans.json"
     actual = plans()
@@ -222,11 +235,10 @@ STATES_3_1 = {
              "ride_erg_strap_dropout", "ride_trainer_not_responding",
              "ride_control_refused", "ride_paused", "ride_resistance_block",
              "ride_workout_done", "ride_free_ride_by_power",
-             "ride_clock_unsynced"],
+             "ride_clock_unsynced", "ride_route", "ride_route_paused"],
     "Summary": ["summary_off", "summary", "summary_uploading",
                 "summary_done", "summary_retrying", "summary_failed",
-                "summary_auth_error", "summary_route_working",
-                "summary_route"],
+                "summary_auth_error", "summary_route"],
     "Ride history": ["history", "history_empty"],
     "Calibration": ["calibration_idle", "calibration_blocked",
                     "calibration_starting", "calibration_speed_up",

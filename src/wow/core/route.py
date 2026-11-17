@@ -11,7 +11,7 @@ great-circle distances on a sphere of the Earth's mean radius.
 import math
 import xml.etree.ElementTree as ElementTree
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Final
 
 SPACING_M: Final[float] = 10.0
@@ -106,11 +106,24 @@ class Route:
 
 @dataclass(frozen=True)
 class RouteChoice:
-    """The route a ride is ridden on: its file name, name and GPX bytes."""
+    """The route a ride is ridden on: its file name, name and GPX bytes.
+
+    `parsed` is the route already read from those bytes, when there is one.
+    """
 
     file: str
     name: str
     gpx: bytes
+    parsed: Route | None = field(default=None, compare=False, repr=False)
+
+    def route(self) -> Route:
+        """Return the route, read from the bytes if need be."""
+        return self.parsed or read_route(self.gpx, self.name)
+
+    @property
+    def route_id(self) -> str:
+        """Return a name for the route that changes with its file."""
+        return f"{self.file}@{len(self.gpx)}"
 
 
 def _between(values: Sequence[float], index: int, part: float) -> float:

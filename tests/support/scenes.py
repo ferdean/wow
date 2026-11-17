@@ -4,7 +4,7 @@ tests and the golden views in testdata/display/."""
 from datetime import date
 from typing import Any
 
-from tests.support.timeline import load_json
+from tests.support.timeline import TESTDATA, load_json
 from wow.app.workout_catalog import load_builtin, planned_on, rides_of
 from wow.core.devices import (
     DeviceKind, FoundDevice, LinkState, Range, TrainerCapabilities,
@@ -15,6 +15,7 @@ from wow.core.ride import (
     RIDING, Pause, PowerSeen, ResistanceStep, Ride, Start, SwitchMode, Tick,
     TrainerLink,
 )
+from wow.core.route import Route, read_route
 from wow.core.settings import DeviceRef, Settings
 from wow.core.view import (
     battery_warning,
@@ -31,6 +32,8 @@ from wow.core.view import (
     ridden_route,
     ride_screen,
     ride_warnings,
+    route_live,
+    route_map,
     route_option,
     summary_screen,
     view_state,
@@ -41,6 +44,7 @@ from wow.core.workout import (
     Block, PowerTarget, PowerUnit, Step, Workout, free_ride_workout,
 )
 
+ROOT = TESTDATA.parent
 D100 = TrainerCapabilities(Range(50, 600, 1), Range(0, 100, 1), True, False)
 
 THIRTY_THIRTY = Workout(
@@ -389,8 +393,41 @@ def sl13_scenes() -> dict[str, dict[str, Any]]:
     return {
         "pre_ride_routes": _view(pre_ride_screen(
             plan, LinkState.CONNECTED, routes=routes, route="lake-loop.gpx")),
-        "summary_route_working": summary(None, None),
         "summary_route": summary(32456.7, 402.3),
+    }
+
+
+EXAMPLE_ROUTE = ROOT / "deploy" / "routes" / "example-loop.gpx"
+
+
+def example_route() -> tuple[str, Route]:
+    """Return the repository's example route and its route_id."""
+    data = EXAMPLE_ROUTE.read_bytes()
+    return (f"example-loop.gpx@{len(data)}",
+            read_route(data, "example-loop"))
+
+
+def route_maps() -> dict[str, dict[str, Any]]:
+    """Return the route messages of the golden ride states, by route_id,
+    for the display's gallery."""
+    route_id, route = example_route()
+    return {route_id: route_map(route_id, route.name, route)}
+
+
+def sl14_scenes() -> dict[str, dict[str, Any]]:
+    route_id, route = example_route()
+    erg = started_ride()
+    advance(erg, 180.0)
+    paused = started_ride()
+    advance(paused, 150.0)
+    paused.handle(Pause(), 150.0)
+    return {
+        "ride_route": _view(ride_screen(
+            erg, 180.0, 221, 158, route=route_live(
+                route_id, route, 4712.6, 8.47, False))),
+        "ride_route_paused": _view(ride_screen(
+            paused, 160.0, None, 131, route=route_live(
+                route_id, route, 3810.3, 6.2, True))),
     }
 
 
@@ -501,4 +538,5 @@ def scenes() -> dict[str, dict[str, Any]]:
         **sl10_scenes(),
         **upload_scenes(),
         **sl13_scenes(),
+        **sl14_scenes(),
     }

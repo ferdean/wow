@@ -1,7 +1,8 @@
 """Serve the display over WebSockets.
 
 Display connections (ICD IF-06; 3A, web/hub): a complete view on every
-change, at most 10 and at least 1 a second; commands with their acks,
+change, at most 10 and at least 1 a second, the plan and route messages
+before the first view that needs them; commands with their acks,
 pings, and the page's paint reports and viewport (APP-802, APP-803,
 APP-807). Tap and paint times go to the timing log (ICD 4.6.7).
 """
@@ -51,6 +52,10 @@ class ViewSource(Protocol):
 
     def plan(self) -> Json | None:
         """Return the plan message of the ride, if any."""
+        ...
+
+    def route(self) -> Json | None:
+        """Return the route message of the ride, if any."""
         ...
 
     def command(self, name: str, args: Mapping[str, Any]) -> str | None:
@@ -164,6 +169,7 @@ class _Client:
         self.socket = socket
         self.seq = 0
         self.plan_id: str | None = None
+        self.route_id: str | None = None
         self.stamps: dict[int, tuple[float | None, float]] = {}
 
 
@@ -219,7 +225,7 @@ class Hub:
                                   "app_version": self._app_version,
                                   "protocol": PROTOCOL})
         await self._send_view(client, self._source.view(),
-                              self._source.plan())
+                              self._source.plan(), self._source.route())
         self._clients.add(client)
         try:
             async for text in messages:
@@ -245,15 +251,20 @@ class Hub:
         if not self._clients:
             return
         view, plan = self._source.view(), self._source.plan()
+        route = self._source.route()
         for client in list(self._clients):
-            await self._send_view(client, view, plan)
+            await self._send_view(client, view, plan, route)
 
     async def _send_view(self, client: _Client, view: Json,
-                         plan: Json | None) -> None:
+                         plan: Json | None, route: Json | None) -> None:
         plan_id = None if plan is None else str(plan["plan_id"])
         if plan is not None and plan_id != client.plan_id:
             await self._send(client, plan)
         client.plan_id = plan_id
+        route_id = None if route is None else str(route["route_id"])
+        if route is not None and route_id != client.route_id:
+            await self._send(client, route)
+        client.route_id = route_id
         client.seq += 1
         sent_ms = round(self._clock.monotonic() * 1000, 1)
         client.stamps[client.seq] = (view.get("data_mono_ms"), sent_ms)

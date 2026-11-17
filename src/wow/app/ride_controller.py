@@ -4,15 +4,16 @@ Runs the ride state machine and the sampler: rider commands, the
 trainer's power and the strap's heart rate in; trainer commands, journal
 records, samples and, on Finish, `ride.fit` and `meta.json` out (3A,
 app/ride_controller; APP-301, APP-304, APP-315, APP-601 to APP-606,
-APP-801). A ride on a route keeps a copy of the route and, once
-finished, is ridden along it in the recorder's thread (APP-903, APP-908).
+APP-801). A ride on a route keeps a copy of the route and is ridden
+along it second by second, for the route screen and for the files
+(APP-903, APP-908 to APP-910).
 """
 
 import asyncio
 import json
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Final
@@ -42,7 +43,7 @@ from wow.core.sampler import (
 )
 from wow.core.sampler import Tick as SampleTick
 from wow.core.timefmt import utc_text
-from wow.core.virtual_ride import Track, track_of
+from wow.core.virtual_ride import Track, VirtualRider, rider_of
 from wow.core.vocab import Mode, UploadState
 from wow.core.workout import Workout
 from wow.ports.clock import Clock
@@ -152,6 +153,7 @@ class RideController:
         self._record: _Record | None = None
         self._setup: RideSetup | None = None
         self._tails: set[asyncio.Task[None]] = set()
+        self._rider: VirtualRider | None = None
 
     def start(self, setup: RideSetup) -> str | None:
         """Start a ride; return the problem, if any."""
@@ -216,6 +218,7 @@ class RideController:
         self._setup = found.setup
         self.summary = None
         self._record = _restored(found)
+        self._rider = _rider_again(found.setup, self._record)
         self._recorder.open_ride(str(found.meta["ride_id"]))
         self._journal(Journal("recovered", ride.ride_time(crash),
                               {"outage": found.outage}))
@@ -234,6 +237,11 @@ class RideController:
     def setup(self) -> RideSetup | None:
         """Return the setup of the ride last started or taken up."""
         return self._setup
+
+    @property
+    def rider(self) -> VirtualRider | None:
+        """Return the rider on the route of the ride running, if any."""
+        return self._rider
 
     def ride_id(self) -> str | None:
         """Return the ID of the ride being recorded, if any."""
@@ -304,6 +312,8 @@ class RideController:
         elif record.event == "paused" and record.t_ride is not None:
             now = self._clock.monotonic()
             current.paused_at = (record.t_ride, now)
+            if self._rider is not None:
+                self._rider.stop_at(record.t_ride)
             self._sampling.post(Paused(now))
         elif record.event == "resumed" and current.paused_at is not None:
             now = self._clock.monotonic()
@@ -337,6 +347,7 @@ class RideController:
             meta["route"] = {"file": setup.route.file,
                              "name": setup.route.name}
             meta["rider_kg"] = setup.rider_kg
+        self._rider = _rider_of(setup)
         self._write_meta(self._record)
 
     def _restart_sampler(self, found: Resumption, now: float) -> None:
@@ -365,6 +376,8 @@ class RideController:
                                       sample.heart_rate_bpm,
                                       sample.cadence_rpm, target)
             current.samples.append(recorded)
+            if self._rider is not None:
+                self._rider.ride(sample.t, sample.power)
             self._recorder.sample({
                 "t": sample.t, "utc": utc_text(utc), "power": sample.power,
                 "hr_bpm": sample.heart_rate_bpm,
@@ -385,8 +398,9 @@ class RideController:
         if cause == RidePhase.FINISHED:
             self._sampling.post(Stopped(now))
         self._record = None
+        rider, self._rider = self._rider, None
         if cause == RidePhase.FINISHED:
-            self._finish(current)
+            self._finish(current, rider)
         else:
             current.meta["state"] = cause.value
             self._write_meta(current)
@@ -396,50 +410,40 @@ class RideController:
         task.add_done_callback(self._tails.discard)
         self.on_ended(cause)
 
-    def _finish(self, current: _Record) -> None:
+    def _finish(self, current: _Record, rider: VirtualRider | None) -> None:
         setup = current.setup
         samples = current.samples
         metrics = ride_metrics([s.power for s in samples],
                                [s.heart_rate_bpm for s in samples],
                                setup.ftp, setup.zones_pct)
         start = current.start_utc or self._clock.utc()
+        route = setup.route
+        track = None if rider is None or route is None else rider.track(
+            route.name)
         activity = Activity(setup.workout.name, self._version, setup.ftp,
                             start, float(len(samples)), tuple(samples),
                             tuple(current.lap_starts), tuple(current.pauses),
-                            metrics)
+                            metrics, track)
         meta = {**current.meta, "state": "finished",
                 "metrics": _metrics_json(metrics),
                 "finished_mono_ms": round(self._clock.monotonic() * 1000, 1)}
-        ride_id = str(current.meta["ride_id"])
-        route = setup.route
-        self.summary = Summary(ride_id, setup.workout.name, utc_text(start),
-                               metrics, UploadState(str(meta["upload"])),
-                               None if route is None
-                               else RouteSummary(route.name))
+        if route is not None:
+            meta["route"] = _route_json(route, track)
+        self.summary = Summary(
+            str(current.meta["ride_id"]), setup.workout.name,
+            utc_text(start), metrics, UploadState(str(meta["upload"])),
+            None if route is None else RouteSummary(
+                route.name, None if track is None else track.distance_m,
+                None if track is None else track.ascent_m))
         ride_dir, writer, clock = current.ride_dir, self._fit, self._clock
-        loop = asyncio.get_running_loop()
 
         def write_files() -> None:
-            track = None if route is None else _ride_along(
-                route, activity, setup.rider_kg)
-            write_atomic(ride_dir / FIT_FILE,
-                         writer.encode(replace(activity, track=track)))
-            if route is not None:
-                meta["route"] = _route_json(route, track)
+            write_atomic(ride_dir / FIT_FILE, writer.encode(activity))
             meta["files_mono_ms"] = round(clock.monotonic() * 1000, 1)
             write_atomic(ride_dir / META, json.dumps(meta).encode())
-            if track is not None:
-                _call_soon(loop, self._ridden, ride_id, RouteSummary(
-                    track.route_name, track.distance_m, track.ascent_m))
 
         self._recorder.run(write_files)
         self.on_finished(self.summary)
-
-    def _ridden(self, ride_id: str, route: RouteSummary) -> None:
-        summary = self.summary
-        if summary is not None and summary.ride_id == ride_id:
-            self.summary = replace(summary, route=route)
-            self._on_change()
 
     def _write_meta(self, current: _Record) -> None:
         self._recorder.write_file(current.ride_dir / META,
@@ -470,14 +474,30 @@ class RideController:
         })
 
 
-def _ride_along(route: RouteChoice, activity: Activity,
-                rider_kg: int) -> Track | None:
-    try:
-        return track_of(route, [(s.t, s.power) for s in activity.samples],
-                        [p.t_ride for p in activity.pauses], rider_kg)
-    except RouteError as error:
-        logger.warning("route %s not ridden: %s", route.file, error)
+def _rider_of(setup: RideSetup) -> VirtualRider | None:
+    if setup.route is None:
         return None
+    try:
+        route = setup.route.route()
+    except RouteError as error:
+        logger.warning("route %s not ridden live: %s", setup.route.file,
+                       error)
+        return None
+    return VirtualRider(route, rider_of(setup.rider_kg))
+
+
+def _rider_again(setup: RideSetup, record: _Record) -> VirtualRider | None:
+    rider = _rider_of(setup)
+    if rider is None:
+        return None
+    stops = [p.t_ride for p in record.pauses]
+    if record.paused_at is not None:
+        stops.append(record.paused_at[0])
+    for stop in stops:
+        rider.stop_at(stop)
+    for sample in record.samples:
+        rider.ride(sample.t, sample.power)
+    return rider
 
 
 def _route_json(route: RouteChoice, track: Track | None) -> dict[str, object]:
@@ -487,16 +507,6 @@ def _route_json(route: RouteChoice, track: Track | None) -> dict[str, object]:
         "descent_m": round(track.descent_m, 1),
         "max_speed_mps": round(track.max_speed_mps, 3)}
     return {"file": route.file, "name": route.name, **ridden}
-
-
-def _call_soon(loop: asyncio.AbstractEventLoop,
-               callback: Callable[[str, RouteSummary], None], ride_id: str,
-               route: RouteSummary) -> None:
-    try:
-        loop.call_soon_threadsafe(callback, ride_id, route)
-    except RuntimeError:
-        logger.info("ride %s ridden along its route after the app stopped",
-                    ride_id)
 
 
 def _metrics_json(metrics: Metrics) -> dict[str, object]:

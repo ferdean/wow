@@ -40,6 +40,7 @@
   "resistance_blocks": [
    0
   ],
-  "cadence_rpm": null
+  "cadence_rpm": null,
+  "route": null
  }
 }

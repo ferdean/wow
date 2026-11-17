@@ -1,4 +1,5 @@
-"""Routes in the app shell: listing, choosing and riding (L3, SL-13)."""
+"""Routes in the app shell: listing, choosing, riding, the live ride (L3,
+SL-13, SL-14)."""
 
 import asyncio
 import json
@@ -10,6 +11,7 @@ from typing import Any
 import pytest
 from garmin_fit_sdk import Decoder, Stream
 
+from tests.app.test_recovery import Restarted
 from tests.support.app_rig import ERG_CHECK, AppSession, read_jsonl
 from tests.support.routes import climb, gpx, loop
 from wow.app import route_catalog
@@ -119,12 +121,9 @@ async def test_a_ride_on_a_route_gets_its_track(tmp_path: Path) -> None:
     assert session.command("start") is None
     await session.until(240.0)
     assert session.command("finish") is None
-    working = screen(session)["route"]
-    assert working == {"name": "Lake loop", "distance_m": None,
-                       "ascent_m": None}
-    await settle(session)
     done = screen(session)["route"]
     assert done["name"] == "Lake loop" and done["distance_m"] > 1000
+    await settle(session)
     ride = await session.close()
     assert (ride / "route.gpx").read_bytes() == LOOP
     meta = json.loads((ride / "meta.json").read_text())
@@ -208,3 +207,73 @@ async def test_a_slow_older_read_never_replaces_a_newer_one(
     catalog.request_refresh()
     await catalog.close()
     assert catalog.routes == ()
+
+
+async def ride_on(session: AppSession, file: str) -> None:
+    await pre_ride(session)
+    assert session.command("set_route", file=file) is None
+    await session.clock.advance(15.0)
+    assert session.command("start") is None
+
+
+@pytest.mark.case("T-RTE-07")
+@pytest.mark.req("APP-909", "APP-910")
+@pytest.mark.asyncio
+async def test_the_ride_screen_carries_the_ride_along_the_route(
+        tmp_path: Path) -> None:
+    put_routes(tmp_path, {"a-climb.gpx": CLIMB})
+    session = AppSession(tmp_path)
+    assert session.app.console.route() is None
+    await ride_on(session, "a-climb.gpx")
+    await session.until(60.0)
+    first = screen(session)["route"]
+    assert first["route_id"] == f"a-climb.gpx@{len(CLIMB)}"
+    assert first["speed_kmh"] > 5 and first["grade_pct"] == 5.0
+    assert first["distance_m"] > 100
+    found = session.app.console.route()
+    assert found is not None and found["route_id"] == first["route_id"]
+    assert session.app.console.route() is found
+    await session.until(120.0)
+    later = screen(session)["route"]
+    assert later["distance_m"] > first["distance_m"]
+    assert later["altitude_m"] > first["altitude_m"]
+    assert session.command("pause") is None
+    await session.clock.advance(5.0)
+    assert screen(session)["route"]["speed_kmh"] == 0.0
+    assert session.command("resume") is None
+    await session.until(180.0)
+    live = session.app.rides.rider
+    assert live is not None and live.last is not None
+    last = live.last
+    assert session.command("finish") is None
+    assert session.app.console.route() is None
+    ride = await session.close()
+    records = decode(ride / "ride.fit")["record_mesgs"]
+    seconds = [s["t"] for s in read_jsonl(ride / "samples.jsonl")]
+    same = records[seconds.index(last.t)]
+    assert same["distance"] == pytest.approx(last.distance_m, abs=0.01)
+    assert same["enhanced_speed"] == pytest.approx(last.speed_mps,
+                                                   abs=0.001)
+
+
+@pytest.mark.case("T-RTE-07")
+@pytest.mark.req("APP-910")
+@pytest.mark.asyncio
+async def test_after_a_restart_the_live_ride_goes_on_from_the_crash(
+        tmp_path: Path) -> None:
+    put_routes(tmp_path / "first", {"a-climb.gpx": CLIMB})
+    first = AppSession(tmp_path / "first")
+    await ride_on(first, "a-climb.gpx")
+    await first.until(130.0)
+    crash = screen(first)["route"]["distance_m"]
+    again = Restarted(first, tmp_path / "again")
+    await again.start()
+    assert again.command("recovery_continue") is None
+    resumed = again.app.console.view()["screen"]["route"]
+    assert resumed["distance_m"] == pytest.approx(crash, abs=40)
+    await again.clock.advance(60.0)
+    moved = again.app.console.view()["screen"]["route"]
+    assert moved["distance_m"] >= resumed["distance_m"]
+    assert again.command("finish") is None
+    await again.close()
+    await first.close()

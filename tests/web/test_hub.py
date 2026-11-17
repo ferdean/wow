@@ -54,6 +54,7 @@ def test_page_messages_are_parsed(text: str, expected: object) -> None:
 class FakeSource:
     def __init__(self) -> None:
         self.plan_id: str | None = None
+        self.route_id: str | None = None
         self.commands: list[str] = []
 
     def view(self) -> dict[str, Any]:
@@ -63,6 +64,11 @@ class FakeSource:
         if self.plan_id is None:
             return None
         return {"type": "plan", "plan_id": self.plan_id}
+
+    def route(self) -> dict[str, Any] | None:
+        if self.route_id is None:
+            return None
+        return {"type": "route", "route_id": self.route_id}
 
     def command(self, name: str, args: Mapping[str, Any]) -> str | None:
         self.commands.append(name)
@@ -241,3 +247,27 @@ async def test_bad_commands_are_refused_and_change_nothing(
     assert "command start refused: invalid_state" in logged
     assert "command warp refused: bad_request" in logged
     assert "not JSON" in logged and "bad command" in logged
+
+
+@pytest.mark.case("T-RTE-07")
+@pytest.mark.req("APP-909")
+@pytest.mark.asyncio
+async def test_the_route_goes_once_before_the_view_that_needs_it() -> None:
+    clock = SteppedClock()
+    source = FakeSource()
+    source.route_id = "loop.gpx@1000"
+    hub, socket, serving, pump = await _connected(clock, source)
+    await clock.advance(1.5)
+    hub.changed()
+    await clock.advance(1.5)
+    source.route_id = None
+    hub.changed()
+    await clock.advance(1.5)
+    source.route_id = "loop.gpx@1000"
+    hub.changed()
+    await clock.advance(1.5)
+    await _stop(hub, serving, pump)
+    kinds = [m["type"] for _, m in socket.sent]
+    assert kinds[:3] == ["hello", "route", "view"]
+    assert [m["route_id"] for _, m in socket.of_type("route")] == [
+        "loop.gpx@1000", "loop.gpx@1000"]

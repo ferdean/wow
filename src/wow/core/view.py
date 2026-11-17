@@ -5,10 +5,12 @@ AD-18). Values only, no formatting.
 
 Home with planned, library and built-in workouts, Pre-ride with the
 routes to choose from, the ride screen while armed, during steps and
-after the last one, the Summary, the ride history, Calibration and
-Settings, and the warnings they carry.
+after the last one (with the live ride along a route, and the route's
+map message), the Summary, the ride history, Calibration and Settings,
+and the warnings they carry.
 """
 
+import math
 from collections import deque
 from collections.abc import Sequence
 from fractions import Fraction
@@ -19,6 +21,7 @@ from wow.core.metrics import Metrics
 from wow.core.numbers import DEFAULT_ZONES_PCT, exact, round_half_up, zone_of
 from wow.core.plan import Plan
 from wow.core.ride import Ride, RidePhase
+from wow.core.route import Route
 from wow.core.settings import DeviceRef, Settings
 from wow.core.workout import StepKind, Workout
 from wow.core.vocab import Mode, Problem, Screen, WarningKind
@@ -26,6 +29,9 @@ from wow.core.vocab import Mode, Problem, Screen, WarningKind
 AVERAGE_WINDOW: Final[float] = 3.0
 DATA_DROPOUT: Final[float] = 3.0
 CERT_WARN_DAYS: Final[int] = 30
+MAP_POINTS: Final[int] = 400
+MAP_SIZE: Final[float] = 1000.0
+KMH_PER_MPS: Final[float] = 3.6
 
 Json = dict[str, Any]
 
@@ -205,8 +211,13 @@ def plan_message(plan: Plan,
 def ride_screen(ride: Ride, now: float, power: int | None,
                 hr_bpm: int | None,
                 zones_pct: Sequence[int] = DEFAULT_ZONES_PCT,
-                cadence_rpm: int | None = None) -> Json:
-    """Return the ride screen at now; cadence only with a source."""
+                cadence_rpm: int | None = None,
+                route: Json | None = None) -> Json:
+    """Return the ride screen at now.
+
+    Cadence comes only with a source, the live ride along the route
+    only on a route.
+    """
     plan = ride.plan
     remaining = ride.remaining(now)
     screen: Json = {
@@ -222,7 +233,7 @@ def ride_screen(ride: Ride, now: float, power: int | None,
         "resistance_pct": ride.resistance_pct,
         "free_ride_target": ride.free_ride_target,
         "resistance_blocks": list(ride.resistance_blocks),
-        "cadence_rpm": cadence_rpm,
+        "cadence_rpm": cadence_rpm, "route": route,
     }
     if plan is None:
         return screen
@@ -263,6 +274,44 @@ def ridden_route(name: str, distance_m: float | None,
 
     return {"name": name, "distance_m": whole(distance_m),
             "ascent_m": whole(ascent_m)}
+
+
+def route_map(route_id: str, name: str, route: Route) -> Json:
+    """Return the route message: its shape and its elevation (APP-909).
+
+    Each point is [distance m, x, y, elevation m]; x and y are a flat
+    projection with north up, scaled so the larger side is 1000.
+    """
+    step = max(1, math.ceil(len(route.stations) / MAP_POINTS))
+    picks = list(range(0, len(route.stations), step))
+    if picks[-1] != len(route.stations) - 1:
+        picks.append(len(route.stations) - 1)
+    across = math.cos(math.radians(sum(route.lat) / len(route.lat)))
+    xs = [route.lon[i] * across for i in picks]
+    ys = [-route.lat[i] for i in picks]
+    left, top = min(xs), min(ys)
+    scale = MAP_SIZE / max(max(xs) - left, max(ys) - top, 1e-12)
+    points = [[round(route.stations[i], 1), round((x - left) * scale, 1),
+               round((y - top) * scale, 1), round(route.ele[i], 1)]
+              for i, x, y in zip(picks, xs, ys)]
+    return {"type": "route", "route_id": route_id, "name": name,
+            "length_m": round(route.length_m, 1),
+            "width": round((max(xs) - left) * scale, 1),
+            "height": round((max(ys) - top) * scale, 1),
+            "ele_min": round(min(route.ele), 1),
+            "ele_max": round(max(route.ele), 1), "points": points}
+
+
+def route_live(route_id: str, route: Route, distance_m: float,
+               speed_mps: float, paused: bool) -> Json:
+    """Return the ride along the route at this second (APP-909)."""
+    at = distance_m % route.length_m
+    return {"route_id": route_id,
+            "speed_kmh": 0.0 if paused else round(speed_mps * KMH_PER_MPS, 1),
+            "grade_pct": round(route.grade_at(at) * 100, 1),
+            "altitude_m": round_half_up(exact(route.ele_at(at))),
+            "distance_m": round_half_up(exact(distance_m)),
+            "at_m": round(at, 1)}
 
 
 def summary_screen(ride_id: str, title: str, start_utc: str,

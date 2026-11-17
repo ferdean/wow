@@ -120,3 +120,15 @@ export function km(metres: number | null): string {
 export function routeLine(length_m: number, ascent_m: number): string {
   return `${km(length_m)} · ${Math.round(ascent_m)} m up`;
 }
+
+export function speedText(kmh: number | null | undefined): string {
+  return kmh === null || kmh === undefined ? MISSING : kmh.toFixed(1);
+}
+
+export function gradeText(pct: number | null | undefined): string {
+  if (pct === null || pct === undefined) {
+    return MISSING;
+  }
+  const text = Math.abs(pct).toFixed(1);
+  return pct < 0 && text !== "0.0" ? `−${text}` : text;
+}

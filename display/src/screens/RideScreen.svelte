@@ -1,9 +1,13 @@
 <script lang="ts">
-  import type { CommandName, LinkState, Plan, RideScreen, Warning } from "../types/protocol";
-  import { HEART_EM, clock, countdown, textEm, timeLeft, watts, zoneColour } from "../format";
+  import type { CommandName, LinkState, Plan, RideScreen, RouteMap as Route, Warning } from "../types/protocol";
+  import {
+    HEART_EM, clock, countdown, gradeText, km, speedText, textEm, timeLeft, watts, zoneColour,
+  } from "../format";
   import Banner from "../ui/Banner.svelte";
+  import Elevation from "../ui/Elevation.svelte";
   import Heart from "../ui/Heart.svelte";
   import Profile from "../ui/Profile.svelte";
+  import RouteMap from "../ui/RouteMap.svelte";
   import Sheet from "../ui/Sheet.svelte";
   import StatusLine from "../ui/StatusLine.svelte";
   import { releaseScreen } from "../device/wake.svelte";
@@ -16,12 +20,17 @@
     battery: number | null;
     warnings: Warning[];
     since: number;
+    route?: Route | null;
     send: (name: CommandName, args?: Record<string, unknown>) => void;
   }
-  let { screen, plan, links, battery, warnings, since, send }: Props = $props();
+  let { screen, plan, links, battery, warnings, since, route = null, send }: Props = $props();
 
   const SKIP_SHEET_MS = 5000;
   let sheet = $state<"finish" | "discard" | "skip" | null>(null);
+  let onRoute = $state(false);
+  const live = $derived(screen.route);
+  const map = $derived(route !== null && live !== null && route.route_id === live.route_id ? route : null);
+  const showRoute = $derived(onRoute && map !== null && live !== null && !screen.waiting_for_power);
   let skipTimer: ReturnType<typeof setTimeout> | undefined;
 
   const running = $derived(!screen.waiting_for_power && !screen.paused);
@@ -92,6 +101,17 @@
   }
 </script>
 
+{#snippet profile()}
+  {#if map}
+    <button class="profile grow toggle" aria-label="Show the route" onclick={() => (onRoute = true)}>
+      <Profile {plan} elapsed={position} resistanceBlocks={screen.resistance_blocks} />
+      <span class="hint">Route ›</span>
+    </button>
+  {:else}
+    <div class="profile grow"><Profile {plan} elapsed={position} resistanceBlocks={screen.resistance_blocks} /></div>
+  {/if}
+{/snippet}
+
 <div class="page fixed">
   <StatusLine trainer={links.trainer} hrm={links.hrm} {battery} {batteryLow} />
   {#each banners as banner (banner.text)}
@@ -108,6 +128,27 @@
     <div class="times"><span class="number small">{clock(0)}</span><span class="label">ridden</span></div>
     <div class="grow"></div>
     <button class="secondary" onclick={() => send("cancel_start")}>Cancel</button>
+  {:else if showRoute && map && live}
+    <div class="cells">
+      <div class="cell"><span class="label">{screen.paused ? "Paused" : "Speed, km/h"}</span><span class="number key fit" style:--em={textEm(speedText(live.speed_kmh))}>{speedText(live.speed_kmh)}</span></div>
+      <div class="cell"><span class="label">Climb, %</span><span class="number key fit" style:--em={textEm(gradeText(live.grade_pct))}>{gradeText(live.grade_pct)}</span></div>
+    </div>
+    <div class="info label">
+      <span>Power <b class="number">{lost ? "––" : watts(screen.power)}</b> W</span>
+      <span>Heart <b class="number">{watts(screen.hr_bpm)}</b></span>
+      {#if screen.step}<span>Step <b class="number">{count ?? timeLeft(left)}</b></span>{/if}
+    </div>
+    <button class="routemap grow" aria-label="Back to the workout" onclick={() => (onRoute = false)}>
+      <RouteMap {map} at={live.at_m} />
+      <span class="hint distance">{km(live.distance_m)}</span>
+      <span class="hint">{map.name}</span>
+    </button>
+    <div class="elevation"><Elevation {map} at={live.at_m} /><span class="label altitude">now {live.altitude_m} m</span></div>
+    <div class="controls">
+      <button onclick={() => (onRoute = false)}>Workout</button>
+      <button class="primary" onclick={() => send(screen.paused ? "resume" : "pause")}>{screen.paused ? "Resume" : "Pause"}</button>
+      <button onclick={() => (sheet = "finish")}>Finish</button>
+    </div>
   {:else if screen.mode === "resistance" || screen.workout_done}
     {#if screen.workout_done}
       <div class="band neutral done">
@@ -134,7 +175,7 @@
     {:else if canErg}
       <button class="primary" disabled={screen.paused} onclick={() => send("switch_mode", { mode: "erg" })}>{free ? "Ride by power" : "Back to ERG"}</button>
     {/if}
-    <div class="profile grow"><Profile {plan} elapsed={position} resistanceBlocks={screen.resistance_blocks} /></div>
+    {@render profile()}
     <div class="times label">
       <span><span class="number small">{clock(elapsed)}</span> ridden</span>
       {#if remaining !== null}<span><span class="number small">{timeLeft(remaining)}</span> to go</span>{/if}
@@ -181,7 +222,7 @@
         <span class="label">for {clock(screen.next.duration)}</span>
       </div>
     {/if}
-    <div class="profile grow"><Profile {plan} elapsed={position} resistanceBlocks={screen.resistance_blocks} /></div>
+    {@render profile()}
     <div class="times label">
       <span><span class="number small">{clock(elapsed)}</span> ridden</span>
       {#if remaining !== null}<span><span class="number small">{timeLeft(remaining)}</span> to go</span>{/if}
@@ -354,6 +395,61 @@
     min-height: 0;
     flex-basis: 0;
     overflow: hidden;
+  }
+  .toggle,
+  .routemap {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    text-align: left;
+  }
+  .routemap {
+    flex-basis: 0;
+    overflow: hidden;
+    background: var(--dusk);
+    border-radius: 18px;
+  }
+  .hint {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    max-width: 55%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: var(--rise);
+    color: var(--moon);
+    border-radius: 10px;
+    padding: 2px 10px;
+    font-size: 14px;
+    font-weight: 650;
+  }
+  .hint.distance {
+    right: auto;
+    left: 6px;
+    background: var(--moon);
+    color: var(--ink);
+    font-size: 16px;
+  }
+  .elevation {
+    position: relative;
+    height: 92px;
+    flex: none;
+    background: var(--dusk);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .altitude {
+    position: absolute;
+    right: 8px;
+    top: 4px;
+    font-size: 13px;
   }
   @media (max-height: 700px) {
     .page {

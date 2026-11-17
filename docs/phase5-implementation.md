@@ -1,6 +1,6 @@
 # Phase 5 — Implementation
 
-**Status:** revision 12, 17 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) (sections 27 to 32), and SL-10 (settings, housekeeping), SL-11 (display finish) and SL-12 (endurance, close-out) (sections 33 to 38) planned, built and gated, and **approved by Ferran on 16 Nov 2026**; their Pi steps are the closing checks. SL-13 (route simulation) planned, built and gated on 17 Nov 2026 with the closing checks waived for it (sections 39 to 44); approval pending. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
+**Status:** revision 13, 17 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) (sections 27 to 32), and SL-10 (settings, housekeeping), SL-11 (display finish) and SL-12 (endurance, close-out) (sections 33 to 38) planned, built and gated, and **approved by Ferran on 16 Nov 2026**; their Pi steps are the closing checks. SL-13 (route simulation) planned, built and gated on 17 Nov 2026 with the closing checks waived for it (sections 39 to 44); SL-14 (route screen), added by Ferran the same day, planned, built and gated (sections 45 to 50); app version 0.8.0, the version that goes to V&V; both wait for approval. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
 
 ## 1 How Phase 5 works
 
@@ -44,6 +44,7 @@ flowchart LR
     s5 --> s11["SL-11<br/>display finish"]
     s6 & s7 & s8 & s9 & s10 & s11 --> s12["SL-12<br/>endurance, close-out"]
     s12 --> s13["SL-13<br/>route simulation"]
+    s13 --> s14["SL-14<br/>route screen"]
 ```
 
 | Slice | New modules | Closes | First real-device evidence |
@@ -61,6 +62,7 @@ flowchart LR
 | SL-11 | Wake-lock prompt, countdown, profile, sound, sizes, latency reports | A-49, A-56 to A-58 | DS-8, walk-through I-14 to I-20 |
 | SL-12 | 4-hour runs, replay regression, full traceability | — | T-SYS-02 |
 | SL-13 | Route simulation, after the ride only: a public GPS route (GPX) gives distance, slope and altitude; with the ride's power these give speed, and the FIT file gets speed, distance, altitude and position. No effect on control or display. Added by Ferran on 14 Nov 2026 as the last slice, run with lighter documentation and testing; it moves "simulated speed, distance and altitude" from Phase 1's out-of-scope list into v1, so its requirements are written when the slice starts. | — | A ride with its route, speed and altitude in intervals.icu and Garmin Connect |
+| SL-14 | Route screen: during a ride on a route, a drawing of the route, the elevation profile, speed and grade, with power and heart rate small; the ride along the route worked out every second and the same track in the FIT file. Added by Ferran on 17 Nov 2026 as the last slice of v1; version 0.8.0 goes to V&V with it. Slope mode is a V2 to-do. | — | D-34, in D-33's ride |
 
 ## 3 SL-01 plan: Bluetooth foundation
 
@@ -496,6 +498,7 @@ If the screen is off from what 3C shows, a screenshot per screen is enough; layo
 21. SL-10 to SL-12 are built together at Ferran's request (15 Nov 2026), on top of SL-07 to SL-09 before their approval, with decisions IM-104 to IM-127 (section 34), findings SF-28 to SF-36 and four test-plan deviations (35.4); the changes of 35.5 are proposed. App version 0.6.0.
 22. SL-07 to SL-12 are approved (16 Nov 2026), with the changes of 29.5 and 35.5; their Pi steps (sections 31 and 37) became the closing checks, the gate for SL-13 and the 1.0 release.
 23. Ferran waived the closing checks for SL-13 (17 Nov 2026); they stay the gate for the 1.0 release and Phase 6. SL-13 is built with requirements APP-613, APP-709 and APP-901 to APP-908 (39.1), decisions IM-128 to IM-141 (section 40), findings SF-37 to SF-42 and two deviations (41.4); test plan revision 3 applied in place. App version 0.7.0.
+24. SL-14, the route screen, is added by Ferran (17 Nov 2026) as the last slice of v1, and version 0.8.0 is the version that goes to V&V (Phase 6). It is built with requirements APP-909, APP-910 and a changed APP-903 (45.1), decisions IM-142 to IM-151 (section 46), findings SF-43 and SF-44 and two deviations (47.4); slope mode becomes the first V2 to-do; test plan revision 4 applied in place.
 
 ## 13 First test on the Pi, 12 Nov 2026
 
@@ -1454,6 +1457,126 @@ With the closing checks of the handover's section 8 (sections 31 and 37 here), i
 
 Do you approve SL-13 as built, with requirements APP-613, APP-709 and APP-901 to APP-908 (39.1), decisions IM-128 to IM-141, the deviations of 41.4 and the proposed document changes of 41.5, closing when D-33 passes; and do you close Phase 5 with it, so that Phase 6 starts with the closing checks of the handover's section 8 (now with D-33 and Session G in the gallery)?
 
+The second half of this question, closing Phase 5, moved to section 50 when SL-14 was added.
+
+## 45 SL-14 plan: route screen
+
+Added and built on 17 Nov 2026 at Ferran's request: "an extra screen, with a very simple map (not realistic, just a pre-defined nice looking one that matches our aesthetics), elevation profile, % of climb, and speed. It still shows small the HR and Power. But no Slope mode, add that as a V2 to do." **Version 0.8.0, built with this slice, is the version that goes to V&V (Phase 6).** The closing checks stay waived for it as for SL-13.
+
+### 45.1 Requirements (proposed for Phase 1 revision 8, with those of 39.1)
+
+UC-09 gains the route screen: during a ride on a route the rider can switch the ride screen to a view of the ride along the route and back. The trainer is still controlled exactly as without a route. **Slope mode** (the trainer's resistance following the route's grade, through FTMS Set Indoor Bike Simulation Parameters, op code 0x11) stays out of v1 and becomes the **first V2 to-do**. Notes for V2: the D100 takes slope through simulation parameters from 0 to 6 %, no descents (Phase 0, "Later, not in v1"); op code 0x11 has never been tried on the D100 (3A, AD-16); the live rider of this slice already gives the grade at the rider's place every second.
+
+| ID | Requirement | Rationale | Pri. | Ver. | Traces |
+|----|-------------|-----------|------|------|--------|
+| APP-903 (changed) | While a ride on a route runs, the system shall work out from each ride second's recorded power, the route's grade and the rider's and bike's mass the speed, distance, altitude and position of that second, without changing the control of the trainer. | From SL-14 the ride along the route is worked out during the ride (APP-910); the control path stays as without a route. | must | T | UC-09 |
+| APP-909 | While a ride on a route runs, the ride screen shall offer a route view, reached and left with one tap, showing a drawing of the route with the rider's place, the route's elevation profile with the rider's place, the speed, the grade at the rider's place, the distance ridden, and smaller the power, the heart rate and the step time left. | Ferran, 17 Nov 2026. The workout screen stays where every ride starts. | should | T, D | UC-09 |
+| APP-910 | While a ride on a route runs, the system shall show each ride second's speed, distance, altitude and grade with that second's view, and the FIT file and the Summary shall carry the same ride along the route. | What the rider sees during the ride is what is recorded (SF-43). | must | T | UC-09 |
+
+### 45.2 Modules
+
+| Module | New or changed | What it does |
+|--------|----------------|--------------|
+| `core/virtual_ride` | changed | `VirtualRider`: the model of IM-130 ridden one second at a time, stopped by pauses; `simulate` is built on it |
+| `core/route` | changed | `RouteChoice.route_id` (file and size); the parsed route kept with the choice |
+| `core/view` | changed | `route_map` (the route message), `route_live` (the ride view's `route`) |
+| `app/route_catalog` | changed | Keeps each listed file's parsed route |
+| `app/ride_controller` | changed | The live rider: one second per power sample, standing still from a pause, rebuilt after a restart; at Finish its track goes into the FIT file, `meta.json` and the Summary |
+| `app/console` | changed | The route message while a ride on a route runs; `route` in the ride view |
+| `web/hub` | changed | Sends the route message once per page and route, before the view that needs it |
+| Display | changed, new | `route.ts`, `ui/RouteMap.svelte`, `ui/Elevation.svelte`; the route view in `RideScreen.svelte`; the link keeps the route; the gallery with `routes.json` |
+
+### 45.3 Exit criteria
+
+Gate green through SL-14. On the Pi: D-34, in the same ride as D-33.
+
+## 46 Decisions taken while building SL-14
+
+| ID | Decision | Why |
+|----|----------|-----|
+| IM-142 | The route view is a second face of the ride screen, not a new screen of the state machine: a "Route ›" button on the workout profile (ERG and resistance) opens it when the ride has a route and power has come; tapping the drawing ("Back to the workout") or Workout returns. The choice lives in the page only; every ride, and every reload, starts on the workout. | One tap each way (APP-909); the ride's states, commands and the ICD's screens stay as they are; the workout screen has the controls a structured ride needs. |
+| IM-143 | Layout of the route view: speed (km/h) and grade (%) large on top, the units in their labels; power, heart rate and step time left small in one line; the drawing in the middle with the distance (km) and the route's name as labels; the elevation profile below with the altitude now; Workout, Pause and Finish at the bottom. While paused the speed's label says "Paused" and shows 0.0. A descent's grade carries a minus sign (U+2212). | Ferran's list; the numbers keep the size of the workout screen's cells at 375 × 600 (SF-44). |
+| IM-144 | The drawing is the route's own shape, not a map: positions projected flat around the route's mean latitude, north up, the larger side scaled to 1000; at most 400 stations evenly picked, plus the last. Drawn in the app's colours: a dotted ground, a wide verge under the road line, the part ridden in moon white, the start as a small square, the rider as a dot with a halo. No map tiles, no third-party data, no network. | Ferran: "not realistic … matches our aesthetics"; nothing to license or fetch. |
+| IM-145 | The route goes to the page in its own message `route` (`route_id`, `name`, `length_m`, `width`, `height`, `ele_min`, `ele_max`, `points` as [distance, x, y, elevation]), about 12 kB for the example route, sent once per page and route before the first view that needs it, like `plan`. Each ride view carries only `route`: `route_id`, `speed_kmh`, `grade_pct`, `altitude_m`, `distance_m` and `at_m` (the place along the route). | The 1 Hz view stays small; a page that joins mid-ride gets the route first. |
+| IM-146 | The live rider is the ride: one `VirtualRider` per ride on a route, advanced by one second for each power sample on the event loop (13 µs per ride second in the workspace), stopped before the pause is journalled; at Finish its track goes into the FIT file, `meta.json` and the Summary, with no second ride along the route. This replaces the ride at Finish in the recorder's thread of IM-134; the Summary has the distance and climb at once, and its "being worked out" state and golden view are gone. | APP-910: one source for the screen and the file (SF-43); the cost per second is small next to the 1 s view (A-71). |
+| IM-147 | After a restart (APP-809) the rider is rebuilt from the ride's `route.gpx` by replaying the journal's samples with their pauses, so the route view goes on from the crash's place. | APP-908 for the live ride. |
+| IM-148 | A route that can't be read at Start: the ride runs without a route view, the FIT file without a track, and the log says why. | As IM-134 for a route that can't be read at Finish. |
+| IM-149 | Slope mode is a V2 to-do (45.1); on a route the trainer stays in ERG or resistance. | Ferran, 17 Nov 2026. |
+| IM-150 | Tests: T-RTE-07 and T-VRD-04 (APP-909, APP-910); supporting S-DSP-09; demonstration D-34; golden views `ride_route` and `ride_route_paused`, the route messages in `testdata/display/routes.json`, `route: null` in every other ride view; the gallery shows the route states with their route. T-RTE-06 and S-DSP-07 changed for the Summary of IM-146; T-SIM-04 counts 128 rows. Test plan revision 4 applied in place. | Trace rule; as IM-140. |
+| IM-151 | App version 0.8.0: the version that goes to V&V. 1.0.0 stays for after the closing checks. | Ferran, 17 Nov 2026. |
+
+## 47 SL-14 result
+
+### 47.1 What was built
+
+The modules of 45.2. On a ride along a route, `wow --sim` shows "Route ›" on the workout profile; the route view shows speed and grade, power, heart rate and step time, the drawing with the place and distance, and the elevation profile with the place and altitude, each second; Workout or the drawing go back. The Summary has the route's totals at Finish, and the FIT file holds the same track the screen showed.
+
+### 47.2 Test results
+
+| Gate step | Result (workspace, 17 Nov 2026) |
+|-----------|---------------------------------|
+| flake8, mypy strict | clean (mypy: 163 files in `src`, `tools`, `tests`) |
+| pytest without `pi` and `slow` | 581 passed, 12 deselected, 9 min 43 s |
+| Coverage | core 96.6 % branches; app and web 95.0 % lines; testable adapters 97.4 % lines |
+| Vitest | 110 passed |
+| `tools/trace.py --through SL-14` | 184 catalogue tests, 593 pytest tests, 0 problems |
+| Live model speed | 4 hours of ride seconds in 0.19 s, 13 µs per second (workspace) |
+| Screens of `wow --sim` in Chrome | the workout screen with "Route ›"; the route view at 402 × 874, 375 × 600 and 430 × 800; back to the workout |
+
+### 47.3 Assumptions
+
+| ID | Status | Evidence |
+|----|--------|----------|
+| A-71 (new) The live model's second costs the Pi's event loop well under 1 ms | Open | 13 µs in the workspace; D-34: the view keeps its 1 s rhythm on the route view |
+| A-72 (new) Safari on the iPhone draws the route view (SVG pattern, round line caps, the dot over the profile) as Chrome does | Open | D-34 |
+
+### 47.4 Findings and deviations
+
+| ID | Finding | What changed |
+|----|---------|--------------|
+| SF-43 | With a live rider for the screen and a second ride at Finish for the file (IM-134), a pause that began on a sample's second gave one more second of riding in one than in the other: the sample reached the rider before the pause was journalled. T-RTE-07's comparison of each second with the FIT Record found it. | One rider, the live one, is the ride; it stops before the pause is journalled (IM-146). |
+| SF-44 | The first route view at 402 × 874 put the units beside the large speed and grade, which made the numbers smaller, gave the distance a line of its own and let a long route name run over the drawing. | Units in the labels, the distance as a label on the drawing, the name cut with an ellipsis (IM-143). |
+
+Deviations from the test plan:
+
+1. Revision 4 of the test plan was applied in place before approval (IM-150), as revision 3 was for SL-13.
+2. T-RTE-06 and S-DSP-07, SL-13 tests not yet approved, changed with SL-14 (IM-146).
+
+### 47.5 Proposed changes to approved documents
+
+| Document | Change |
+|----------|--------|
+| Requirements (Phase 1 revision 8) | APP-903 as changed, APP-909 and APP-910 of 45.1; UC-09 with the route screen; slope mode as the first V2 to-do in the later-versions list. |
+| 3A architecture | The live rider on the event loop (IM-146) in place of the ride at Finish in the recorder's thread (IM-134); the route message. |
+| ICD | IF-06: message `route` and `RideScreen.route` (IM-145). |
+| 3C display | The route view of the ride screen (IM-142 to IM-144). |
+| Test plan | Revision 4 as applied, and the deviations of 47.4. |
+
+## 48 Traceability note SL-14
+
+From `tools/trace.py --through SL-14 --note SL-14`, 17 Nov 2026.
+
+| Req. | Automated tests | Ride checks, demonstrations, inspections | Automated part |
+|---|---|---|---|
+| APP-909 | T-RTE-07 passed | D-34 pending | passed |
+| APP-910 | T-RTE-07 passed, T-VRD-04 passed | D-34 pending | passed |
+
+APP-903 as changed keeps its SL-13 tests (section 42), all passing; T-RTE-06 now checks the Summary's totals at Finish, and T-RTE-07 the same model second by second during the ride.
+
+## 49 On the Pi: SL-13 and SL-14
+
+With the closing checks of the handover's section 8, in the same sessions:
+
+1. Install 0.8.0 as before (laptop gate and display build, `~/wow` on the commit, the built display copied, `sudo deploy/install.sh`). Expected: `wow 0.8.0 started`; `/var/lib/wow/routes` exists.
+2. A-70: `python3 -c "import pyexpat; print(pyexpat.EXPAT_VERSION)"`; note the version.
+3. Copy a route (README, "Routes"); Pre-ride lists it with length and climb; choose it.
+4. D-33 and D-34 in one ride (any planned ride will do), Upload on: during the ride the route view (D-34); after Finish the Summary's distance and climb, then intervals.icu and Garmin Connect (D-33, A-67, A-69).
+5. Session G of the closing checks with the gallery, now with `ride_route` and `ride_route_paused`: `https://wow.local/#gallery` on the iPhone (D-30, D-31, I-14 to I-20).
+
+## 50 Approval question
+
+Do you approve SL-14 as built, with requirements APP-909, APP-910 and the changed APP-903 (45.1), slope mode as the first V2 to-do, decisions IM-142 to IM-151, the deviations of 47.4 and the proposed document changes of 47.5, closing when D-34 passes; and, together with SL-13 (section 44), do you close Phase 5 with version 0.8.0 as the version that goes into Phase 6, V&V, starting with the closing checks of the handover's section 8 (now with D-33, D-34 and Session G in the gallery)?
+
 ## Change log
 
 | Rev. | Date | Change |
@@ -1470,6 +1593,7 @@ Do you approve SL-13 as built, with requirements APP-613, APP-709 and APP-901 to
 | 10 | 15 Nov 2026 | SL-05 and SL-06 approved by Ferran. SL-07 to SL-09 planned, built and gated on the laptop (sections 27 to 32); decisions IM-91 to IM-103; findings SF-25 to SF-27; start screen. |
 | 11 | 15 Nov 2026 | SL-10 to SL-12 planned, built and gated in the workspace at Ferran's request (sections 33 to 38); decisions IM-104 to IM-127; findings SF-28 to SF-36; A-65; app version 0.6.0. |
 | 12 | 17 Nov 2026 | SL-07 to SL-12 approved (16 Nov). Closing checks waived for SL-13; SL-13 planned, built and gated (sections 39 to 44): requirements APP-613, APP-709, APP-901 to APP-908; decisions IM-128 to IM-141; findings SF-37 to SF-42; A-67 to A-70; app version 0.7.0. |
+| 13 | 17 Nov 2026 | SL-14 added by Ferran, planned, built and gated (sections 45 to 50): requirements APP-909, APP-910, APP-903 changed; slope mode a V2 to-do; decisions IM-142 to IM-151; findings SF-43, SF-44; A-71, A-72; app version 0.8.0, the version for V&V. |
 
 ## Sources
 
@@ -1479,6 +1603,8 @@ Do you approve SL-13 as built, with requirements APP-613, APP-709 and APP-901 to
 - Moritz, H., Geodetic Reference System 1980 (IUGG mean radius R1 = 6,371,008.7714 m, as quoted): https://en.wikipedia.org/wiki/Geodetic_Reference_System_1980
 - Standard gravity 9.80665 m/s² (3rd CGPM, 1901) and ISA sea-level density 1.225 kg/m³ (ISO 2533), secondary sources: https://en.wikipedia.org/wiki/Standard_gravity, https://en.wikipedia.org/wiki/International_Standard_Atmosphere
 - Garmin FIT SDK 21.221.0 profile as installed: Record `position_lat`/`position_long` (sint32, semicircles), `distance` (scale 100, m), `speed` (scale 1000) and `enhanced_speed`, `altitude` and `enhanced_altitude` (scale 5, offset 500, m); Session `total_distance`, `avg_speed`, `max_speed`, `enhanced_avg_speed`, `enhanced_max_speed`, `total_ascent`, `total_descent`; `sub_sport` 58 `virtual_activity`, 6 `indoor_cycling`; the encoder applies scale and offset itself (`encoder.py`).
+- Phase 0 discovery, "Later, not in v1": the D100 takes slope through simulation parameters, 0 to 6 %, no descents: `claude/phase0-discovery.md`
+- Observed in this gate, not from documentation: the route view's SVG (pattern, paths with round caps) and the dot over the elevation profile in Chrome at 402 × 874, 375 × 600 and 430 × 800 (Safari: A-72)
 - Vite `import.meta.glob` with `eager` and `import`, and `/// <reference types="vite/client" />`: used as built and type-checked here (the gallery chunk in the build output), not re-read in the documentation.
 
 - PyPI JSON API, latest versions and upload dates (bleak 3.1.0 uploaded 7 Nov 2026; pytest 9.2.0, flake8 7.5.0, mypy 2.4.1, pytest-asyncio 1.4.1.post1, pytest-cov 7.1.0, hypothesis 6.170.15), read 11 Nov 2026: https://pypi.org/pypi/bleak/json and the same URL for each package
