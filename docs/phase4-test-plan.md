@@ -1,12 +1,12 @@
 # Phase 4 — Test plan
 
-**Status:** approved by Ferran, 11 Nov 2026 (revision 2). Revision 3 (17 Nov 2026) adds the tests of SL-13, route simulation, in the lighter form Ferran set for that slice: requirements APP-613, APP-709 and APP-901 to APP-908 (Phase 5 section 39), their tests in 5.8, 5.11, 5.12 and the new 5.18, demonstration step D-33, and their matrix rows. Revision 4 (17 Nov 2026) adds SL-14, the route screen: requirements APP-909 and APP-910 (Phase 5 section 45), tests T-RTE-07 and T-VRD-04, S-DSP-09, demonstration step D-34 and their matrix rows, and changes T-RTE-06 and S-DSP-07 for a Summary that has the route's totals at once. Revisions 3 and 4 were **approved by Ferran on 18 Nov 2026** with SL-13 and SL-14. Phase 4 is closed; Phase 5 starts with slice SL-01. On 11 Nov 2026 Ferran approved the findings of revision 1 and their changes to earlier documents, and answered the five questions: 1 to 4 as proposed, 5 with "the display is checked by inspection". Revision 2 applies that answer: automated display tests leave the verification, and a walk-through of every screen on the iPhone takes their place. The changes to earlier documents are applied in the Interface Control Document (revision 4), the Phase 3A architecture (revision 5) and the Phase 1 requirements (revision 7). The plan maps each of Phase 1's 116 requirements to automated tests, checks on real-ride files, demonstrations and inspections. It also builds on the display design (revision 2) and the Phase 2 record (revision 14).
+**Status:** approved; revision 5, 18 Nov 2026. Revision 5 applies the test-plan changes Ferran approved during Phase 5 (Phase 5 sections 13.6, 16.5, 22.5, 29.5, 35.5, 41.5 and 47.5): Vitest 5.1.0 and the pinned test tools, T-WKO-01's fixture, T-TGT-07 through the ride, the readings of T-RID-17 and T-E2E-04, S-PW-01's set-up, the rules of RR-02 and RR-05, L6 results in the verification log by test ID, the golden states of 3.1 as built, a matrix edited by hand, and the deviations accepted in Phase 5 (section 15). Revisions 3 and 4 (17 Nov 2026) added the tests of SL-13 and SL-14, route simulation and the route screen, and were approved by Ferran on 18 Nov 2026. Revision 2 was **approved by Ferran on 11 Nov 2026**; on that day he approved the findings of revision 1 and their changes to earlier documents, and answered the five questions: 1 to 4 as proposed, 5 with "the display is checked by inspection", so automated display tests left the verification and a walk-through of every screen on the iPhone took their place. The plan maps each of Phase 1's 128 requirements (revision 8) to automated tests, checks on real-ride files, demonstrations and inspections. It builds on the display design (revision 3) and the Phase 2 record (revision 14).
 
 ## How to read this
 
 - **Verification methods** are Phase 1's: **T** test, automated, no hardware; **D** demonstration on the real trainer, strap, Pi and iPhone; **I** inspection. This plan splits D into two kinds of evidence: a **ride check** (a script reads the files of a real ride and prints pass or fail) and a **demonstration step** (Ferran does something and looks).
 - **IDs:** automated tests `T-<group>-nn`, ride checks `RR-nn`, demonstration steps `D-nn` inside sessions `DS-n`, inspections `I-nn`, supporting display tests `S-<group>-nn`. Provisional Phase 5 slices are `SL-nn`.
-- **The matrix** in section 9 is generated from the catalogues in sections 5 to 8 by `tools/make_matrix.py`, delivered with this plan and the starting point of `tools/trace.py`. It rewrites section 9 in place and fails when a requirement lacks the evidence its method asks for, so the catalogues and the matrix can't disagree. Run it after any change to a catalogue, or to a priority or method in Phase 1.
+- **The matrix** in section 9 follows the catalogues in sections 5 to 8. Revision 2 planned a generator, `tools/make_matrix.py`; it never went into the repository, so since revision 3 the matrix is edited by hand with each catalogue change (Phase 5, SF-40 and IM-140). `tools/trace.py` reads the catalogues, not the matrix, and fails the gate when a test and the catalogue disagree (section 4); T-SIM-04 counts the matrix's rows against Phase 1.
 - **Values marked design** are chosen in this plan. Tool facts carry their source; anything unverified is an assumption (section 12).
 - **Scope:** *must* and *should* requirements are verified for v1. *Could* requirements (APP-115, APP-209, APP-413, APP-506, APP-826) have their checks defined here and are verified only if they are built.
 
@@ -100,13 +100,13 @@ Tests that need POSIX file modes or systemd carry the markers `posix` or `pi` an
 
 ### 2.4 Test tools added by this plan
 
-Already chosen: pytest 9.2.0 and flake8 7.5.0 (pinned in Phase 2), mypy, Vitest 5.0.4 with Testing Library, Playwright with WebKit, `svelte-check`, ESLint (3A, AD-14 and AD-17). Added here, all development-only:
+Already chosen: pytest 9.2.0 and flake8 7.5.0 (pinned in Phase 2), mypy, Vitest with Testing Library, Playwright with WebKit, `svelte-check`, ESLint (3A, AD-14 and AD-17). As built in Phase 5 (IM-02, IM-21, IM-85): mypy 2.4.1, Vitest 5.1.0, @testing-library/svelte 5.4.2, @playwright/test 1.65.1. Added here, all development-only, with the versions pinned in Phase 5:
 
 | Tool | For | Version | Checked |
 |------|-----|---------|---------|
-| pytest-asyncio | `async` tests of the app shell (L3 to L5) | pinned at the first slice; 1.3.0 of 10 Nov 2025 was the newest on the PyPI mirror, needs Python 3.10 or later | 11 Nov, PyPI mirror |
-| pytest-cov | Branch coverage with a floor (`--cov-branch`, `--cov-fail-under`) | pinned at the first slice | 11 Nov, pytest-cov documentation |
-| hypothesis | One property test: the decoders never raise on arbitrary bytes (T-COD-05) | pinned at the first slice | not looked up |
+| pytest-asyncio | `async` tests of the app shell (L3 to L5) | 1.4.1.post1 (`pyproject.toml`); 1.3.0 of 10 Nov 2025 was the newest on the PyPI mirror when this plan was written | 11 Nov, PyPI mirror |
+| pytest-cov | Branch coverage with a floor (`--cov-branch`, `--cov-fail-under`) | 7.1.0 (`pyproject.toml`) | 11 Nov, pytest-cov documentation |
+| hypothesis | One property test: the decoders never raise on arbitrary bytes (T-COD-05) | 6.170.15 (`pyproject.toml`) | Phase 5, SL-01 |
 | aiohttp test server | The fake intervals.icu server (`TestServer` in `aiohttp.test_utils`) | part of aiohttp 3.14.5 | 11 Nov, aiohttp documentation |
 | Garmin FIT SDK decoder | Reading back our own FIT files | 21.221.0, already pinned | Phase 2 |
 | `tracemalloc` | Memory of the core objects in the 4-hour run | Python standard library | — |
@@ -161,7 +161,7 @@ First fixtures, all from Phase 2: the S1, S2, S3 and S5 logs (converted once to 
 
 ### 3.1 Golden view states
 
-Produced by scripted states in pytest (T-VIEW-09), and shown on the iPhone by the simulator for the walk-through of section 8.1.
+Produced by scripted states in pytest (T-VIEW-09), and shown on the iPhone through the gallery (`https://wow.local/#gallery`, Phase 5 IM-138) for the walk-through of section 8.1 (deviation 14 of section 15). Home's "storage low" and "calibration requested" are shown together in `home_recovery` (deviation 13).
 
 | Screen | States |
 |--------|--------|
@@ -171,7 +171,7 @@ Produced by scripted states in pytest (T-VIEW-09), and shown on the iPhone by th
 | Summary | one per upload state: off, pending, uploading, done, retrying, failed, key refused; a ride on a route |
 | Ride history | three rides; empty |
 | Calibration | idle; blocked by a ride; starting; speed up; stop pedaling; success; error; timeout |
-| Settings | defaults; account saved; scan running with three devices |
+| Settings | defaults; account saved; scan running; scan done with three devices (two states: the scan returns its list at its end) |
 
 ## 4 Traceability and the slice gate
 
@@ -271,7 +271,7 @@ One table per group. "Slice" is where the test first has to pass. Bytes are hexa
 
 | ID | Test | Pass criterion | Slice | Req. |
 |----|------|----------------|-------|------|
-| T-WKO-01 | Steps in `%ftp` and `w` (S6 `tEST`) at FTP 250 and 300 | percent times the app's FTP; watts unchanged by FTP | SL-02 | APP-204, APP-302 |
+| T-WKO-01 | Steps in `%ftp` and `w` at FTP 250 and 300: the hand-written fixture `plain-steps` from SL-02, and S6 `tEST` from SL-04, whose power steps are all ranges, zones, ramps or free ride (F-18, Phase 5 SF-1) | percent times the app's FTP; watts unchanged by FTP | SL-02 | APP-204, APP-302 |
 | T-WKO-02 | Ranges `88-92%` and `150-170w`, not marked as ramps | one target each: 90 % and 160 W | SL-04 | APP-205 |
 | T-WKO-03 | Zone step `power_zone 2` with the workout's `zoneTimes` (S6 `Easy`) at FTP 250 | 163 W: the middle of 55 to 75 %, rounded half up, as intervals.icu shows (F-20) | SL-04 | APP-204, APP-205 |
 | T-WKO-04 | Zone without an upper bound; heart-rate target; pace target | step kind `unsupported`, marked in the plan | SL-04 | APP-205, APP-206 |
@@ -294,7 +294,7 @@ One table per group. "Slice" is where the test first has to pass. Bytes are hexa
 | T-TGT-04 | Resistance up and down on ranges 0 to 100 step 1 and 10 to 200 step 10 | 5 % of the range per press, rounded to the step, never outside the range | SL-05 | APP-308 |
 | T-TGT-05 | 30/30 block in resistance: 60 % chosen during 330 W, 20 % during 140 W | from the third step on, each step starts at the level last chosen for its target | SL-05 | APP-309 |
 | T-TGT-06 | Free-ride level at first use; after the rider sets 35 %; after a restart | the trainer's lowest level; then 35 % at the next free-ride step and in the next ride | SL-05 | APP-705 |
-| T-TGT-07 | 30 s at 330 W and 30 s at 140 W with lead times 1.5, 0 and 5 s; two equal targets in a row; a step right after a skip | the next target at boundary minus lead time; nothing when the target is unchanged; never before the current step began | SL-02 | APP-304 |
+| T-TGT-07 | Through the ride state machine, which owns the lead time (`core/ride`, Phase 5 IM-84): 30 s at 330 W and 30 s at 140 W with lead times 1.5, 0 and 5 s; two equal targets in a row; a step right after a skip | the next target at boundary minus lead time; nothing when the target is unchanged; never before the current step began | SL-02 | APP-304 |
 
 ### 5.5 Ride state machine (T-RID, L2)
 
@@ -316,7 +316,7 @@ One table per group. "Slice" is where the test first has to pass. Bytes are hexa
 | T-RID-14 | Discard from Running, Paused and WorkoutDone | ended as discarded; no FIT, no upload; journal and Bluetooth log kept | SL-05 | APP-316 |
 | T-RID-15 | Free ride: start, level up, switch to ERG while riding at 183 W, three presses of power up, switch back | starts in resistance at the free-ride level; first ERG target 185 W (the 3 s power rounded to 5 W, inside the trainer's range); 5 W per press; recorded as a ride | SL-05 | APP-317 |
 | T-RID-16 | Trainer link down for 20 s across a step boundary; strap link down | ride state unchanged; steps advance on schedule; journal `dropout_start` and `dropout_end`; on link up the command for that instant | SL-06 | APP-318, APP-319 |
-| T-RID-17 | 4-hour plan of 480 steps of 30 s, every tick delivered 0 to 80 ms late | every step starts within 100 ms of start plus planned time plus paused time; the last step no later than the first | SL-12 | APP-804 |
+| T-RID-17 | 4-hour plan of 480 steps of 30 s, every tick delivered 0 to 80 ms late | every step starts within 100 ms of start plus planned time plus paused time; the last step no later than the first, read as no drift: each step starts at the tick that ends its predecessor, so its lateness is that tick's delay, and the excess over it is the same for the first and the last step (Phase 5 IM-122) | SL-12 | APP-804 |
 | T-RID-18 | 1800 s without power above 0 W and without a rider action, in Running, WorkoutDone and Paused; power of 1 W at 1799 s; a tap at 1799 s | ended as finished, cause idle, files as for Finish; the 1 W record and the tap each restart the 1800 s | SL-10 | APP-825 |
 | T-RID-19 | Feed a recorded `events.jsonl` to a new state machine | same state, step, intensity, block modes and remembered levels as the original | SL-07 | APP-809 |
 
@@ -458,7 +458,7 @@ One table per group. "Slice" is where the test first has to pass. Bytes are hexa
 | T-E2E-01 | UC-01: pick `tEST`, start, pedal, ride every step, finish | commands to the simulated trainer equal `testdata/timelines/tEST.actions.json`; FIT, metrics and Summary as expected | SL-05 | APP-204, APP-301, APP-302, APP-304, APP-305, APP-306, APP-314, APP-315 |
 | T-E2E-02 | UC-02: 30/30 workout with pause, skip, intensity up, switch to resistance, two level changes | the expected timeline; a journal record for each action | SL-05 | APP-307, APP-308, APP-309, APP-311, APP-312, APP-313 |
 | T-E2E-03 | UC-07: trainer loss, strap loss and display loss in one ride | ride files complete, gaps as missing values; target back within 10 s; display current within 5 s | SL-06 | APP-318, APP-319, APP-603, APP-805, APP-806, APP-807 |
-| T-E2E-04 | Simulated 4-hour ride on the stepped clock with two dropouts, a pause and a ramp | 14,400 samples; every step within 100 ms; each due command written at its instant; metrics equal the fixture; memory of the core objects flat after the first hour | SL-12 | APP-812, APP-804 |
+| T-E2E-04 | Simulated 4-hour ride on the stepped clock with two dropouts, a pause and a ramp | 14,400 samples; every step within 100 ms; each due command written at its instant; metrics equal the fixture; memory of the core objects, measured as the bytes reachable from the ride, the sampler, the trainer session and the power average, no larger at the end than at 1 hour (Phase 5 IM-123) | SL-12 | APP-812, APP-804 |
 | T-E2E-05 | Ramp test: ride to step 9, tap Ride by resistance | resistance for the rest of the ramp; free ride in the cool-down; then workout done | SL-05 | APP-211, APP-307 |
 
 ### 5.15 Web (T-WEB, L5)
@@ -489,9 +489,11 @@ Display-logic tests. They catch a regression between two looks at the phone and 
 | S-DSP-07 | Pre-ride route row and its sheet; Summary of a ride on a route; rider weight in Settings | the chosen route with its length and climb; choosing sends `set_route`; distance and climb on the Summary, or why there are none; the weight is sent once on Save | SL-13 |
 | S-DSP-08 | The gallery (`#gallery`): every golden view and the plans of the Pre-ride states | each state listed and shown through the real screens; no WebSocket opened, no command sent | SL-13 |
 | S-DSP-09 | The route screen: Route › on the profile, the map, Workout; a ride without a route; the route message before or after the view; paused | the toggle only with a route; speed, grade, distance, altitude, power, heart rate and step time shown; the map and the profile mark the place; back with the map or Workout; "Paused" and 0.0 while paused | SL-14 |
-| S-PW-01 | Playwright, WebKit with an iPhone-sized viewport, against `wow --sim`: start a ride, reload | ride screen back within 5 s; no console error | SL-06 |
+| S-PW-01 | Playwright (`@playwright/test` 1.65.1), project `webkit` with Playwright's `iPhone 17` profile, against `wow --sim` that Playwright starts on ports 18443 and 18080 with the test certificate (`display/e2e/wow.toml`); `npm run test:e2e` builds the display and runs it. Tap Start, start a ride, reload | ride screen back within 5 s; no console error. Not in the gate: it needs WebKit and a running app (Phase 5 IM-85) | SL-06 |
 
 ### 5.17 System on the Pi (T-SYS, L6) and tooling (T-TOOL)
+
+Tests marked `pi` don't run in the laptop gate. Their results, and those of ride checks, demonstration steps and inspections, go into `docs/verification-log.md`, one line per ID; `tools/trace.py` shows a `pi` test as "due on the Pi" until that line is there (Phase 5 IM-37).
 
 | ID | Test | Pass criterion | Slice | Req. |
 |----|------|----------------|-------|------|
@@ -529,10 +531,10 @@ Display-logic tests. They catch a regression between two looks at the phone and 
 | ID | Check | Req. |
 |----|-------|------|
 | RR-01 | The first control point writes of every connection are `00`, then `07`, then targets | APP-104 |
-| RR-02 | For every trainer command: write started within 100 ms of falling due, or within 100 ms of the pending procedure's indication | APP-801 |
-| RR-03 | Every step started within 100 ms of its scheduled ride time | APP-804 |
-| RR-04 | Every change of ERG target at a boundary was written one lead time before it, within 100 ms | APP-304 |
-| RR-05 | One sample per ride second; no value older than 2 s; missing values lie inside journal dropouts; no zero stands in for a dropout | APP-602, APP-603 |
+| RR-02 | For every trainer command: write started within 100 ms of falling due, or within 100 ms of the pending procedure's indication. Commands that fell due during a trainer dropout are left out; after a reconnect, the time counts from the trainer's answer to Start or Resume (`80 07`) (Phase 5 IM-83) | APP-801 |
+| RR-03 | Every step started within 100 ms of its scheduled ride time, allowing for pauses and skips (Phase 5 IM-83) | APP-804 |
+| RR-04 | Every change of ERG target at a boundary was written one lead time before it, within 100 ms, allowing for pauses and skips (Phase 5 IM-83) | APP-304 |
+| RR-05 | One sample per ride second; no value older than 2 s; missing values lie inside journal dropouts; no zero stands in for a dropout. A value counts as older than 2 s when no notification of its device arrived in the 3 s before its ride second: 1 s is added for the whole-second sample times (Phase 5 IM-60) | APP-602, APP-603 |
 | RR-06 | Strap: one Battery Level read, and notifications of heart rate and battery | APP-111 |
 | RR-07 | Taps, 100 or more: tap to write started within 250 ms, or within 100 ms of a pending procedure, for 95 %; within 1 s for all; the clock-offset uncertainty counted against the limit | APP-802 |
 | RR-08 | Values over 10 min or more: arrival to painted within 250 ms for 95 %, within 1 s for all; uncertainty counted against the limit | APP-803 |
@@ -652,7 +654,7 @@ Done once before Phase 6 on the release commit and the installed Pi, and recorde
 |----|------------|------|
 | I-01 | Code: the trainer is driven only through the FTMS characteristics of ICD 4.1.2; no ANT+ or Zwift service is used | APP-101 |
 | I-02 | A real ride's directory: `workout.json` as downloaded, the FTP in `meta.json` | APP-208 |
-| I-03 | Display code: ride-screen buttons are 62 pt high and at least 62 pt wide, resistance + and − 173 × 120 pt (3C's sizes); on the phone, each control of both ride layouts tapped once with a thumb, none missed | APP-407, APP-414 |
+| I-03 | Display code: ride-screen buttons are 62 pt high and at least 62 pt wide, resistance + and − at least 120 × 120 pt (3C's sizes; 181 × 120 pt at 402 pt width); on the phone, each control of both ride layouts tapped once with a thumb, none missed | APP-407, APP-414 |
 | I-04 | Screenshot from the iPhone: digit height of target, power, heart rate and step time left, in pixels divided by the screenshot's scale (its width over 402), is 48 pt or more | APP-412 |
 | I-05 | `ble.jsonl` and `events.jsonl` of a real ride read by hand: every field present, both time stamps, state changes, rider actions, warnings and errors | APP-813, APP-814 |
 | I-06 | App version in the FIT file, `meta.json` and the system log of the release | APP-815 |
@@ -680,7 +682,7 @@ Qualitative, as Ferran decided (answer 5): he looks at each state on the iPhone 
 
 ## 9 Verification matrix
 
-Generated from sections 5 to 8 by `tools/make_matrix.py`. "Pri." and "Ver." are Phase 1's. "Slice" is the last slice in which one of the requirement's automated tests first has to pass, or the slice named in section 4.1 when it has none.
+Edited by hand from sections 5 to 8 since revision 3 (see How to read this). "Pri." and "Ver." are Phase 1's. "Slice" is the last slice in which one of the requirement's automated tests first has to pass, or the slice named in section 4.1 when it has none.
 
 <!-- matrix:start -->
 128 requirements; 184 automated tests, 14 ride checks, 34 demonstration steps, 20 inspections.
@@ -868,7 +870,7 @@ The Pi writes one line per tap and per painted view to `timing.jsonl` in the rid
 
 ## 11 Changes to earlier documents
 
-Approved by Ferran on 11 Nov 2026 and applied the same day.
+Approved by Ferran on 11 Nov 2026 and applied the same day. The changes Phase 5 made to this plan itself are in the change log (revisions 3 to 5) and section 15.
 
 | Applied in | Change | From |
 |------------|--------|------|
@@ -887,9 +889,9 @@ New in this plan:
 
 | ID | Assumption | Status | Source | How it gets checked |
 |------|-----------|--------|--------|---------------------|
-| A-61 | With every wait going through `Clock.sleep_until`, a stepped clock can drive the asyncio app shell deterministically, so L3 tests and a 4-hour ride run in seconds. | Open | AD-07 shows it for the core; the shell is new | SL-01: T-DEV-01 on the stepped clock. Fallback: shell tests in real time on short plans; timing logic stays in L2 |
+| A-61 | With every wait going through `Clock.sleep_until`, a stepped clock can drive the asyncio app shell deterministically, so L3 tests and a 4-hour ride run in seconds. | Confirmed in SL-01 (Phase 5, IM-13) | AD-07 shows it for the core; the shell is new | SL-01: T-DEV-01 on the stepped clock. Fallback: shell tests in real time on short plans; timing logic stays in L2 |
 | A-62 | Switching the Pi's Bluetooth controller off and on cuts the trainer link while the trainer stays powered, where `bluetoothctl disconnect` did not (F-31). | Open | — | DS-3, D-16. Fallback: D-14 alone; A-33 then stays untested, and no requirement depends on it (OP-1) |
-| A-63 | The page can time a paint closely enough with the animation-frame callback after a view is applied, and Safari's timer resolution doesn't hide differences of a few milliseconds. | Open | — | SL-11, against T-WEB-07's numbers on the Pi's side |
+| A-63 | The page can time a paint closely enough with the animation-frame callback after a view is applied, and Safari's timer resolution doesn't hide differences of a few milliseconds. | Built in SL-11, open | — | RR-08 on the first real ride after SL-11 (Phase 5, 35.3), against T-WEB-07's numbers on the Pi's side |
 
 Earlier assumptions and open points, and the item that closes each:
 
@@ -932,6 +934,29 @@ Earlier assumptions and open points, and the item that closes each:
 | 4 | May the page and the Pi exchange the timing messages of section 10.1 on every ride? | Yes. |
 | 5 | Add automated tests to the thirteen display requirements (P-7)? | No. Everything about the display can be checked by inspection, by looking at it. |
 
+## 15 Deviations accepted in Phase 5
+
+Each was reported with its slice and accepted with the slice's approval. Where a deviation changed what a test does, the catalogue above now says so.
+
+| # | Deviation | Phase 5 | Accepted |
+|---|-----------|---------|----------|
+| 1 | T-SMP-01 and T-MET-07 use Phase 2's S2 log: S5's log is not in the repository. | 16.4 | 13 Nov 2026 |
+| 2 | T-REC-01 covered what existed in SL-02; pause records came with SL-05, the system log's start and stop with SL-07. | 16.4 | 13 Nov 2026 |
+| 3 | T-CAT-04: Free ride was drawn and disabled until SL-05. | 16.4 | 13 Nov 2026 |
+| 4 | T-TGT-03 and T-RID-07 were done in SL-04, not SL-05: ramps and free-ride steps need them. | 16.4 | 13 Nov 2026 |
+| 5 | S-PW-01 ran in the workspace in Chromium with the iPhone 17 profile: the proxy refused Playwright's WebKit download. The WebKit run is on Ferran's laptop (Phase 5, section 24). | 22.4 | 15 Nov 2026 |
+| 6 | T-TGT-07 checks the lead time through `core/ride`, not `core/target_policy` (IM-84); now in the catalogue. | 22.4 | 15 Nov 2026 |
+| 7 | T-SYS-03, T-SYS-04 and T-SYS-06 are written (`tests/system/test_service.py`) but run only on the Pi with the service installed and `simulate = true` for the run. | 29.4 | 16 Nov 2026 |
+| 8 | T-RCV-01 to T-RCV-05 simulate the kill by copying the data directory mid-ride; the real kill is T-SYS-06 and D-18. | 29.4 | 16 Nov 2026 |
+| 9 | S-PW-01 taps Start before Free ride (IM-102); now in the catalogue. | 29.4 | 16 Nov 2026 |
+| 10 | T-WEB-07 and T-WEB-08 run on the Pi only (IM-120): they measure the Pi's share of the latencies. | 35.4 | 16 Nov 2026 |
+| 11 | T-LOG-05 is marked `pi` and due until a real ride is kept, in `testdata/rides/<ride id>/` (IM-124); S-LOG-01 covers the same path over a simulated ride in the gate. | 35.4 | 16 Nov 2026 |
+| 12 | The golden state "Settings: scan running with three devices" is two states, running and done (section 3.1). | 35.4 | 16 Nov 2026 |
+| 13 | The golden states of Home "storage low" and "calibration requested" stay combined in `home_recovery`. | 35.4 | 16 Nov 2026 |
+| 14 | DS-8's D-30 and D-31 and the walk-through I-14 to I-20 are done in the gallery: the states are the golden views, not states the simulator is scripted into. What the scripted faults would show is covered by T-VIEW-05, T-VIEW-08 and the T-DEV and T-SES tests; the phone part, readability and place, is what the gallery shows. | 41.4 | 18 Nov 2026 |
+| 15 | Revision 3 was applied in place before approval (IM-140), and revision 4 the same way (IM-150). | 41.4, 47.4 | 18 Nov 2026 |
+| 16 | T-RTE-06 and S-DSP-07, SL-13 tests not yet approved then, changed with SL-14 (IM-146). | 47.4 | 18 Nov 2026 |
+
 ## Decisions made in Phase 4
 
 1. Verification runs on six automated levels (L1 to L6), ride checks by script on every real ride, eight demonstration sessions and twenty inspections, seven of which are a walk-through of the display on the iPhone.
@@ -950,6 +975,12 @@ Earlier assumptions and open points, and the item that closes each:
 
 Phase 4 ended with the plan approved. **Approved by Ferran on 11 Nov 2026** (revision 2).
 
+Decisions made in revision 5 (18 Nov 2026), from Phase 5:
+
+14. The matrix is edited by hand with each catalogue change; `tools/trace.py` and T-SIM-04 keep the catalogues, the tests and the matrix in step (SF-40, IM-140).
+15. Results of `pi` tests are recorded in the verification log by test ID, like ride checks and demonstration steps (IM-37).
+16. The deviations of section 15 stand as accepted; where one changed a test, the catalogue says so.
+
 ## Change log
 
 | Rev. | Date | Change |
@@ -960,6 +991,7 @@ Phase 4 ended with the plan approved. **Approved by Ferran on 11 Nov 2026** (rev
 | 3 | 17 Nov 2026 | SL-13: tests T-SET-09, T-FIT-07, T-RCV-06, T-UPL-06, T-RTE-01 to -06, T-VRD-01 to -03; S-DSP-06 (missing since SL-10) to S-DSP-08; D-33; golden states of 3.1; matrix rows of APP-613, APP-709, APP-901 to APP-908. Section 9 edited by hand: `tools/make_matrix.py` isn't in the repository. |
 | 4 | 17 Nov 2026 | SL-14: tests T-RTE-07, T-VRD-04; S-DSP-09; D-34; golden states of 3.1 (Ride on a route; Summary without "being worked out"); T-RTE-06 and S-DSP-07 changed for a Summary with the totals at once; matrix rows of APP-909 and APP-910. |
 | 4 | 18 Nov 2026 | Revisions 3 and 4 approved by Ferran with SL-13 and SL-14. |
+| 5 | 18 Nov 2026 | The test-plan changes approved in Phase 5 (sections 13.6, 16.5, 22.5, 29.5, 35.5, 41.5, 47.5): 2.4 Vitest 5.1.0 and the pinned versions; 3.1 shown through the gallery, the Settings scan as two states, Home's combined state; T-WKO-01's fixture (SF-1); T-TGT-07 through `core/ride` (IM-84); T-RID-17's reading (IM-122); T-E2E-04's memory measure (IM-123); S-PW-01's set-up (IM-85); 5.17 `pi` results in the verification log (IM-37); RR-02's dropout and reconnect rules and RR-03 and RR-04 with pauses and skips (IM-83); RR-05's age rule (IM-60); the matrix edited by hand (SF-40); A-61 confirmed, A-63 built; new section 15 with the deviations accepted in Phase 5. |
 
 ## Sources
 
@@ -971,8 +1003,9 @@ Phase 4 ended with the plan approved. **Approved by Ferran on 11 Nov 2026** (rev
 - Playwright, emulation: https://playwright.dev/python/docs/emulation
 - MDN, Screen Wake Lock API (`navigator.wakeLock.request`, release event, re-request when visible): https://developer.mozilla.org/docs/Web/API/Screen_Wake_Lock_API
 - Svelte, testing (Vitest, Playwright): https://svelte.dev/docs/svelte/testing
-- Phase 1 requirements, revision 7: `claude/phase1-requirements.md`
-- Phase 2 record, revision 14: `claude/phase2-spikes.md`
-- Phase 3A architecture, revision 5: `claude/phase3-architecture.md`
-- Phase 3B Interface Control Document, revision 4: `claude/phase3-icd.md`
-- Phase 3C display design, revision 2: `claude/phase3-display.md`
+- Phase 1 requirements, revision 8: `docs/phase1-requirements.md`
+- Phase 2 record, revision 14: `docs/phase2-spikes.md`
+- Phase 3A architecture, revision 6: `docs/phase3-arch.md`
+- Phase 3B Interface Control Document, revision 5: `docs/phase3-icd.md`
+- Phase 3C display design, revision 3: `docs/phase3-display.md`
+- Phase 5 implementation record, revision 15 (IM-13, IM-21, IM-37, IM-60, IM-83 to IM-85, IM-120, IM-122 to IM-124, IM-140, IM-146, IM-150; SF-1, SF-40): `docs/phase5-implementation.md`
