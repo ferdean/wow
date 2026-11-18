@@ -1,6 +1,6 @@
 # Phase 5 — Implementation
 
-**Status:** revision 13, 17 Nov 2026. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) (sections 27 to 32), and SL-10 (settings, housekeeping), SL-11 (display finish) and SL-12 (endurance, close-out) (sections 33 to 38) planned, built and gated, and **approved by Ferran on 16 Nov 2026**; their Pi steps are the closing checks. SL-13 (route simulation) planned, built and gated on 17 Nov 2026 with the closing checks waived for it (sections 39 to 44); SL-14 (route screen), added by Ferran the same day, planned, built and gated (sections 45 to 50); app version 0.8.0, the version that goes to V&V; both wait for approval. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
+**Status:** revision 14, 18 Nov 2026. **Phase 5 is closed** (Ferran, 18 Nov 2026; section 51). The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) (sections 27 to 32), and SL-10 (settings, housekeeping), SL-11 (display finish) and SL-12 (endurance, close-out) (sections 33 to 38) planned, built and gated, and **approved by Ferran on 16 Nov 2026**; their Pi steps are the closing checks. SL-13 (route simulation) planned, built and gated on 17 Nov 2026 with the closing checks waived for it (sections 39 to 44); SL-14 (route screen), added by Ferran the same day, planned, built and gated (sections 45 to 50); app version 0.8.0, the version that goes to V&V. SL-13 and SL-14 **approved by Ferran on 18 Nov 2026**, with Phase 5 closed; their Pi steps join the closing checks. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
 
 ## 1 How Phase 5 works
 
@@ -499,6 +499,7 @@ If the screen is off from what 3C shows, a screenshot per screen is enough; layo
 22. SL-07 to SL-12 are approved (16 Nov 2026), with the changes of 29.5 and 35.5; their Pi steps (sections 31 and 37) became the closing checks, the gate for SL-13 and the 1.0 release.
 23. Ferran waived the closing checks for SL-13 (17 Nov 2026); they stay the gate for the 1.0 release and Phase 6. SL-13 is built with requirements APP-613, APP-709 and APP-901 to APP-908 (39.1), decisions IM-128 to IM-141 (section 40), findings SF-37 to SF-42 and two deviations (41.4); test plan revision 3 applied in place. App version 0.7.0.
 24. SL-14, the route screen, is added by Ferran (17 Nov 2026) as the last slice of v1, and version 0.8.0 is the version that goes to V&V (Phase 6). It is built with requirements APP-909, APP-910 and a changed APP-903 (45.1), decisions IM-142 to IM-151 (section 46), findings SF-43 and SF-44 and two deviations (47.4); slope mode becomes the first V2 to-do; test plan revision 4 applied in place.
+25. SL-13 and SL-14 are approved (18 Nov 2026), with the changes of 41.5 and 47.5 and test plan revisions 3 and 4; D-33, D-34 and A-67 to A-72 join the closing checks. Phase 5 is closed (section 51); Phase 6 runs on version 0.8.0 and starts with the closing checks of the handover's section 8.
 
 ## 13 First test on the Pi, 12 Nov 2026
 
@@ -1459,6 +1460,8 @@ Do you approve SL-13 as built, with requirements APP-613, APP-709 and APP-901 to
 
 The second half of this question, closing Phase 5, moved to section 50 when SL-14 was added.
 
+**Approved by Ferran on 18 Nov 2026**, with SL-14 (section 50). D-33 is still open; it is part of the closing checks.
+
 ## 45 SL-14 plan: route screen
 
 Added and built on 17 Nov 2026 at Ferran's request: "an extra screen, with a very simple map (not realistic, just a pre-defined nice looking one that matches our aesthetics), elevation profile, % of climb, and speed. It still shows small the HR and Power. But no Slope mode, add that as a V2 to do." **Version 0.8.0, built with this slice, is the version that goes to V&V (Phase 6).** The closing checks stay waived for it as for SL-13.
@@ -1577,6 +1580,27 @@ With the closing checks of the handover's section 8, in the same sessions:
 
 Do you approve SL-14 as built, with requirements APP-909, APP-910 and the changed APP-903 (45.1), slope mode as the first V2 to-do, decisions IM-142 to IM-151, the deviations of 47.4 and the proposed document changes of 47.5, closing when D-34 passes; and, together with SL-13 (section 44), do you close Phase 5 with version 0.8.0 as the version that goes into Phase 6, V&V, starting with the closing checks of the handover's section 8 (now with D-33, D-34 and Session G in the gallery)?
 
+**Approved by Ferran on 18 Nov 2026**, with Phase 5 closed, after he reported the gate passed through SL-14 on his laptop and both patches merged to `main` (`67dd1cb`, the same tree as the one gated in the workspace). D-34 is still open; it is part of the closing checks. The changes of 41.5 and 47.5 join those of 13.6, 16.5, 22.5, 29.5 and 35.5.
+
+## 51 Phase 5 closed
+
+Closed by Ferran on 18 Nov 2026 with the approval of SL-13 and SL-14.
+
+| Item | State at the close |
+|------|--------------------|
+| Slices | SL-01 to SL-14 built, gated and approved; `main` at `67dd1cb`, app version 0.8.0 |
+| Requirements | 128 in the test plan's matrix (Phase 1 revision 7 plus the proposals of 39.1 and 45.1) |
+| Verification | 184 automated catalogue tests passing in the gate; L6 tests, ride checks, demonstrations and inspections due in Phase 6 |
+| Gate | Last run in the workspace (17 Nov) and on Ferran's laptop (18 Nov): passed through SL-14 |
+
+Carried into Phase 6:
+
+1. The closing checks of the handover's section 8 (the Pi steps of sections 31, 37 and 49), logged in `docs/verification-log.md`; D-32 stays blocked (N-4).
+2. The inspections I-01 to I-13 and the walk-through I-14 to I-20.
+3. The approved document changes, applied once each: 13.6, 16.5, 22.5, 29.5, 35.5, 41.5 and 47.5 (Phase 1 revision 8, 3A, ICD, 3C and the test plan).
+4. Every assumption still open in the registers of this document, closed or accepted.
+5. Open questions from Ferran's side: reading the page from outside the home network (handover 4.1), and the npm audit finding of 18 Nov (picomatch ReDoS GHSA-fc5q-39xc-vjpf, dev tools only, no fixed release yet; and the eslint 10.15.0 and typescript-eslint 8.73.0 update that clears the moderate minimatch advisory), proposed and not yet decided.
+
 ## Change log
 
 | Rev. | Date | Change |
@@ -1594,6 +1618,7 @@ Do you approve SL-14 as built, with requirements APP-909, APP-910 and the change
 | 11 | 15 Nov 2026 | SL-10 to SL-12 planned, built and gated in the workspace at Ferran's request (sections 33 to 38); decisions IM-104 to IM-127; findings SF-28 to SF-36; A-65; app version 0.6.0. |
 | 12 | 17 Nov 2026 | SL-07 to SL-12 approved (16 Nov). Closing checks waived for SL-13; SL-13 planned, built and gated (sections 39 to 44): requirements APP-613, APP-709, APP-901 to APP-908; decisions IM-128 to IM-141; findings SF-37 to SF-42; A-67 to A-70; app version 0.7.0. |
 | 13 | 17 Nov 2026 | SL-14 added by Ferran, planned, built and gated (sections 45 to 50): requirements APP-909, APP-910, APP-903 changed; slope mode a V2 to-do; decisions IM-142 to IM-151; findings SF-43, SF-44; A-71, A-72; app version 0.8.0, the version for V&V. |
+| 14 | 18 Nov 2026 | SL-13 and SL-14 approved by Ferran; Phase 5 closed (section 51). |
 
 ## Sources
 
