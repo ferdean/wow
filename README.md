@@ -2,7 +2,7 @@
 
 Runs structured workouts on the Van Rysel D100 from a Raspberry Pi 5; the iPhone shows the ride. Requirements, architecture, interfaces and the test plan are the phase documents in `docs/`.
 
-**State:** Phase 5, slices SL-01 to SL-09 built: Bluetooth foundation, rides with recording and FIT, workouts from intervals.icu, ride controls, dropouts and reconnect, crash recovery and the systemd service, uploads and past rides, and the spin-down calibration. The phase documents in `docs/` have the details.
+**State:** Phase 5 closed on 18 Nov 2026: slices SL-01 to SL-14 built and approved, from the Bluetooth foundation to routes and the route screen. Version 0.8.0 goes into Phase 6, verification and validation, which starts with the closing checks on the Pi. The phase documents in `docs/` have the details.
 
 ## Set-up
 
@@ -117,7 +117,7 @@ Choose the route on Pre-ride (it stays chosen until you change it). The Summary 
 ## Gate
 
 ```
-uv run python tools/gate.py --through SL-02
+uv run python tools/gate.py --through SL-14
 ```
 
 Runs pytest without the `slow` and `pi` tests (flake8, strict mypy, the display's svelte-check, ESLint and tsc, the import check, and `uv sync --frozen` and `npm ci` from clean copies run inside it as T-TOOL-01 to T-TOOL-04), checks the coverage floors of the test plan (2.5), runs Vitest, then `tools/trace.py`, which writes `docs/traceability.md` and prints the slice's traceability note. It needs the approved test plan at `docs/phase4-test-plan.md` and `npm ci` done in `display/`.
@@ -153,6 +153,41 @@ uv run python tools/keep_ride.py wow-data/rides/<ride id> --out testdata/rides
 uv run pytest -m pi tests/adapters/test_replay_kept.py
 ```
 
+## Phase documents
+
+One source each, in `docs/`; the Claude project holds copies of them.
+
+| Document | File | Revision |
+|----------|------|----------|
+| Phase 0 discovery | `docs/phase0-discovery.md` | 2 |
+| Phase 1 requirements | `docs/phase1-requirements.md` | 8 |
+| Phase 2 risk spikes | `docs/phase2-spikes.md` | 14 |
+| Phase 3A architecture | `docs/phase3-arch.md` | 6 |
+| Phase 3B interface control document | `docs/phase3-icd.md` | 5 |
+| Phase 3C display design | `docs/phase3-display.md` (figures in `docs/img/phase3-display/`) | 3 |
+| Phase 4 test plan | `docs/phase4-test-plan.md` | 5 |
+| Phase 5 implementation | `docs/phase5-implementation.md` | 15, closed |
+
+### PDFs
+
+`tools/make_pdf.py` typesets the phase documents in the format of the Phase 0 record, Mermaid diagrams and Phase 2's risk matrix included. Laptop only: its Python dependency is in the uv group `docs`, which `uv sync` and the Pi's install leave out. Once:
+
+```
+sudo apt install pandoc texlive-xetex texlive-latex-extra fonts-lmodern
+uv sync --group docs
+uv run --group docs playwright install chromium
+npm ci --prefix tools/pdf
+```
+
+Then:
+
+```
+uv run --group docs python -m tools.make_pdf                 # every docs/phase*.md
+uv run --group docs python -m tools.make_pdf docs/phase3-icd.md
+```
+
+The PDFs go to `build/pdf/`, named after the Markdown files. `--chrome <path>` uses an installed Chrome instead of Playwright's. `--screens` redraws 3C's figures instead, from the gallery (`tools/pdf/screens.json`) into `docs/img/phase3-display/`; it needs the built display in `src/wow/web/static/`, and the PDF is made by a second run. A missing glyph is printed after the PDF's name.
+
 ## Probe on the real devices
 
 On the Pi, with the trainer awake and the strap on (close Onelap and nRF Connect first):
@@ -176,6 +211,6 @@ display/            Svelte 5 display: link, screens, ui, device, IF-06 types
 deploy/             example wow.toml and settings.json
 tests/              pytest: core (L1, L2), app on the stepped clock (L3), web (L5), system (L6), tools
 testdata/           language-neutral fixtures (README inside)
-tools/              gate.py, trace.py, check_ride.py, keep_ride.py, import_spike_log.py
-docs/               phase documents, verification log, generated traceability
+tools/              gate.py, trace.py, check_ride.py, keep_ride.py, import_spike_log.py, make_pdf.py (pdf/)
+docs/               phase documents and their figures (img/), verification log, generated traceability
 ```
