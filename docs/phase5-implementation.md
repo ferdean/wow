@@ -1,6 +1,6 @@
 # Phase 5 — Implementation
 
-**Status:** revision 15, 18 Nov 2026. **Phase 5 is closed** (Ferran, 18 Nov 2026; section 51). Revision 15 records the documentation revision of the same day (section 52): the approved document changes applied, every phase document moved into `docs/`, and the PDF tool. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) (sections 27 to 32), and SL-10 (settings, housekeeping), SL-11 (display finish) and SL-12 (endurance, close-out) (sections 33 to 38) planned, built and gated, and **approved by Ferran on 16 Nov 2026**; their Pi steps are the closing checks. SL-13 (route simulation) planned, built and gated on 17 Nov 2026 with the closing checks waived for it (sections 39 to 44); SL-14 (route screen), added by Ferran the same day, planned, built and gated (sections 45 to 50); app version 0.8.0, the version that goes to V&V. SL-13 and SL-14 **approved by Ferran on 18 Nov 2026**, with Phase 5 closed; their Pi steps join the closing checks. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
+**Status:** revision 15, 18 Nov 2026. **Phase 5 is closed** (Ferran, 18 Nov 2026; section 51). Revision 15 records the documentation revision of the same day (section 52): the approved document changes applied, every phase document moved into `docs/`, and the PDF tool; **approved by Ferran on 18 Nov 2026** and closed. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) (sections 27 to 32), and SL-10 (settings, housekeeping), SL-11 (display finish) and SL-12 (endurance, close-out) (sections 33 to 38) planned, built and gated, and **approved by Ferran on 16 Nov 2026**; their Pi steps are the closing checks. SL-13 (route simulation) planned, built and gated on 17 Nov 2026 with the closing checks waived for it (sections 39 to 44); SL-14 (route screen), added by Ferran the same day, planned, built and gated (sections 45 to 50); app version 0.8.0, the version that goes to V&V. SL-13 and SL-14 **approved by Ferran on 18 Nov 2026**, with Phase 5 closed; their Pi steps join the closing checks. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
 
 ## 1 How Phase 5 works
 
@@ -500,6 +500,7 @@ If the screen is off from what 3C shows, a screenshot per screen is enough; layo
 23. Ferran waived the closing checks for SL-13 (17 Nov 2026); they stay the gate for the 1.0 release and Phase 6. SL-13 is built with requirements APP-613, APP-709 and APP-901 to APP-908 (39.1), decisions IM-128 to IM-141 (section 40), findings SF-37 to SF-42 and two deviations (41.4); test plan revision 3 applied in place. App version 0.7.0.
 24. SL-14, the route screen, is added by Ferran (17 Nov 2026) as the last slice of v1, and version 0.8.0 is the version that goes to V&V (Phase 6). It is built with requirements APP-909, APP-910 and a changed APP-903 (45.1), decisions IM-142 to IM-151 (section 46), findings SF-43 and SF-44 and two deviations (47.4); slope mode becomes the first V2 to-do; test plan revision 4 applied in place.
 25. SL-13 and SL-14 are approved (18 Nov 2026), with the changes of 41.5 and 47.5 and test plan revisions 3 and 4; D-33, D-34 and A-67 to A-72 join the closing checks. Phase 5 is closed (section 51); Phase 6 runs on version 0.8.0 and starts with the closing checks of the handover's section 8.
+26. The documentation revision of section 52 is approved (18 Nov 2026), with decisions IM-152 to IM-158 and findings SF-46 to SF-51; the approved document changes of 13.6 to 47.5 are applied, and the revision is closed.
 
 ## 13 First test on the Pi, 12 Nov 2026
 
@@ -1648,6 +1649,8 @@ SF-45 stays reserved for the npm audit proposal (handover 4.2).
 
 Phase 6, when Ferran asks for it: the closing checks of the handover's section 8.2 against `docs/verification-log.md`, then the inspections and the retrospective.
 
+**Approved by Ferran on 18 Nov 2026**, with decisions IM-152 to IM-158 and findings SF-46 to SF-51. The documentation revision is closed.
+
 ## Change log
 
 | Rev. | Date | Change |
@@ -1667,6 +1670,7 @@ Phase 6, when Ferran asks for it: the closing checks of the handover's section 8
 | 13 | 17 Nov 2026 | SL-14 added by Ferran, planned, built and gated (sections 45 to 50): requirements APP-909, APP-910, APP-903 changed; slope mode a V2 to-do; decisions IM-142 to IM-151; findings SF-43, SF-44; A-71, A-72; app version 0.8.0, the version for V&V. |
 | 14 | 18 Nov 2026 | SL-13 and SL-14 approved by Ferran; Phase 5 closed (section 51). |
 | 15 | 18 Nov 2026 | Documentation revision (section 52): approved document changes applied in Phase 1 revision 8, 3A revision 6, ICD revision 5, 3C revision 3 and test plan revision 5; every phase document in `docs/`; the PDF tool `tools/make_pdf.py`; decisions IM-152 to IM-158; findings SF-46 to SF-51. |
+| 15 | 18 Nov 2026 | Documentation revision approved by Ferran and closed. |
 
 ## Sources
 
