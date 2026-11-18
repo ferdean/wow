@@ -376,6 +376,45 @@ def upload_scenes() -> dict[str, dict[str, Any]]:
     return {**found, **calibration}
 
 
+def garmin_scenes() -> dict[str, dict[str, Any]]:
+    metrics = ride_metrics([180] * 3600, [130] * 3600, 250,
+                           (55, 75, 90, 105, 120))
+
+    def summary(upload: UploadState, garmin: UploadState
+                ) -> dict[str, Any]:
+        return _view(summary_screen(
+            "2026-11-18T171500Z", "Long ride + SS",
+            "2026-11-18T17:15:03.120Z", metrics, upload,
+            garmin_upload=garmin))
+
+    until = "2036-11-09T06:27:56.000Z"
+    both = Settings(garmin_upload_on=True)
+    garmin_only = Settings(upload_on=False, garmin_upload_on=True)
+    return {
+        "summary_garmin_done": summary(UploadState.OFF, UploadState.DONE),
+        "summary_garmin_auth_error": summary(UploadState.DONE,
+                                             UploadState.AUTH_ERROR),
+        "summary_garmin_not_sent": summary(UploadState.DONE,
+                                           UploadState.OFF),
+        "history_garmin": _view(history_screen([
+            history_entry("2026-11-18T171500Z", "2026-11-18T17:15:03.120Z",
+                          "Long ride + SS", metrics, UploadState.OFF,
+                          UploadState.DONE),
+            history_entry("2026-11-17T171500Z", "2026-11-17T17:15:03.120Z",
+                          "Long ride + SS", metrics, UploadState.DONE,
+                          UploadState.FAILED),
+            history_entry("2026-11-16T171500Z", "2026-11-16T17:15:03.120Z",
+                          "ERG check", metrics, UploadState.DONE, None)],
+            31512), LinkState.NOT_FOUND, LinkState.NOT_FOUND, None),
+        "settings_garmin_both_on": _view(
+            settings_screen(both, True, until, None, garmin_signed_in=True),
+            LinkState.NOT_FOUND, LinkState.NOT_FOUND, None),
+        "settings_garmin_signed_out": _view(
+            settings_screen(garmin_only, True, until, None),
+            LinkState.NOT_FOUND, LinkState.NOT_FOUND, None),
+    }
+
+
 def sl13_scenes() -> dict[str, dict[str, Any]]:
     plan = make_plan(THIRTY_THIRTY, 250)
     routes = [route_option("lake-loop.gpx", "Lake loop", 24312.4, 312.6),
@@ -537,6 +576,7 @@ def scenes() -> dict[str, dict[str, Any]]:
         **sl07_scenes(),
         **sl10_scenes(),
         **upload_scenes(),
+        **garmin_scenes(),
         **sl13_scenes(),
         **sl14_scenes(),
     }

@@ -178,6 +178,24 @@
       {/if}
     </div>
 
+    <h2>Garmin Connect</h2>
+    <div class="panel">
+      <button class="line" onclick={() => send("settings_set", { key: "garmin_upload_on", value: !screen.garmin_upload_on })}>
+        <span class="grow">Upload rides to Garmin Connect</span>
+        <span class="switch" class:on={screen.garmin_upload_on}>{screen.garmin_upload_on ? "On" : "Off"}</span>
+      </button>
+      <div class="line">
+        <span class="grow">Garmin account</span>
+        <span class="label">{screen.garmin_signed_in ? "Signed in on the Pi" : "Not signed in"}</span>
+      </div>
+      {#if !screen.garmin_signed_in}
+        <p class="label">Sign in once on the Pi: wow-garmin login.</p>
+      {/if}
+      {#if screen.upload_on && screen.garmin_upload_on}
+        <p class="label">Garmin passes rides on to intervals.icu, so with both uploads on it may get each ride twice.</p>
+      {/if}
+    </div>
+
     <h2>The Pi</h2>
     <div class="panel pi">
       <span class="grow">Certificate valid until</span>

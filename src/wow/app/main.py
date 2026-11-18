@@ -31,11 +31,12 @@ from wow.adapters.ble_sim.server import SimServerBase
 from wow.adapters.clock_system import SystemClock, default_sync_marker
 from wow.app.boot import boot_id
 from wow.adapters.fit_garmin import GarminFitWriter
+from wow.adapters.garmin_connect import GarminConnect
 from wow.adapters.intervals_icu import IntervalsIcu
 from wow.adapters.led_sysfs import SysfsLed
 from wow.app.calibration_controller import CalibrationController
 from wow.app.config import (
-    Config, Secrets, load_config, load_secrets, load_settings,
+    Config, Secrets, garmin_tokens, load_config, load_secrets, load_settings,
 )
 from wow.app.console import Console
 from wow.app.device_manager import DeviceChoice, DeviceManager
@@ -48,7 +49,7 @@ from wow.app.housekeeping import CertificateWatch, FreeSpace, disk_free
 from wow.app.ride_controller import RideController, Summary
 from wow.app.route_catalog import ROUTES, RouteCatalog
 from wow.app.settings_panel import SettingsPanel
-from wow.app.upload_worker import UploadWorker
+from wow.app.upload_worker import GARMIN, UploadWorker
 from wow.app.status_led import LedController
 from wow.app.timing_log import TimingLog
 from wow.app.workout_catalog import (
@@ -107,7 +108,8 @@ class App:
                  sim_trainer: Callable[[SimScheduler], SimD100Server]
                  | None = None,
                  sim_devices: SimDevices | None = None,
-                 upload_simulated: bool = False) -> None:
+                 upload_simulated: bool = False,
+                 garmin: ActivityUploader | None = None) -> None:
         self.config = config
         self.clock = clock
         self._faults = sim_faults
@@ -142,6 +144,9 @@ class App:
         self.space = FreeSpace(clock, config.data, free_bytes or disk_free)
         self.uploads = UploadWorker(clock, uploader or self._uploader(),
                                     rides, self._changed)
+        self.garmin_uploads = UploadWorker(
+            clock, garmin or GarminConnect(garmin_tokens(config.data)),
+            rides, self._changed, GARMIN)
         self.calibration = CalibrationController(
             clock, self.trainer, self.recorder, config.data / "logs",
             self._changed)
@@ -151,9 +156,9 @@ class App:
         simulated = config.simulate or replay is not None
         self.console = Console(clock, self.devices, self.rides, self.catalog,
                                self.settings, self._changed, self.uploads,
-                               self.space, rides, self.calibration,
-                               self.certificate, self.routes,
-                               upload_simulated or not simulated)
+                               self.garmin_uploads, self.space, rides,
+                               self.calibration, self.certificate,
+                               self.routes, upload_simulated or not simulated)
         self.rides.on_finished = self._finished
         self.rides.on_free_level = self._free_level
         self.trainer.on_sample = self.console.trainer_sample
@@ -188,6 +193,8 @@ class App:
         self._spawn(self.lag.run())
         self.uploads.load()
         self._spawn(self.uploads.run())
+        self.garmin_uploads.load()
+        self._spawn(self.garmin_uploads.run())
         if self.led is not None:
             self._spawn(self.led.run())
         self._offer_interrupted()
@@ -254,6 +261,8 @@ class App:
     def _finished(self, summary: Summary) -> None:
         if summary.upload == UploadState.PENDING:
             self.uploads.queue(summary.ride_id)
+        if summary.garmin_upload == UploadState.PENDING:
+            self.garmin_uploads.queue(summary.ride_id)
 
     def _free_level(self, pct: int) -> None:
         self.settings.keep_free_ride_level(pct)

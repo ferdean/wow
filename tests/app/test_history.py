@@ -53,11 +53,12 @@ def test_history_lists_the_kept_rides(tmp_path: Path) -> None:
     assert history["rides"] == [
         {"ride_id": "2026-11-14T180000Z",
          "start_utc": "2026-11-14T17:40:48.000Z", "title": "Free ride",
-         "duration": 3600, "tss": 57.8, "upload": "off"},
+         "duration": 3600, "tss": 57.8, "upload": "off",
+         "garmin_upload": None},
         {"ride_id": "2026-11-12T162426Z",
          "start_utc": "2026-11-12T17:40:48.000Z",
          "title": "Long ride + SS", "duration": 3600, "tss": 57.8,
-         "upload": "failed"}]
+         "upload": "failed", "garmin_upload": None}]
     assert history["free_mb"] > 0
     assert session.command("open_ride",
                            ride_id="2026-11-12T162426Z") is None

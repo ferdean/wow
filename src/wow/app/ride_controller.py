@@ -75,6 +75,7 @@ class RideSetup:
     zones_pct: tuple[int, ...] = DEFAULT_ZONES_PCT
     free_ride_level_pct: int = 0
     upload_on: bool = True
+    garmin_upload_on: bool = False
     block_modes: tuple[Mode, ...] = ()
     route: RouteChoice | None = None
     rider_kg: int = DEFAULT_RIDER_KG
@@ -99,6 +100,7 @@ class Summary:
     metrics: Metrics
     upload: UploadState
     route: RouteSummary | None = None
+    garmin_upload: UploadState = UploadState.OFF
 
 
 @dataclass(frozen=True)
@@ -326,6 +328,8 @@ class RideController:
         stamp = self._clock.utc().strftime("%Y-%m-%dT%H%M%SZ")
         ride_dir = self._recorder.open_ride(stamp)
         upload = UploadState.PENDING if setup.upload_on else UploadState.OFF
+        garmin = (UploadState.PENDING if setup.garmin_upload_on
+                  else UploadState.OFF)
         meta: dict[str, object] = {
             "schema": META_SCHEMA, "ride_id": stamp,
             "app_version": self._version, "state": "running",
@@ -333,7 +337,7 @@ class RideController:
             "workout_ref": setup.workout.ref, "ftp": setup.ftp,
             "zones_pct": list(setup.zones_pct), "start_utc": None,
             "boot_id": self._recorder.boot_id, "metrics": None,
-            "upload": upload,
+            "upload": upload, "garmin_upload": garmin,
         }
         self._record = _Record(ride_dir, setup, meta)
         self._sampler = Sampler()
@@ -434,7 +438,8 @@ class RideController:
             utc_text(start), metrics, UploadState(str(meta["upload"])),
             None if route is None else RouteSummary(
                 route.name, None if track is None else track.distance_m,
-                None if track is None else track.ascent_m))
+                None if track is None else track.ascent_m),
+            UploadState(str(meta.get("garmin_upload", UploadState.OFF))))
         ride_dir, writer, clock = current.ride_dir, self._fit, self._clock
 
         def write_files() -> None:

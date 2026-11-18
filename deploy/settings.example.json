@@ -6,6 +6,7 @@
   "battery_warn_pct": 20,
   "free_ride_level_pct": 0,
   "upload_on": true,
+  "garmin_upload_on": false,
   "trainer": {"address": "94:05:BB:03:5D:9D", "name": "VANRYSEL-HT-9d5d"},
   "hrm": {"address": "E0:E2:EF:63:14:BC", "name": "HRM200:739158"}
 }

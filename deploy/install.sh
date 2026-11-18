@@ -33,6 +33,9 @@ for secret in /var/lib/wow/secrets.json /var/lib/wow/tls/server.key; do
         chmod 0600 "$secret"
     fi
 done
+# The Garmin Connect tokens of `wow-garmin login`: wow's alone.
+[ ! -d /var/lib/wow/garmin ] || chown -R wow:wow /var/lib/wow/garmin
+[ ! -d /var/lib/wow/garmin ] || chmod 0700 /var/lib/wow/garmin
 install -d -m 0755 /etc/wow /opt/wow
 [ -f /etc/wow/wow.toml ] || install -m 0644 deploy/wow.pi.toml /etc/wow/wow.toml
 

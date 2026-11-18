@@ -24,6 +24,8 @@
   "rider_kg": 75,
   "upload_on": true,
   "intervals_account_set": true,
+  "garmin_upload_on": false,
+  "garmin_signed_in": false,
   "cert_valid_until": "2036-11-09T06:27:56.000Z",
   "trainer": {
    "address": "94:05:BB:03:5D:9D",

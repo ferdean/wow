@@ -18,7 +18,8 @@
     "title": "Free ride",
     "duration": 3600,
     "tss": 51.8,
-    "upload": "off"
+    "upload": "off",
+    "garmin_upload": null
    },
    {
     "ride_id": "2026-11-13T170154Z",
@@ -26,7 +27,8 @@
     "title": "Long ride + SS",
     "duration": 3600,
     "tss": 51.8,
-    "upload": "done"
+    "upload": "done",
+    "garmin_upload": null
    },
    {
     "ride_id": "2026-11-12T162426Z",
@@ -34,7 +36,8 @@
     "title": "ERG check",
     "duration": 3600,
     "tss": 51.8,
-    "upload": "failed"
+    "upload": "failed",
+    "garmin_upload": null
    }
   ],
   "free_mb": 31512

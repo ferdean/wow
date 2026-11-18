@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { CommandName, HistoryScreen } from "../types/protocol";
-  import { MISSING, UPLOAD_WORDS, clock, dateTime, fixed } from "../format";
+  import { GARMIN_WORDS, MISSING, UPLOAD_WORDS, clock, dateTime, fixed } from "../format";
+
+  const BAD = ["failed", "auth_error"];
 
   interface Props {
     screen: HistoryScreen;
@@ -25,10 +27,17 @@
         <span class="row label">
           <span>{ride.duration === null ? MISSING : clock(ride.duration)}</span>
           <span>TSS {fixed(ride.tss, 0)}</span>
-          <span class="grow upload" class:bad={ride.upload === "failed" || ride.upload === "auth_error"}>
+          <span class="grow upload" class:bad={BAD.includes(ride.upload)}>
             {UPLOAD_WORDS[ride.upload] ?? ride.upload}
           </span>
         </span>
+        {#if ride.garmin_upload !== null}
+          <span class="row label">
+            <span class="grow upload" class:bad={BAD.includes(ride.garmin_upload)}>
+              {GARMIN_WORDS[ride.garmin_upload] ?? ride.garmin_upload}
+            </span>
+          </span>
+        {/if}
       </button>
     {:else}
       <p class="label">No rides yet.</p>

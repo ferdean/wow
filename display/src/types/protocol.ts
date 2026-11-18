@@ -105,13 +105,13 @@ export interface Metrics {
 export interface RiddenRoute { name: string; distance_m: number | null; ascent_m: number | null }
 export interface SummaryScreen {
   name: "summary"; ride_id: string; title: string; start_utc: string; metrics: Metrics; upload: UploadState;
-  past: boolean; route: RiddenRoute | null;
+  garmin_upload: UploadState | null; past: boolean; route: RiddenRoute | null;
 }
 
 export interface HistoryScreen {
   name: "history";
   rides: { ride_id: string; start_utc: string | null; title: string; duration: number | null; tss: number | null;
-           upload: UploadState }[];
+           upload: UploadState; garmin_upload: UploadState | null }[];
   free_mb: number;
 }
 
@@ -128,7 +128,8 @@ export interface FoundDevice { address: string; name: string | null; rssi_dbm: n
 export interface SettingsScreen {
   name: "settings";
   ftp: number; zones_pct: number[]; lead_time: number; battery_warn_pct: number; rider_kg: number;
-  upload_on: boolean; intervals_account_set: boolean; cert_valid_until: string | null;
+  upload_on: boolean; intervals_account_set: boolean; garmin_upload_on: boolean; garmin_signed_in: boolean;
+  cert_valid_until: string | null;
   trainer: { address: string; name: string | null } | null;
   hrm: { address: string; name: string | null } | null;
   scan: { kind: "trainer" | "hrm"; running: boolean; found: FoundDevice[] } | null;
@@ -140,7 +141,7 @@ export type CommandName =
   | "open_workout" | "open_free_ride" | "set_block_mode" | "start" | "cancel_start"
   | "pause" | "resume" | "skip" | "intensity" | "switch_mode" | "resistance"
   | "free_ride_power" | "finish" | "discard" | "back" | "open_history" | "open_ride"
-  | "upload_retry" | "delete_ride" | "open_calibration" | "calibration_start"
+  | "upload_retry" | "garmin_upload_retry" | "delete_ride" | "open_calibration" | "calibration_start"
   | "calibration_cancel" | "open_settings" | "settings_set" | "intervals_account_set"
   | "device_scan" | "device_choose" | "recovery_continue" | "recovery_finish" | "set_route";
 

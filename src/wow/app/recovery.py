@@ -127,6 +127,8 @@ def _read(ride_dir: Path, meta: dict[str, Any]) -> Interrupted | None:
         zones_pct=tuple(meta.get("zones_pct") or ()) or RideSetup.zones_pct,
         free_ride_level_pct=int(armed.get("free_ride_level_pct", 0)),
         upload_on=meta.get("upload") != UploadState.OFF,
+        garmin_upload_on=meta.get("garmin_upload",
+                                  UploadState.OFF) != UploadState.OFF,
         block_modes=tuple(Mode(m) for m in armed.get("block_modes", [])),
         route=_route(ride_dir, meta),
         rider_kg=int(meta.get("rider_kg", DEFAULT_RIDER_KG)))

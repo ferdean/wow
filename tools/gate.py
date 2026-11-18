@@ -41,6 +41,7 @@ FLOORS: Final[tuple[Floor, ...]] = (
         "src/wow/adapters/ble_sim/", "src/wow/adapters/ble_replay",
         "src/wow/adapters/ble_log", "src/wow/adapters/store_files",
         "src/wow/adapters/fit_garmin", "src/wow/adapters/intervals_icu",
+        "src/wow/adapters/garmin_connect",
         "src/wow/adapters/clock_stepped"), "line", 85.0),
 )
 

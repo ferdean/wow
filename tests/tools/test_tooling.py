@@ -26,7 +26,8 @@ NOT_IN_CORE = {
     "dbus_fast", "wow.app", "wow.adapters", "wow.ports", "wow.web",
 }
 HTTP_CLIENTS = {"http.client", "urllib.request", "requests", "httpx",
-                "aiohttp.client"}
+                "aiohttp.client", "garminconnect"}
+HTTP_ADAPTERS = {"adapters/intervals_icu.py", "adapters/garmin_connect.py"}
 
 
 def run(*command: str, cwd: Path = ROOT) -> subprocess.CompletedProcess[str]:
@@ -89,7 +90,7 @@ def import_problems(src: Path) -> list[str]:
             problems.append(f"{relative} imports dbus_fast")
         if (under_any(names, HTTP_CLIENTS) or "ClientSession" in
                 path.read_text(encoding="utf-8")) and (
-                relative != "adapters/intervals_icu.py"):
+                relative not in HTTP_ADAPTERS):
             problems.append(f"{relative} uses an HTTP client")
         if relative.startswith("core/"):
             problems += [f"{relative} imports {name}" for name in sorted(names)
@@ -129,12 +130,15 @@ def test_import_check_catches_violations(tmp_path: Path) -> None:
     (tmp_path / "app").mkdir()
     (tmp_path / "app" / "net.py").write_text(
         "import urllib.request\nimport bleak\nfrom dbus_fast import Message\n")
+    (tmp_path / "app" / "garmin.py").write_text(
+        "from garminconnect import Garmin\n")
     problems = import_problems(tmp_path)
     assert "core/bad.py imports asyncio" in problems
     assert "core/bad.py reads a clock (now)" in problems
     assert "core/bad.py opens a file" in problems
     assert {"app/net.py imports bleak", "app/net.py imports dbus_fast",
-            "app/net.py uses an HTTP client"} <= set(problems)
+            "app/net.py uses an HTTP client",
+            "app/garmin.py uses an HTTP client"} <= set(problems)
 
 
 SYNTHETIC_PLAN = """

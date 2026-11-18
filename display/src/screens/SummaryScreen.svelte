@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { CommandName, SummaryScreen } from "../types/protocol";
-  import { UPLOAD_WORDS, clock, dateTime, fixed, km, watts } from "../format";
+  import { GARMIN_WORDS, UPLOAD_WORDS, clock, dateTime, fixed, km, watts } from "../format";
   import Sheet from "../ui/Sheet.svelte";
 
   interface Props {
@@ -14,6 +14,7 @@
   };
   let deleting = $state(false);
   const retry = $derived(RETRY_WORDS[screen.upload] ?? null);
+  const garminRetry = $derived(screen.garmin_upload === null ? null : (RETRY_WORDS[screen.garmin_upload] ?? null));
 
   const m = $derived(screen.metrics);
   const zoneTotal = $derived(m.time_in_zone.reduce((a, b) => a + b, 0) || 1);
@@ -60,6 +61,14 @@
         <button class="small" onclick={() => send("upload_retry", { ride_id: screen.ride_id })}>{retry}</button>
       {/if}
     </div>
+    {#if screen.garmin_upload !== null}
+      <div class="row upload">
+        <span class="label grow">{GARMIN_WORDS[screen.garmin_upload] ?? screen.garmin_upload}</span>
+        {#if garminRetry}
+          <button class="small" onclick={() => send("garmin_upload_retry", { ride_id: screen.ride_id })}>{garminRetry}</button>
+        {/if}
+      </div>
+    {/if}
     <a class="button" href={`/rides/${screen.ride_id}/ride.fit`} download>Download FIT file</a>
     {#if screen.past}
       <button class="secondary" onclick={() => (deleting = true)}>Delete ride</button>
@@ -69,7 +78,7 @@
 </div>
 
 {#if deleting}
-  <Sheet title="Delete this ride?" text="Its FIT file and logs go; intervals.icu keeps what it already has.">
+  <Sheet title="Delete this ride?" text="Its FIT file and logs go; intervals.icu and Garmin Connect keep what they already have.">
     <button class="danger" onclick={() => { deleting = false; send("delete_ride", { ride_id: screen.ride_id }); }}>Delete</button>
     <button class="secondary" onclick={() => (deleting = false)}>Keep</button>
   </Sheet>

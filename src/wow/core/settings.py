@@ -3,8 +3,9 @@
 The settings of table S (Phase 1, revision 7, with the lead time of
 IM-41) and their JSON form in `settings.json` (ICD IF-10; APP-701 to
 APP-708, APP-114), with the rider's weight and the route last chosen
-(APP-709, APP-902): defaults, ranges and steps; a value outside its range
-is rejected with the field and the range.
+(APP-709, APP-902), and the Garmin Connect upload switch: defaults,
+ranges and steps; a value outside its range is rejected with the field
+and the range.
 """
 
 import re
@@ -37,6 +38,7 @@ class SettingKey(StrEnum):
     HRM = "hrm"
     RIDER_KG = "rider_kg"
     ROUTE = "route"
+    GARMIN_UPLOAD_ON = "garmin_upload_on"
 
 
 @dataclass(frozen=True)
@@ -61,6 +63,7 @@ class Settings:
     hrm: DeviceRef | None = None
     rider_kg: int = 75
     route: str | None = None
+    garmin_upload_on: bool = False
 
 
 @dataclass(frozen=True)
@@ -170,6 +173,15 @@ def _route(settings: Settings, value: object) -> Settings | Rejected:
     return replace(settings, route=file)
 
 
+def _switch(settings: Settings, key: SettingKey,
+            value: object) -> Settings | Rejected:
+    if not isinstance(value, bool):
+        return Rejected(key, SWITCH_RULE)
+    if key == SettingKey.UPLOAD_ON:
+        return replace(settings, upload_on=value)
+    return replace(settings, garmin_upload_on=value)
+
+
 def _numeric(settings: Settings, key: SettingKey,
              value: object) -> Settings | Rejected:
     span = SPANS[key]
@@ -198,9 +210,8 @@ def with_value(settings: Settings, key: str,
         zones = _zones(value)
         return (Rejected(key, ZONES_RULE) if zones is None
                 else replace(settings, zones_pct=zones))
-    if setting == SettingKey.UPLOAD_ON:
-        return (replace(settings, upload_on=value)
-                if isinstance(value, bool) else Rejected(key, SWITCH_RULE))
+    if setting in (SettingKey.UPLOAD_ON, SettingKey.GARMIN_UPLOAD_ON):
+        return _switch(settings, setting, value)
     if setting in (SettingKey.TRAINER, SettingKey.HRM):
         return _device(settings, setting, value)
     if setting == SettingKey.ROUTE:
@@ -240,4 +251,5 @@ def settings_json(settings: Settings) -> dict[str, Any]:
         "upload_on": settings.upload_on,
         "trainer": device(settings.trainer), "hrm": device(settings.hrm),
         "rider_kg": settings.rider_kg, "route": settings.route,
+        "garmin_upload_on": settings.garmin_upload_on,
     }

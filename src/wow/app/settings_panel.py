@@ -14,7 +14,9 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Final
 
-from wow.app.config import Secrets, save_secrets, save_settings
+from wow.app.config import (
+    Secrets, garmin_signed_in, save_secrets, save_settings,
+)
 from wow.app.device_manager import DeviceManager
 from wow.core.devices import DeviceKind, FoundDevice
 from wow.core.settings import (
@@ -76,12 +78,18 @@ class SettingsPanel:
         """Return whether an intervals.icu account is stored."""
         return self._account_set
 
+    @property
+    def garmin_signed_in(self) -> bool:
+        """Return whether Garmin Connect tokens are stored."""
+        return garmin_signed_in(self._data)
+
     def screen(self, cert_valid_until: str | None) -> Json:
         """Return the Settings screen."""
         scan = self._scan
         return settings_screen(
             self._settings, self._account_set, cert_valid_until,
-            None if scan is None else (scan.kind, scan.running, scan.found))
+            None if scan is None else (scan.kind, scan.running, scan.found),
+            self.garmin_signed_in)
 
     def set(self, key: str, value: object) -> str | None:
         """Change one setting; return the problem, if any."""

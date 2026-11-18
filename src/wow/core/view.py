@@ -316,11 +316,17 @@ def route_live(route_id: str, route: Route, distance_m: float,
 
 def summary_screen(ride_id: str, title: str, start_utc: str,
                    metrics: Metrics, upload: str, past: bool = False,
-                   route: Json | None = None) -> Json:
-    """Return the Summary of a ride just finished, or a past one."""
+                   route: Json | None = None,
+                   garmin_upload: str | None = None) -> Json:
+    """Return the Summary of a ride just finished, or a past one.
+
+    The Garmin Connect upload state is None while Garmin isn't set up
+    and the ride was never sent there.
+    """
     return {"name": Screen.SUMMARY, "ride_id": ride_id, "title": title,
             "start_utc": start_utc, "metrics": metrics_view(metrics),
-            "upload": upload, "past": past, "route": route}
+            "upload": upload, "garmin_upload": garmin_upload, "past": past,
+            "route": route}
 
 
 def calibration_screen(phase: str, band_kmh: tuple[float, float] | None,
@@ -343,12 +349,14 @@ def history_screen(rides: Sequence[Json], free_mb: int) -> Json:
 
 
 def history_entry(ride_id: str, start_utc: str | None, title: str,
-                  metrics: Metrics | None, upload: str) -> Json:
+                  metrics: Metrics | None, upload: str,
+                  garmin_upload: str | None = None) -> Json:
     """Return one past ride in the history."""
     return {"ride_id": ride_id, "start_utc": start_utc, "title": title,
             "duration": None if metrics is None else metrics.duration,
             "tss": None if metrics is None or metrics.tss is None
-            else round(metrics.tss, 1), "upload": upload}
+            else round(metrics.tss, 1), "upload": upload,
+            "garmin_upload": garmin_upload}
 
 
 def metrics_view(metrics: Metrics) -> Json:
@@ -412,8 +420,8 @@ def _device(ref: DeviceRef | None) -> Json | None:
 
 def settings_screen(settings: Settings, account_set: bool,
                     cert_valid_until: str | None,
-                    scan: tuple[str, bool, Sequence[FoundDevice]] | None
-                    ) -> Json:
+                    scan: tuple[str, bool, Sequence[FoundDevice]] | None,
+                    garmin_signed_in: bool = False) -> Json:
     """Return the Settings screen; scan is the kind, running and found."""
     return {
         "name": Screen.SETTINGS, "ftp": settings.ftp,
@@ -423,6 +431,8 @@ def settings_screen(settings: Settings, account_set: bool,
         "rider_kg": settings.rider_kg,
         "upload_on": settings.upload_on,
         "intervals_account_set": account_set,
+        "garmin_upload_on": settings.garmin_upload_on,
+        "garmin_signed_in": garmin_signed_in,
         "cert_valid_until": cert_valid_until,
         "trainer": _device(settings.trainer), "hrm": _device(settings.hrm),
         "scan": None if scan is None else {

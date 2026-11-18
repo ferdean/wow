@@ -94,6 +94,17 @@ uv run wow --config wow.toml --sim    # simulator; --sim overrides wow.toml
 
 Stop with one Ctrl-C and wait for `wow stopped …`. `kill <pid>` sends SIGTERM and does the same orderly stop. To switch modes, stop and start again with or without `--sim`. Both modes write to `wow-data/`, so the Upload note above applies here too.
 
+## Garmin Connect upload (experimental branch)
+
+On `feature/garmin-upload`, wow can also upload each finished ride to Garmin Connect (Settings → Garmin Connect, default off), through the unofficial python-garminconnect client. Sign in once on the Pi as the service's user:
+
+```
+sudo -u wow /opt/wow/venv/bin/wow-garmin login     # email, password, MFA code; stores tokens only
+sudo -u wow /opt/wow/venv/bin/wow-garmin check
+```
+
+`docs/garmin-upload.md` has the design, the assumptions and the Pi checks to pass before merging.
+
 ## Routes
 
 A ride can be ridden along a GPX route. The trainer is controlled as without a route (ERG or resistance; there is no slope mode). Every second wow moves you along the route with your power (your weight from Settings plus a 9 kg bike, on the cycling power model of Martin et al., 1998); at Finish the same track goes into `ride.fit` with speed, distance, altitude and position, marked as a virtual ride. A ride longer than the route starts it again from the beginning.

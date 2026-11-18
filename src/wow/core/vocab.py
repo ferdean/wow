@@ -59,6 +59,7 @@ class CommandName(StrEnum):
     OPEN_HISTORY = "open_history"
     OPEN_RIDE = "open_ride"
     UPLOAD_RETRY = "upload_retry"
+    GARMIN_UPLOAD_RETRY = "garmin_upload_retry"
     DELETE_RIDE = "delete_ride"
     OPEN_CALIBRATION = "open_calibration"
     CALIBRATION_START = "calibration_start"

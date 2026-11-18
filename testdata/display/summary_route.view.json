@@ -34,6 +34,7 @@
    "max_hr_bpm": 130
   },
   "upload": "pending",
+  "garmin_upload": null,
   "past": false,
   "route": {
    "name": "Lake loop",

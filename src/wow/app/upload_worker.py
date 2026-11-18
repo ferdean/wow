@@ -1,18 +1,20 @@
-"""Upload finished rides to intervals.icu.
+"""Upload finished rides to intervals.icu or Garmin Connect.
 
 The upload worker (3A, app/upload_worker; ICD 4.8.3; APP-607 to
 APP-609): uploads each finished ride once without the rider, retries
 every 15 minutes for 7 days, waits for the rider after a refused key,
 and keeps the state in the ride's `meta.json`, so it survives restarts.
+Each destination has its own worker and its own `meta.json` fields.
 """
 
 import asyncio
 import contextlib
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 from wow.app.history import FIT_FILE, read_meta, ride_path, utc_of, write_meta
 from wow.core.timefmt import utc_text
@@ -26,15 +28,36 @@ from wow.ports.upload import ActivityUploader
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class Target:
+    """Where a worker uploads to, and the meta.json fields it keeps."""
+
+    name: str
+    state: str
+    first_utc: str
+    last_utc: str
+    attempts: str
+
+
+INTERVALS: Final[Target] = Target(
+    "intervals.icu", "upload", "upload_first_utc", "upload_last_utc",
+    "upload_attempts")
+GARMIN: Final[Target] = Target(
+    "Garmin Connect", "garmin_upload", "garmin_upload_first_utc",
+    "garmin_upload_last_utc", "garmin_upload_attempts")
+
+
 class UploadWorker:
     """Uploads rides in the background."""
 
     def __init__(self, clock: Clock, uploader: ActivityUploader | None,
-                 rides: Path, on_change: Callable[[], None]) -> None:
+                 rides: Path, on_change: Callable[[], None],
+                 target: Target = INTERVALS) -> None:
         self._clock = clock
         self._uploader = uploader
         self._rides = rides
         self._on_change = on_change
+        self._target = target
         self._uploads: dict[str, Upload] = {}
         self._wake = asyncio.Event()
 
@@ -50,7 +73,7 @@ class UploadWorker:
         for ride_dir in self._rides.iterdir():
             meta = read_meta(ride_dir)
             if meta is not None and meta.get("state") == "finished":
-                upload = _upload(meta)
+                upload = _upload(meta, self._target)
                 if wait(upload, self._clock.utc()) is not None:
                     self._uploads[ride_dir.name] = upload
 
@@ -79,11 +102,11 @@ class UploadWorker:
     async def run(self) -> None:
         """Upload whatever is due, until cancelled.
 
-        Without an intervals.icu account nothing is sent and the rides
-        stay pending until an account is entered.
+        Without an account nothing is sent and the rides stay pending
+        until an account is entered.
         """
         if self._uploader is None:
-            logger.info("no intervals.icu account: uploads wait")
+            logger.info("no %s account: uploads wait", self._target.name)
         while True:
             now = self._clock.utc()
             due = None if self._uploader is None else self._next(now)
@@ -132,7 +155,8 @@ class UploadWorker:
         self._save(ride_dir, upload)
         assert self._uploader is not None
         outcome = await self._uploader.upload(fit, str(meta.get("title")))
-        logger.info("upload of %s: %s", ride_id, outcome)
+        logger.info("%s upload of %s: %s", self._target.name, ride_id,
+                    outcome)
         upload = finished(upload, outcome, self._clock.utc())
         self._uploads[ride_id] = upload
         self._save(ride_dir, upload)
@@ -146,23 +170,24 @@ class UploadWorker:
         meta = read_meta(ride_dir)
         if meta is None:
             return
+        target = self._target
         meta.update({
-            "upload": upload.state,
-            "upload_first_utc": _text(upload.first_utc),
-            "upload_last_utc": _text(upload.last_utc),
-            "upload_attempts": upload.attempts})
+            target.state: upload.state,
+            target.first_utc: _text(upload.first_utc),
+            target.last_utc: _text(upload.last_utc),
+            target.attempts: upload.attempts})
         write_meta(ride_dir, meta)
         self._on_change()
 
 
-def _upload(meta: dict[str, Any]) -> Upload:
-    state = UploadState(str(meta.get("upload", UploadState.OFF)))
+def _upload(meta: dict[str, Any], target: Target) -> Upload:
+    state = UploadState(str(meta.get(target.state, UploadState.OFF)))
     if state == UploadState.UPLOADING:
         state = UploadState.RETRYING
-    first, last = meta.get("upload_first_utc"), meta.get("upload_last_utc")
+    first, last = meta.get(target.first_utc), meta.get(target.last_utc)
     return Upload(state, None if first is None else utc_of(str(first)),
                   None if last is None else utc_of(str(last)),
-                  int(meta.get("upload_attempts", 0)))
+                  int(meta.get(target.attempts, 0)))
 
 
 def _text(moment: datetime | None) -> str | None:

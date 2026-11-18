@@ -3,7 +3,8 @@
 The installation's configuration (`wow.toml`), and the rider's settings
 and intervals.icu account in the data directory (ICD IF-10; APP-706,
 APP-707, APP-708, APP-817): both files are replaced atomically, and
-`secrets.json` is created readable by the app's user only.
+`secrets.json` is created readable by the app's user only. The Garmin
+Connect tokens live in `garmin/`, written by `wow-garmin login`.
 """
 
 import json
@@ -23,6 +24,8 @@ logger = logging.getLogger(__name__)
 SETTINGS_FILE: Final[str] = "settings.json"
 SECRETS_FILE: Final[str] = "secrets.json"
 SECRETS_MODE: Final[int] = 0o600
+GARMIN_DIR: Final[str] = "garmin"
+GARMIN_TOKEN_FILE: Final[str] = "garmin_tokens.json"
 
 
 @dataclass(frozen=True)
@@ -126,3 +129,13 @@ def save_secrets(data: Path, secrets: Secrets) -> None:
     write_atomic(data / SECRETS_FILE, json.dumps({
         "schema": SCHEMA, "intervals_athlete_id": secrets.athlete_id,
         "intervals_api_key": secrets.api_key}).encode(), mode=SECRETS_MODE)
+
+
+def garmin_tokens(data: Path) -> Path:
+    """Return the directory that holds the Garmin Connect tokens."""
+    return data / GARMIN_DIR
+
+
+def garmin_signed_in(data: Path) -> bool:
+    """Return whether `wow-garmin login` has stored tokens."""
+    return (garmin_tokens(data) / GARMIN_TOKEN_FILE).is_file()

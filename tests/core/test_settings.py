@@ -108,3 +108,15 @@ def test_rider_weight_and_the_route_file() -> None:
     raw = settings_json(chosen)
     assert (raw["rider_kg"], raw["route"]) == (68, "lake-loop.gpx")
     assert settings_of(raw) == (chosen, [])
+
+
+@pytest.mark.case("S-GAR-14")
+def test_the_garmin_switch_is_off_by_default_and_kept() -> None:
+    assert Settings().garmin_upload_on is False
+    on = with_value(Settings(), SettingKey.GARMIN_UPLOAD_ON, True)
+    assert isinstance(on, Settings) and on.garmin_upload_on
+    assert on.upload_on
+    refused = with_value(Settings(), SettingKey.GARMIN_UPLOAD_ON, "yes")
+    assert refused == Rejected("garmin_upload_on", "true or false")
+    assert settings_json(on)["garmin_upload_on"] is True
+    assert settings_of({"garmin_upload_on": True}) == (on, [])

@@ -87,6 +87,16 @@ export const UPLOAD_WORDS: Record<string, string> = {
   auth_error: "intervals.icu refused the key",
 };
 
+export const GARMIN_WORDS: Record<string, string> = {
+  off: "Not on Garmin Connect",
+  pending: "Waiting to upload to Garmin",
+  uploading: "Uploading to Garmin…",
+  done: "Uploaded to Garmin Connect",
+  retrying: "Retrying Garmin",
+  failed: "Garmin upload failed",
+  auth_error: "Garmin sign-in needed",
+};
+
 export function dateTime(utc: string): string {
   const moment = new Date(utc);
   return Number.isNaN(moment.getTime())

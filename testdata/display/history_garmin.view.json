@@ -1,0 +1,45 @@
+{
+ "type": "view",
+ "seq": 1,
+ "sent_mono_ms": 0.0,
+ "data_mono_ms": null,
+ "links": {
+  "trainer": "not_found",
+  "hrm": "not_found"
+ },
+ "hrm_battery_pct": null,
+ "warnings": [],
+ "screen": {
+  "name": "history",
+  "rides": [
+   {
+    "ride_id": "2026-11-18T171500Z",
+    "start_utc": "2026-11-18T17:15:03.120Z",
+    "title": "Long ride + SS",
+    "duration": 3600,
+    "tss": 51.8,
+    "upload": "off",
+    "garmin_upload": "done"
+   },
+   {
+    "ride_id": "2026-11-17T171500Z",
+    "start_utc": "2026-11-17T17:15:03.120Z",
+    "title": "Long ride + SS",
+    "duration": 3600,
+    "tss": 51.8,
+    "upload": "done",
+    "garmin_upload": "failed"
+   },
+   {
+    "ride_id": "2026-11-16T171500Z",
+    "start_utc": "2026-11-16T17:15:03.120Z",
+    "title": "ERG check",
+    "duration": 3600,
+    "tss": 51.8,
+    "upload": "done",
+    "garmin_upload": null
+   }
+  ],
+  "free_mb": 31512
+ }
+}

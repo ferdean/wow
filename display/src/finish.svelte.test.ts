@@ -225,3 +225,50 @@ describe("S-DSP-06 the step tone and the Settings screen", () => {
     expect(link.args[0]).toEqual({ kind: "hrm", address: "E0:E2:EF:63:14:BC" });
   });
 });
+
+describe("S-GAR-16 Garmin Connect on the display", () => {
+  afterEach(() => cleanup());
+
+  it("switches the Garmin upload and says how to sign in", async () => {
+    const link = fakeLink(golden("settings_garmin_signed_out"));
+    render(App, { props: { link } });
+    expect(dom.getByText("Not signed in")).toBeTruthy();
+    expect(dom.getByText("Sign in once on the Pi: wow-garmin login.")).toBeTruthy();
+    expect(dom.queryByText(/may get each ride twice/)).toBeNull();
+    await fireEvent.click(dom.getByText("Upload rides to Garmin Connect"));
+    expect(link.sent).toEqual(["settings_set"]);
+    expect(link.args[0]).toEqual({ key: "garmin_upload_on", value: false });
+  });
+
+  it("warns about doubles with both uploads on", () => {
+    render(App, { props: { link: fakeLink(golden("settings_garmin_both_on")) } });
+    expect(dom.getByText("Signed in on the Pi")).toBeTruthy();
+    expect(dom.getByText(/may get each ride twice/)).toBeTruthy();
+  });
+
+  it("shows the Garmin state on the Summary and retries it alone", async () => {
+    const link = fakeLink(golden("summary_garmin_auth_error"));
+    render(App, { props: { link } });
+    expect(dom.getByText("Uploaded to intervals.icu")).toBeTruthy();
+    expect(dom.getByText("Garmin sign-in needed")).toBeTruthy();
+    const [again, garmin] = dom.getAllByRole("button").filter((b) => /again|now/i.test(b.textContent ?? ""));
+    expect(again?.textContent).toBe("Upload again");
+    if (garmin) {
+      await fireEvent.click(garmin);
+    }
+    expect(link.sent).toEqual(["garmin_upload_retry"]);
+    expect(link.args[0]).toEqual({ ride_id: "2026-11-18T171500Z" });
+  });
+
+  it("leaves Garmin out where it isn't set up", () => {
+    render(App, { props: { link: fakeLink(golden("summary_done")) } });
+    expect(dom.queryByText(/Garmin/)).toBeNull();
+  });
+
+  it("lists the Garmin state in Past rides", () => {
+    render(App, { props: { link: fakeLink(golden("history_garmin")) } });
+    expect(dom.getByText("Uploaded to Garmin Connect")).toBeTruthy();
+    expect(dom.getByText("Garmin upload failed").classList.contains("bad")).toBe(true);
+    expect(dom.getAllByText(/Garmin/)).toHaveLength(2);
+  });
+});

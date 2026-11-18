@@ -8,7 +8,8 @@ Home with today's, the library's and the built-in workouts, Pre-ride
 with the route choice, the ride screen from Start to Finish, the Summary
 after Finish, past rides, Calibration and Settings; the devices are kept
 while Pre-ride, a ride or Calibration is open (APP-110). Rides on
-simulated devices are never uploaded (APP-613).
+simulated devices are never uploaded (APP-613), to intervals.icu or to
+Garmin Connect.
 """
 
 import logging
@@ -57,7 +58,8 @@ class Console:
     def __init__(self, clock: Clock, devices: DeviceManager,
                  rides: RideController, catalog: WorkoutCatalog,
                  panel: SettingsPanel, on_change: Callable[[], None],
-                 uploads: UploadWorker, space: FreeSpace,
+                 uploads: UploadWorker, garmin_uploads: UploadWorker,
+                 space: FreeSpace,
                  rides_dir: Path, calibration: CalibrationController,
                  certificate: CertificateWatch, routes: RouteCatalog,
                  uploads_allowed: bool = True) -> None:
@@ -87,6 +89,7 @@ class Console:
         self._calibration = calibration
         self._routes = routes
         self._uploads_allowed = uploads_allowed
+        self._garmin_uploads = garmin_uploads
         self._map: Json | None = None
 
     @property
@@ -215,7 +218,10 @@ class Console:
                                   self._past is not None,
                                   None if route is None else ridden_route(
                                       route.name, route.distance_m,
-                                      route.ascent_m))
+                                      route.ascent_m),
+                                  self._garmin(summary.ride_id,
+                                               summary.garmin_upload,
+                                               self._panel.garmin_signed_in))
         if self._screen == Screen.HISTORY:
             return history_screen(self._history(), self._space.free_mb())
         if self._screen == Screen.CALIBRATION:
@@ -265,8 +271,14 @@ class Console:
     def _upload(self, ride_id: str, known: str) -> str:
         return self._uploads.state(ride_id) or known
 
+    def _garmin(self, ride_id: str, known: str,
+                signed_in: bool) -> str | None:
+        state = self._garmin_uploads.state(ride_id) or known
+        return None if state == UploadState.OFF and not signed_in else state
+
     def _history(self) -> list[Json]:
         entries = []
+        signed_in = self._panel.garmin_signed_in
         for meta in kept_rides(self._rides_dir):
             ride_id = str(meta["ride_id"])
             metrics = meta.get("metrics")
@@ -274,7 +286,9 @@ class Console:
                 ride_id, meta.get("start_utc"), str(meta.get("title")),
                 None if not isinstance(metrics, dict) else metrics_of(
                     metrics),
-                self._upload(ride_id, str(meta.get("upload", "off")))))
+                self._upload(ride_id, str(meta.get("upload", "off"))),
+                self._garmin(ride_id, str(meta.get("garmin_upload", "off")),
+                             signed_in)))
         return entries
 
     def _card(self, item: Entry) -> Json:
@@ -437,7 +451,9 @@ class Console:
         self._past = Summary(str(meta["ride_id"]), str(meta.get("title")),
                              str(meta.get("start_utc")), metrics_of(metrics),
                              UploadState(str(meta.get("upload", "off"))),
-                             _route_of(meta.get("route")))
+                             _route_of(meta.get("route")),
+                             UploadState(str(meta.get("garmin_upload",
+                                                      "off"))))
         self._screen = Screen.SUMMARY
         return None
 
@@ -449,6 +465,18 @@ class Console:
 
     def _retry(self, ride_id: str) -> str | None:
         return None if self._uploads.retry(ride_id) else Problem.BAD_REQUEST
+
+    def _history_garmin_upload_retry(self, args: Mapping[str, Any]
+                                     ) -> str | None:
+        return self._garmin_retry(str(args.get("ride_id")))
+
+    def _summary_garmin_upload_retry(self, args: Mapping[str, Any]
+                                     ) -> str | None:
+        return self._garmin_retry(str(args.get("ride_id")))
+
+    def _garmin_retry(self, ride_id: str) -> str | None:
+        return (None if self._garmin_uploads.retry(ride_id)
+                else Problem.BAD_REQUEST)
 
     def _history_delete_ride(self, args: Mapping[str, Any]) -> str | None:
         return self._delete(str(args.get("ride_id")))
@@ -466,8 +494,9 @@ class Console:
         interrupted = self._interrupted
         busy = {self._rides.ride_id(),
                 None if interrupted is None else interrupted.ride_id}
-        if ride_id in busy or self._uploads.state(ride_id) == (
-                UploadState.UPLOADING):
+        uploading = (self._uploads.state(ride_id),
+                     self._garmin_uploads.state(ride_id))
+        if ride_id in busy or UploadState.UPLOADING in uploading:
             return Problem.INVALID_STATE
         return None if delete_ride(self._rides_dir, ride_id) else (
             Problem.BAD_REQUEST)
@@ -483,6 +512,8 @@ class Console:
             zones_pct=settings.zones_pct,
             free_ride_level_pct=settings.free_ride_level_pct,
             upload_on=settings.upload_on and self._uploads_allowed,
+            garmin_upload_on=(settings.garmin_upload_on
+                              and self._uploads_allowed),
             block_modes=tuple(self._block_modes),
             route=None if route is None else route.choice(),
             rider_kg=settings.rider_kg))
