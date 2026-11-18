@@ -1,6 +1,6 @@
 # Phase 5 — Implementation
 
-**Status:** revision 14, 18 Nov 2026. **Phase 5 is closed** (Ferran, 18 Nov 2026; section 51). The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) (sections 27 to 32), and SL-10 (settings, housekeeping), SL-11 (display finish) and SL-12 (endurance, close-out) (sections 33 to 38) planned, built and gated, and **approved by Ferran on 16 Nov 2026**; their Pi steps are the closing checks. SL-13 (route simulation) planned, built and gated on 17 Nov 2026 with the closing checks waived for it (sections 39 to 44); SL-14 (route screen), added by Ferran the same day, planned, built and gated (sections 45 to 50); app version 0.8.0, the version that goes to V&V. SL-13 and SL-14 **approved by Ferran on 18 Nov 2026**, with Phase 5 closed; their Pi steps join the closing checks. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
+**Status:** revision 15, 18 Nov 2026. **Phase 5 is closed** (Ferran, 18 Nov 2026; section 51). Revision 15 records the documentation revision of the same day (section 52): the approved document changes applied, every phase document moved into `docs/`, and the PDF tool. The slice plan; SL-01 (Bluetooth foundation) and SL-02 (first ride on screen) built, tested on the Pi and **approved by Ferran on 13 Nov 2026** (section 13). SL-03 (recording, FIT) and SL-04 (workouts) planned, built, ridden on the Pi on 13 Nov and **approved by Ferran on 14 Nov 2026** (sections 14 to 19). SL-05 (ride controls) and SL-06 (dropouts, reconnect) planned, built and gated on the laptop, first ridden on the simulator and **approved by Ferran on 15 Nov 2026** (sections 20 to 26); their rides move to the next Pi session. SL-07 (crash recovery, service), SL-08 (upload, history) and SL-09 (calibration) (sections 27 to 32), and SL-10 (settings, housekeeping), SL-11 (display finish) and SL-12 (endurance, close-out) (sections 33 to 38) planned, built and gated, and **approved by Ferran on 16 Nov 2026**; their Pi steps are the closing checks. SL-13 (route simulation) planned, built and gated on 17 Nov 2026 with the closing checks waived for it (sections 39 to 44); SL-14 (route screen), added by Ferran the same day, planned, built and gated (sections 45 to 50); app version 0.8.0, the version that goes to V&V. SL-13 and SL-14 **approved by Ferran on 18 Nov 2026**, with Phase 5 closed; their Pi steps join the closing checks. Builds on the Phase 1 requirements (revision 7), the Phase 3A architecture (revision 5), the ICD (revision 4) and the Phase 4 test plan (revision 2).
 
 ## 1 How Phase 5 works
 
@@ -345,7 +345,7 @@ sequenceDiagram
     R->>F: journal step_started
     P->>H: command finish (after the sheet)
     R->>T: set_command(lowest resistance level)
-    R->>F: journal finished; files closed 3 s later
+    R->>F: journal finished, files closed 3 s later
     H-->>P: view (home)
 ```
 
@@ -1597,9 +1597,56 @@ Carried into Phase 6:
 
 1. The closing checks of the handover's section 8 (the Pi steps of sections 31, 37 and 49), logged in `docs/verification-log.md`; D-32 stays blocked (N-4).
 2. The inspections I-01 to I-13 and the walk-through I-14 to I-20.
-3. The approved document changes, applied once each: 13.6, 16.5, 22.5, 29.5, 35.5, 41.5 and 47.5 (Phase 1 revision 8, 3A, ICD, 3C and the test plan).
+3. The approved document changes, applied once each: 13.6, 16.5, 22.5, 29.5, 35.5, 41.5 and 47.5 (Phase 1 revision 8, 3A, ICD, 3C and the test plan). **Done on 18 Nov 2026** (section 52).
 4. Every assumption still open in the registers of this document, closed or accepted.
 5. Open questions from Ferran's side: reading the page from outside the home network (handover 4.1), and the npm audit finding of 18 Nov (picomatch ReDoS GHSA-fc5q-39xc-vjpf, dev tools only, no fixed release yet; and the eslint 10.15.0 and typescript-eslint 8.73.0 update that clears the moderate minimatch advisory), proposed and not yet decided.
+
+## 52 Documentation revision, 18 Nov 2026
+
+Asked by Ferran on 18 Nov 2026, after Phase 5 closed: apply every approved document change in each document's next revision, move the phase documents that lived only in the project into `docs/`, and add a tool that renders every phase document as a PDF in the format of the Phase 0 record. Documentation only: no code of the app changed, and the 0.8.0 tree is untouched. Not the 1.0 release, so the closing checks of the handover's section 8.2 don't gate it (Ferran, 18 Nov 2026); `docs/verification-log.md` still has no line after 14 Nov.
+
+### 52.1 Documents
+
+| Document | Revision | In the repository | Changes applied |
+|----------|----------|-------------------|-----------------|
+| Phase 0 discovery | 2, unchanged | `docs/phase0-discovery.md` (moved) | None touches it |
+| Phase 1 requirements | 8 | `docs/phase1-requirements.md` (moved) | 13.6, 35.5, 41.5, 47.5 |
+| Phase 2 spikes | 14, unchanged | `docs/phase2-spikes.md` (moved) | None touches it |
+| Phase 3A architecture | 6 | `docs/phase3-arch.md` | 13.6, 29.5, 35.5, 41.5, 47.5 |
+| Phase 3B ICD | 5 | `docs/phase3-icd.md` (moved) | 13.6, 29.5, 35.5, 41.5, 47.5 |
+| Phase 3C display | 3 | `docs/phase3-display.md` (moved) | 13.6, 29.5, 35.5, 41.5, 47.5 |
+| Phase 4 test plan | 5 | `docs/phase4-test-plan.md` | 13.6, 16.5, 22.5, 29.5, 35.5, 41.5, 47.5 |
+| Phase 5 implementation | 15 | `docs/phase5-implementation.md` | This section; item 3 of section 51 done; SF-51 |
+| README, handover | — | `README.md`; the handover stays in the project | Document locations, the PDF tool, Phase 6 next |
+
+### 52.2 Decisions
+
+| ID | Decision | Why |
+|----|----------|-----|
+| IM-152 | Each phase document has one source: `docs/` on the reference branch. The project's `claude/` copies are synced from it and lose where they differ. Phase 0 and Phase 2 moved word for word: their own references to `claude/` paths are history and stay. | Ferran's request; the project copy of the test plan was still revision 2 while the repository had revision 4 (SF-49). |
+| IM-153 | `tools/make_pdf.py` with `tools/pdf/`: pandoc and XeLaTeX with the Phase 0 record's template (Latin Modern Sans, red rule under the title, "Revision N · date", footer with the title, revision and state, footnote-size tables with shaded rows); Mermaid 12.3.0 drawn in Chromium through Playwright 1.65.2 into vector PDF figures; Phase 2's risk matrix drawn from its table; the PDF named after the Markdown file. `uv run --group docs python -m tools.make_pdf [document…]` writes `build/pdf/`. | One look for every phase document, Mermaid included, from the repository. |
+| IM-154 | The tool is development-only: the uv group `docs` (not a default group, so `uv sync` and `install.sh`'s `uv export --no-dev` never install it), Mermaid in its own `tools/pdf/package.json` (not `display/`), pandoc and TeX Live from the laptop's system packages, Chromium from `playwright install chromium`. Nothing reaches the Pi. | Ferran's request: nothing on the Pi. |
+| IM-155 | The title, revision, date and state come from the status line: its first "revision N", the date after it or else its first date, and "draft" for a draft. The change log's latest revision must agree (S-DOC-01). | One place that says what a document is. |
+| IM-156 | Tables: a separator longer than pandoc's 72 columns keeps its widths, as the Phase 0 record's do, but no column is narrower than its header's longest word or 16 characters when its cells are longer; a shorter separator gets widths from the content. P marks in requirement rows are red. | The Phase 0 format, without header words running into the next column. |
+| IM-157 | 3C's figures are screenshots of the built display: `--screens` opens each gallery state of `tools/pdf/screens.json` in Chromium at 402 × 720 pt, draws the numbered pins into the page, and puts the screens of a figure side by side. The PNG files are committed under `docs/img/phase3-display/`, so a PDF needs no build of the display. | 3C revision 2's mockups were never in the repository; the gallery (IM-138) shows the real screens. |
+| IM-158 | Supporting test S-DOC-01 (`tests/tools/test_make_pdf.py`): every `docs/phase*.md` names its latest revision, and the pure parts of the tool (status line, tables, P marks, figure sizes, the risk matrix's table and colours) do what IM-153 to IM-156 say. Rendering is checked by looking at the PDFs. | Trace rule; pandoc and Chromium aren't in the gate. |
+
+### 52.3 Findings
+
+SF-45 stays reserved for the npm audit proposal (handover 4.2).
+
+| ID | Finding | What changed |
+|----|---------|--------------|
+| SF-46 | The Pre-ride route sheet still says speed, distance, height and position come from the rider's power "after the ride"; since SL-14 the ride along the route is worked out live (IM-146). | Recorded in 3C revision 3's open points: a one-line text change with its Vitest snapshot in the next code change. |
+| SF-47 | 3C revision 2 drew things the build left out or changed: the speed gauge on Calibration, a 200 ms cross-fade between the ride layouts and after the wait, the seconds in the Pi-lost banner, heart rate in the resistance layout's status line, and the mockup file `display/mockups/screens.html`. | 3C revision 3 records the display as built, as 29.5 and 35.5 approved. |
+| SF-48 | APP-906 asks for the route's name, distance and climb on "the Summary and Past rides"; the Past rides list row has none of them, the Summary it opens has all three. | 3C revision 3, open point 2; D-33 decides whether that is enough. |
+| SF-49 | The project's copies had drifted from the repository: the test plan in the project was revision 2, the repository's revision 4. | IM-152; all copies synced on 18 Nov 2026. |
+| SF-50 | The ICD placed the system log in `logs/system.jsonl`; the app writes it to the systemd journal, and `logs/` holds `ble-system.jsonl` and `calibration.jsonl`. | Corrected in ICD revision 5, 4.9.6. |
+| SF-51 | The sequence diagram of 7.2 didn't render: Mermaid ends a sequence message at a semicolon, and "journal finished; files closed 3 s later" had one. Found by the PDF tool. | A comma in its place, in this revision; no other phase document has one. |
+
+### 52.4 Next
+
+Phase 6, when Ferran asks for it: the closing checks of the handover's section 8.2 against `docs/verification-log.md`, then the inspections and the retrospective.
 
 ## Change log
 
@@ -1619,6 +1666,7 @@ Carried into Phase 6:
 | 12 | 17 Nov 2026 | SL-07 to SL-12 approved (16 Nov). Closing checks waived for SL-13; SL-13 planned, built and gated (sections 39 to 44): requirements APP-613, APP-709, APP-901 to APP-908; decisions IM-128 to IM-141; findings SF-37 to SF-42; A-67 to A-70; app version 0.7.0. |
 | 13 | 17 Nov 2026 | SL-14 added by Ferran, planned, built and gated (sections 45 to 50): requirements APP-909, APP-910, APP-903 changed; slope mode a V2 to-do; decisions IM-142 to IM-151; findings SF-43, SF-44; A-71, A-72; app version 0.8.0, the version for V&V. |
 | 14 | 18 Nov 2026 | SL-13 and SL-14 approved by Ferran; Phase 5 closed (section 51). |
+| 15 | 18 Nov 2026 | Documentation revision (section 52): approved document changes applied in Phase 1 revision 8, 3A revision 6, ICD revision 5, 3C revision 3 and test plan revision 5; every phase document in `docs/`; the PDF tool `tools/make_pdf.py`; decisions IM-152 to IM-158; findings SF-46 to SF-51. |
 
 ## Sources
 
@@ -1628,7 +1676,7 @@ Carried into Phase 6:
 - Moritz, H., Geodetic Reference System 1980 (IUGG mean radius R1 = 6,371,008.7714 m, as quoted): https://en.wikipedia.org/wiki/Geodetic_Reference_System_1980
 - Standard gravity 9.80665 m/s² (3rd CGPM, 1901) and ISA sea-level density 1.225 kg/m³ (ISO 2533), secondary sources: https://en.wikipedia.org/wiki/Standard_gravity, https://en.wikipedia.org/wiki/International_Standard_Atmosphere
 - Garmin FIT SDK 21.221.0 profile as installed: Record `position_lat`/`position_long` (sint32, semicircles), `distance` (scale 100, m), `speed` (scale 1000) and `enhanced_speed`, `altitude` and `enhanced_altitude` (scale 5, offset 500, m); Session `total_distance`, `avg_speed`, `max_speed`, `enhanced_avg_speed`, `enhanced_max_speed`, `total_ascent`, `total_descent`; `sub_sport` 58 `virtual_activity`, 6 `indoor_cycling`; the encoder applies scale and offset itself (`encoder.py`).
-- Phase 0 discovery, "Later, not in v1": the D100 takes slope through simulation parameters, 0 to 6 %, no descents: `claude/phase0-discovery.md`
+- Phase 0 discovery, "Later, not in v1": the D100 takes slope through simulation parameters, 0 to 6 %, no descents: `docs/phase0-discovery.md`
 - Observed in this gate, not from documentation: the route view's SVG (pattern, paths with round caps) and the dot over the elevation profile in Chrome at 402 × 874, 375 × 600 and 430 × 800 (Safari: A-72)
 - Vite `import.meta.glob` with `eager` and `import`, and `/// <reference types="vite/client" />`: used as built and type-checked here (the gallery chunk in the build output), not re-read in the documentation.
 
@@ -1651,9 +1699,12 @@ Carried into Phase 6:
 - Python 3.13 `ssl` as installed: `ssl.PEM_cert_to_DER_cert`; certificates are decoded from a TLS peer (`getpeercert`) or for loaded CA certificates only (`SSLContext.get_ca_certs`)
 - bleak 3.0.2 as installed, `bleak/backends/bluezdbus/scanner.py`: `service_uuids` goes into BlueZ's discovery filter as `UUIDs` (A-65)
 - Observed in this gate, not from documentation: Vitest with `@sveltejs/vite-plugin-svelte` 7.3.1 compiles runes in a `*.svelte.test.ts` file (S-DSP-06); Chrome's container query units `cqi` and `cqb` and Web Audio behave as the screenshots and S-DSP-06 show (Safari: A-49, A-66)
-- Phase 3C display design, revision 2: `claude/phase3-display.md`
-- Phase 4 test plan, revision 2: `docs/phase4-test-plan.md`
-- Phase 3B Interface Control Document, revision 4: `claude/phase3-icd.md`
-- Phase 3A architecture, revision 5: `claude/phase3-architecture.md`
-- Phase 2 record, revision 14: `claude/phase2-spikes.md`
-- Phase 1 requirements, revision 7: `claude/phase1-requirements.md`
+- pandoc 3.1.3 and XeTeX from TeX Live 2023 as installed in the workspace (`pandoc --version`, `xelatex --version`); pandoc's Markdown pipe tables take relative column widths from the separator line when a row is longer than the 72-column limit (pandoc manual, "Tables"): https://pandoc.org/MANUAL.html#tables
+- Mermaid 12.3.0 and Playwright 1.65.2, the newest on npm and PyPI on 18 Nov 2026 (`npm view mermaid version`, `pip index versions playwright`); Playwright for Python, `Page.pdf` and `BrowserContext.grant_permissions`: https://playwright.dev/python/docs/api/class-page
+- Phase 0 record, revision 2: `docs/phase0-discovery.md`
+- Phase 1 requirements, revision 8 (revision 7 when the slices were built): `docs/phase1-requirements.md`
+- Phase 2 record, revision 14: `docs/phase2-spikes.md`
+- Phase 3A architecture, revision 6 (revision 5 when the slices were built): `docs/phase3-arch.md`
+- Phase 3B Interface Control Document, revision 5 (revision 4 when the slices were built): `docs/phase3-icd.md`
+- Phase 3C display design, revision 3 (revision 2 when the slices were built): `docs/phase3-display.md`
+- Phase 4 test plan, revision 5 (revision 2 when the slices were planned): `docs/phase4-test-plan.md`
