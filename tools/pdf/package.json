@@ -1,0 +1,8 @@
+{
+  "name": "wow-phase-pdfs",
+  "private": true,
+  "description": "Mermaid for tools/make_pdf.py, which typesets the phase documents. Laptop only.",
+  "devDependencies": {
+    "mermaid": "12.3.0"
+  }
+}

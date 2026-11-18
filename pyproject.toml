@@ -24,6 +24,9 @@ dev = [
     "pytest-asyncio==1.4.1.post1",
     "pytest-cov==7.1.0",
 ]
+docs = [
+    "playwright==1.65.2",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12.0"]
@@ -52,8 +55,13 @@ source = ["wow"]
 strict = true
 python_version = "3.13"
 files = ["src", "tests", "tools"]
+exclude = ["tools/pdf/node_modules/"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
 module = ["dbus_fast", "dbus_fast.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["playwright", "playwright.*"]
 ignore_missing_imports = true

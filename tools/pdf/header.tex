@@ -1,0 +1,54 @@
+\usepackage{fontspec}
+\setmainfont{lmsans10-regular.otf}[
+  BoldFont=lmsans10-bold.otf,
+  ItalicFont=lmsans10-oblique.otf,
+  BoldItalicFont=lmsans10-boldoblique.otf]
+\setmonofont{lmmono10-regular.otf}[Scale=0.95]
+\usepackage{newunicodechar}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{→}{\ensuremath{\rightarrow}}
+\newunicodechar{←}{\ensuremath{\leftarrow}}
+\newunicodechar{↑}{\ensuremath{\uparrow}}
+\newunicodechar{↔}{\ensuremath{\leftrightarrow}}
+\newunicodechar{×}{\ensuremath{\times}}
+\newunicodechar{≈}{\ensuremath{\approx}}
+\newunicodechar{±}{\ensuremath{\pm}}
+\newunicodechar{τ}{\ensuremath{\tau}}
+\newunicodechar{−}{\ensuremath{-}}
+\definecolor{wowred}{RGB}{190,30,45}
+\usepackage{xurl}
+\urlstyle{same}
+\usepackage{etoolbox}
+\renewcommand{\arraystretch}{1.3}
+\AtBeginEnvironment{longtable}{\footnotesize\rowcolors{2}{black!4}{white}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries}{}{0pt}{}
+\titlespacing*{\section}{0pt}{16pt}{6pt}
+\titleformat{\subsection}{\large\bfseries}{}{0pt}{}
+\titlespacing*{\subsection}{0pt}{10pt}{4pt}
+\titleformat{\subsubsection}{\normalsize\bfseries}{}{0pt}{}
+\titlespacing*{\subsubsection}{0pt}{8pt}{3pt}
+\usepackage{titling}
+\pretitle{\begin{flushleft}\fontsize{24}{28}\selectfont\bfseries}
+\posttitle{\par\vspace{4pt}{\color{wowred}\rule{\linewidth}{1.2pt}}\end{flushleft}\vspace{-6pt}}
+\predate{\begin{flushleft}\large}
+\postdate{\end{flushleft}}
+\preauthor{}\postauthor{}
+\usepackage{graphicx}
+\usepackage{float}
+\floatplacement{figure}{H}
+\usepackage{caption}
+\captionsetup{font=small,labelformat=empty,skip=4pt}
+\usepackage{fvextra}
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\scriptsize,breaklines,breakanywhere}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[L]{\footnotesize @FOOTER@}
+\fancyfoot[R]{\footnotesize Page \thepage\ of \pageref*{LastPage}}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[L]{\footnotesize @FOOTER@}\fancyfoot[R]{\footnotesize Page \thepage\ of \pageref*{LastPage}}\renewcommand{\headrulewidth}{0pt}}

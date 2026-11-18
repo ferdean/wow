@@ -1,0 +1,80 @@
+{
+  "viewport": {"width": 402, "height": 720},
+  "scale": 1.25,
+  "figures": {
+    "fig01-tokens": [
+      {"state": "", "caption": "Colours and type", "page": "tokens.html"}
+    ],
+    "fig02-ride": [
+      {"state": "ride_erg", "caption": "ERG", "lock": true, "pins": [
+        [1, ".link", 0], [2, ".battery", 0], [3, ".hero", 0],
+        [4, ".target", 0], [5, ".cue", 0], [6, ".cell", 0], [7, ".cell", 1],
+        [8, ".next", 0], [9, ".profile", 0], [10, ".times", 0],
+        [11, ".intensity", 0], [12, "text=Ride by resistance", 0],
+        [13, ".controls button", 0]]},
+      {"state": "ride_resistance_block", "caption": "Resistance", "lock": true,
+       "pins": [
+        [1, ".info", 0], [2, ".levelnum", 0], [3, ".pair", 0],
+        [4, "text=Back to ERG", 0], [5, ".profile", 0],
+        [6, ".controls button", 0]]}
+    ],
+    "fig04-states": [
+      {"state": "ride_erg_last_5_s", "caption": "Last 5 s of a step", "lock": true},
+      {"state": "ride_erg_trainer_dropout", "caption": "Trainer lost", "lock": true},
+      {"state": "ride_workout_done", "caption": "Workout done", "lock": true}
+    ],
+    "fig06-route": [
+      {"state": "ride_route", "caption": "Workout with a route", "lock": true,
+       "pins": [[1, ".hint", 0]]},
+      {"state": "ride_route", "caption": "Route view", "lock": true,
+       "clicks": ["Route ›"], "pins": [
+        [2, ".cell", 0], [3, ".cell", 1], [4, ".label", 2],
+        [5, ".routemap", 0], [6, ".elevation", 0],
+        [7, "text=Workout", 0]]},
+      {"state": "ride_route_paused", "caption": "Route view, paused",
+       "lock": true, "clicks": ["Route ›"]}
+    ],
+    "fig07-overlays": [
+      {"state": "ride_erg", "caption": "Wake-lock prompt"},
+      {"state": "ride_erg", "caption": "Skip", "lock": true, "clicks": ["Skip step"]},
+      {"state": "ride_erg", "caption": "Finish", "lock": true, "clicks": ["Finish"]}
+    ],
+    "fig08-home": [
+      {"state": "", "caption": "Start, before the Pi answers"},
+      {"state": "home_plan_and_library", "caption": "Home"},
+      {"state": "home_recovery", "caption": "Home, unfinished ride"}
+    ],
+    "fig09-pre-ride": [
+      {"state": "pre_ride_routes", "caption": "Pre-ride", "pins": [
+        [1, ".panel", 0], [2, ".panel", 1], [3, ".profile", 0],
+        [4, ".panel", 2], [5, "text=Start ride", 0]]},
+      {"state": "pre_ride_routes", "caption": "Route sheet", "clicks": ["Route"]},
+      {"state": "ride_waiting_for_power", "caption": "After Start", "lock": true,
+       "pins": [
+        [1, ".band", 0], [2, ".explain", 0], [3, ".times", 0],
+        [4, "text=Cancel", 0]]}
+    ],
+    "fig10-settings": [
+      {"state": "settings_defaults", "caption": "Settings"},
+      {"state": "settings_scan", "caption": "Device scan", "scroll": true}
+    ],
+    "fig11-calibration": [
+      {"state": "calibration_speed_up", "caption": "Speed up", "lock": true,
+       "pins": [
+        [1, ".title", 0], [2, ".number", 0], [3, ".label", 0],
+        [4, "text=Cancel", 0]]},
+      {"state": "calibration_stop_pedaling", "caption": "Stop pedaling", "lock": true},
+      {"state": "calibration_success", "caption": "Done", "lock": true}
+    ],
+    "fig12-after": [
+      {"state": "summary_route", "caption": "Summary"},
+      {"state": "history", "caption": "Past rides"},
+      {"state": "summary_past", "caption": "A past ride"}
+    ],
+    "fig13-warnings": [
+      {"state": "ride_battery_low", "caption": "Strap battery low", "lock": true},
+      {"state": "ride_clock_unsynced", "caption": "Clock not synchronised", "lock": true},
+      {"state": "home_cert_expiring", "caption": "Certificate expiring"}
+    ]
+  }
+}

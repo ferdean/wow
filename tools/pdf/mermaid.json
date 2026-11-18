@@ -1,0 +1,35 @@
+{
+  "startOnLoad": false,
+  "theme": "base",
+  "securityLevel": "loose",
+  "fontFamily": "Latin Modern Sans",
+  "sequence": {
+    "width": 120, "actorMargin": 24, "boxMargin": 8, "messageMargin": 30,
+    "noteMargin": 8, "mirrorActors": false, "messageFontSize": 15,
+    "noteFontSize": 14, "actorFontSize": 15
+  },
+  "themeVariables": {
+    "fontFamily": "Latin Modern Sans", "fontSize": "15px",
+    "primaryColor": "#F2F2F2", "primaryBorderColor": "#4D4D4D",
+    "primaryTextColor": "#000000", "secondaryColor": "#FFFFFF",
+    "tertiaryColor": "#FFFFFF", "lineColor": "#333333", "textColor": "#000000",
+    "clusterBkg": "#FFFFFF", "clusterBorder": "#C8102E",
+    "edgeLabelBackground": "#FFFFFF",
+    "actorBkg": "#F2F2F2", "actorBorder": "#4D4D4D", "actorTextColor": "#000000",
+    "signalColor": "#333333", "signalTextColor": "#000000",
+    "labelBoxBkgColor": "#F2F2F2", "labelBoxBorderColor": "#4D4D4D",
+    "labelTextColor": "#000000", "loopTextColor": "#000000",
+    "activationBkgColor": "#F2F2F2", "activationBorderColor": "#4D4D4D",
+    "noteBkgColor": "#FBE7EA", "noteBorderColor": "#C8102E",
+    "noteTextColor": "#000000", "sequenceNumberColor": "#FFFFFF",
+    "quadrant1Fill": "#FBE7EA", "quadrant2Fill": "#F7F7F7",
+    "quadrant3Fill": "#FFFFFF", "quadrant4Fill": "#F2F2F2",
+    "quadrantPointFill": "#C8102E", "quadrantTitleFill": "#000000",
+    "quadrantPointTextFill": "#000000", "quadrantXAxisTextFill": "#000000",
+    "quadrantYAxisTextFill": "#000000",
+    "quadrantInternalBorderStrokeFill": "#999999",
+    "quadrantExternalBorderStrokeFill": "#4D4D4D",
+    "xyChart": {"plotColorPalette": "#C8102E", "backgroundColor": "#FFFFFF"},
+    "packet": {"blockFillColor": "#F2F2F2", "blockStrokeColor": "#4D4D4D"}
+  }
+}

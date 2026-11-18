@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base href="@BASE@">
+<link rel="stylesheet" href="@CSS@">
+<style>
+  body { margin: 0; background: var(--night); color: var(--moon);
+         font-family: "Sofia Sans Variable", sans-serif; }
+  .card { width: 402px; height: 720px; box-sizing: border-box; padding: 16px;
+          display: flex; flex-direction: column; gap: 10px; }
+  h2 { margin: 4px 0 0; font-size: 15px; font-weight: 500; color: var(--mist); }
+  .row { display: flex; gap: 8px; }
+  .chip { flex: 1; height: 54px; border-radius: 12px; padding: 6px 8px;
+          box-sizing: border-box; font-size: 12px; line-height: 1.25;
+          border: 1px solid var(--line); }
+  .ink { color: var(--ink); border: none; }
+  .num { font-family: "Sofia Sans Condensed Variable", sans-serif;
+         font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  .sample { display: flex; align-items: baseline; gap: 12px; }
+  .sample span.note { font-size: 13px; color: var(--mist); }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>Ground and text</h2>
+  <div class="row">
+    <div class="chip" style="background: var(--night)">night<br>#1F1830</div>
+    <div class="chip" style="background: var(--dusk)">dusk<br>#2C2342</div>
+    <div class="chip" style="background: var(--rise)">rise<br>#3B3057</div>
+    <div class="chip" style="background: var(--line)">line<br>#8375B3</div>
+  </div>
+  <div class="row">
+    <div class="chip ink" style="background: var(--mist)">mist<br>#BFB6D3</div>
+    <div class="chip ink" style="background: var(--moon)">moon<br>#F4EFE6</div>
+    <div class="chip" style="background: var(--ink)">ink<br>#1A1326</div>
+  </div>
+  <h2>Zones, also ok, warning and fault (3, 4, 6)</h2>
+  <div class="row">
+    <div class="chip ink" style="background: var(--zone-1)">Z1<br>#A29BBD</div>
+    <div class="chip ink" style="background: var(--zone-2)">Z2<br>#4FB6E3</div>
+    <div class="chip ink" style="background: var(--zone-3)">Z3<br>#5FC88C</div>
+  </div>
+  <div class="row">
+    <div class="chip ink" style="background: var(--zone-4)">Z4<br>#F2CB4A</div>
+    <div class="chip ink" style="background: var(--zone-5)">Z5<br>#F59545</div>
+    <div class="chip ink" style="background: var(--zone-6)">Z6<br>#F26D78</div>
+  </div>
+  <h2>Type</h2>
+  <div class="sample"><span class="num" style="font-size: 132px">221</span>
+    <span class="note">Sofia Sans Condensed 800, 132 pt</span></div>
+  <div class="sample"><span class="num" style="font-size: 74px">0:20</span>
+    <span class="note">74 pt: 48 pt digits</span></div>
+  <div class="sample"><span style="font-size: 26px; font-weight: 780">Ride title</span>
+    <span class="note">Sofia Sans 780, 26 pt</span></div>
+  <div class="sample"><span style="font-size: 17px; font-weight: 550">Text and list rows, 17 pt</span></div>
+  <div class="sample"><span style="font-size: 15px; color: var(--mist)">Labels in sentence case, 15 pt</span></div>
+</div>
+</body>
+</html>

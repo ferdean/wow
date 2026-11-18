@@ -12,3 +12,4 @@ logs/
 certs/
 display/test-results/
 display/playwright-report/
+tools/pdf/node_modules/
