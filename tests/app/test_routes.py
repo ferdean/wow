@@ -35,7 +35,7 @@ async def pre_ride(session: AppSession, ref: str | None = ERG_CHECK
         assert session.command("open_free_ride") is None
     else:
         assert session.command("open_workout", ref=ref) is None
-    await session.clock.drive(session.app.routes.refresh(), limit=60.0)
+    await session.app.routes.refresh()
     return screen(session)
 
 

@@ -216,7 +216,7 @@ async def test_a_recovered_ride_keeps_its_route(tmp_path: Path) -> None:
     (folder / "ramp.gpx").write_bytes(gpx(climb(3000, 0.04), "Ramp"))
     first = AppSession(tmp_path / "first")
     assert first.command("open_workout", ref=ERG_CHECK) is None
-    await first.clock.drive(first.app.routes.refresh(), limit=60.0)
+    await first.app.routes.refresh()
     assert first.command("set_route", file="ramp.gpx") is None
     await first.clock.advance(15.0)
     assert first.command("start") is None
