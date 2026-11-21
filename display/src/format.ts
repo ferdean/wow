@@ -1,3 +1,5 @@
+import type { Riders } from "./types/protocol";
+
 // Formatting rules of Phase 3C ("Rules for the whole page").
 
 export const MISSING = "––";
@@ -141,4 +143,12 @@ export function gradeText(pct: number | null | undefined): string {
   }
   const text = Math.abs(pct).toFixed(1);
   return pct < 0 && text !== "0.0" ? `−${text}` : text;
+}
+
+// With several riders (riders.md): the rider riding now, else null.
+export function sharedRider(riders: Riders | null | undefined): string | null {
+  if (!riders || riders.list.length < 2) {
+    return null;
+  }
+  return riders.list.find((r) => r.id === riders.active)?.name ?? null;
 }

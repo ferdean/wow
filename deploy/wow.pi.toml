@@ -19,3 +19,9 @@ data = "/var/lib/wow"
 [system]
 # The green ACT LED (APP-826); leave out to keep the LED to the system.
 led = "/sys/class/leds/ACT"
+
+# Riders who share the trainer (riders.md): ID = name, in this order. The
+# first is the rider who rode before; leave the table out for one rider.
+# [riders]
+# ferran = "Ferran"
+# anna = "Anna"

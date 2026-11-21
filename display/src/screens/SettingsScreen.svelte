@@ -1,12 +1,15 @@
 <script lang="ts">
-  import type { CommandName, FoundDevice, SettingsScreen } from "../types/protocol";
-  import { dateTime } from "../format";
+  import type { CommandName, FoundDevice, Riders, SettingsScreen } from "../types/protocol";
+  import { dateTime, sharedRider } from "../format";
 
   interface Props {
     screen: SettingsScreen;
     send: (name: CommandName, args?: Record<string, unknown>) => void;
+    riders?: Riders | null;
   }
-  let { screen, send }: Props = $props();
+  let { screen, send, riders = null }: Props = $props();
+
+  const rider = $derived(sharedRider(riders));
 
   // Table S (Phase 1): the stepper keeps a draft inside the range; the Pi
   // checks the value again when it is saved.
@@ -80,7 +83,7 @@
   <div class="row">
     <button class="secondary small" onclick={() => send("back")}>Back</button>
   </div>
-  <h1>Settings</h1>
+  <h1>{rider === null ? "Settings" : `Settings for ${rider}`}</h1>
   <div class="scroll">
     <h2>Rider</h2>
     {#each SPANS as span (span.key)}
@@ -189,7 +192,7 @@
         <span class="label">{screen.garmin_signed_in ? "Signed in on the Pi" : "Not signed in"}</span>
       </div>
       {#if !screen.garmin_signed_in}
-        <p class="label">Sign in once on the Pi: wow-garmin login.</p>
+        <p class="label">Sign in once on the Pi: wow-garmin {riders && rider !== null ? `--rider ${riders.active} ` : ""}login.</p>
       {/if}
       {#if screen.upload_on && screen.garmin_upload_on}
         <p class="label">Garmin passes rides on to intervals.icu, so with both uploads on it may get each ride twice.</p>

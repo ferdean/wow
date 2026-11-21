@@ -3,7 +3,8 @@
 wow: the composition root (3A, app/main). Reads the configuration,
 wires the real or simulated Bluetooth adapter, starts the web sites and
 shuts down in order, the trainer at its lowest level first (APP-320,
-APP-819).
+APP-819). Switches the settings, accounts, workouts and devices when
+another rider rides (riders.md).
 
     wow --config /etc/wow/wow.toml
     wow --config wow.toml --sim
@@ -19,7 +20,7 @@ from collections.abc import Callable, Coroutine, Sequence
 from importlib import metadata
 from datetime import tzinfo
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Protocol
 
 from wow.adapters.ble_bleak import BleakConnector
 from wow.adapters.ble_log import LoggingConnector
@@ -36,7 +37,8 @@ from wow.adapters.intervals_icu import IntervalsIcu
 from wow.adapters.led_sysfs import SysfsLed
 from wow.app.calibration_controller import CalibrationController
 from wow.app.config import (
-    Config, Secrets, garmin_tokens, load_config, load_secrets, load_settings,
+    SETTINGS_FILE, Config, Secrets, garmin_tokens, load_config, load_secrets,
+    load_settings,
 )
 from wow.app.console import Console
 from wow.app.device_manager import DeviceChoice, DeviceManager
@@ -45,6 +47,7 @@ from wow.app.hrm_link import HrmLink
 from wow.app.loop_lag import LoopLagMonitor
 from wow.app.recorder import Recorder
 from wow.app.recovery import close_cancelled, find_interrupted
+from wow.app.riders import Riders, cache_of
 from wow.app.housekeeping import CertificateWatch, FreeSpace, disk_free
 from wow.app.ride_controller import RideController, Summary
 from wow.app.route_catalog import ROUTES, RouteCatalog
@@ -55,8 +58,10 @@ from wow.app.timing_log import TimingLog
 from wow.app.workout_catalog import (
     Entry, Source, WorkoutCatalog, builtin_entries,
 )
+from wow.core.devices import DeviceKind
 from wow.core.ride import RIDING
-from wow.core.settings import Settings
+from wow.core.riders import Rider
+from wow.core.settings import DeviceRef, Settings
 from wow.core.workout import Workout
 from wow.ports.clock import Clock
 from wow.ports.gatt import GattConnector
@@ -73,11 +78,17 @@ DEFAULT_CONFIG: Final[Path] = Path("/etc/wow/wow.toml")
 SIM_PEDAL_AFTER: Final[float] = 3.0
 DISTRIBUTION: Final[str] = "witchesonwheels"
 
-AccountFactory = Callable[[Secrets], IntervalsIcu]
+
+class Account(WorkoutProvider, ActivityUploader, Protocol):
+    """An intervals.icu account: workouts in, rides out."""
+
+
+AccountFactory = Callable[[Secrets], Account]
+GarminFactory = Callable[[Path], ActivityUploader]
 SimDevices = Callable[[SimScheduler], Sequence[SimServerBase]]
 
 
-def intervals_account(secrets: Secrets) -> IntervalsIcu:
+def intervals_account(secrets: Secrets) -> Account:
     """Return the intervals.icu client of an account."""
     return IntervalsIcu(secrets.athlete_id, secrets.api_key)
 
@@ -109,7 +120,8 @@ class App:
                  | None = None,
                  sim_devices: SimDevices | None = None,
                  upload_simulated: bool = False,
-                 garmin: ActivityUploader | None = None) -> None:
+                 garmin: ActivityUploader | None = None,
+                 garmin_account: GarminFactory = GarminConnect) -> None:
         self.config = config
         self.clock = clock
         self._faults = sim_faults
@@ -117,8 +129,21 @@ class App:
         self._account_factory = account
         self._sim_trainer = sim_trainer
         self._sim_devices = sim_devices
-        settings = load_settings(config.data)
+        self._sim_choice = False
+        self._uploader = uploader
+        self._garmin = garmin
+        self._garmin_factory = garmin_account
+        self._garmin_accounts: dict[str, ActivityUploader] = {}
+        self._given_provider = provider
         self.recorder = Recorder(config.data, boot or boot_id())
+        self.riders = Riders(config.data, config.riders, self.recorder.run)
+        self.riders.prepare()
+        self._profiles = {r.rider_id: self._profile(r)
+                          for r in self.riders.riders}
+        self._icu = self._accounts()
+        self._shown = self.riders.active.rider_id
+        settings = self._profiles[self._shown]
+        home = self.riders.home(self._shown)
         self.scheduler: SimScheduler | None = None
         self.d100: SimD100Server | None = None
         self.sim: SimConnector | None = None
@@ -128,8 +153,8 @@ class App:
         self.devices = DeviceManager(connector, clock, self.trainer,
                                      self.hrm, choice)
         self.settings = SettingsPanel(
-            config.data, settings, load_secrets(config.data) is not None,
-            self.devices, self.recorder.run, self._changed)
+            home, settings, self._shown in self._icu, self.devices,
+            self.recorder.run, self._changed)
         self.settings.on_account = self._use_account
         self.rides = RideController(clock, self.trainer, self.recorder,
                                     self._changed, GarminFitWriter(),
@@ -138,15 +163,15 @@ class App:
                    [Entry(w.ref, Source.BUILTIN, w.name, w, None)
                     for w in workouts])
         self.catalog = WorkoutCatalog(
-            clock, provider or self._provider(), config.data / "cache" /
-            "intervals.json", builtin, self._changed, zone)
+            clock, self._provider(self._shown), cache_of(home), builtin,
+            self._changed, zone)
         rides = config.data / "rides"
         self.space = FreeSpace(clock, config.data, free_bytes or disk_free)
-        self.uploads = UploadWorker(clock, uploader or self._uploader(),
-                                    rides, self._changed)
+        self.uploads = UploadWorker(clock, self._icu_account, rides,
+                                    self._changed, owner=self.riders.owner)
         self.garmin_uploads = UploadWorker(
-            clock, garmin or GarminConnect(garmin_tokens(config.data)),
-            rides, self._changed, GARMIN)
+            clock, self._garmin_account, rides, self._changed, GARMIN,
+            self.riders.owner)
         self.calibration = CalibrationController(
             clock, self.trainer, self.recorder, config.data / "logs",
             self._changed)
@@ -158,7 +183,8 @@ class App:
                                self.settings, self._changed, self.uploads,
                                self.garmin_uploads, self.space, rides,
                                self.calibration, self.certificate,
-                               self.routes, upload_simulated or not simulated)
+                               self.routes, upload_simulated or not simulated,
+                               self.riders, self._use_rider)
         self.rides.on_finished = self._finished
         self.rides.on_free_level = self._free_level
         self.trainer.on_sample = self.console.trainer_sample
@@ -237,32 +263,66 @@ class App:
                     found.ride_id)
         self.console.offer(found, self.recorder.boot_id)
 
-    def _provider(self) -> WorkoutProvider | None:
-        account = self._account()
+    def _profile(self, rider: Rider) -> Settings:
+        home = self.riders.home(rider.rider_id)
+        first = self.riders.riders[0]
+        if rider == first or (home / SETTINGS_FILE).exists():
+            return load_settings(home)
+        known = load_settings(self.riders.home(first.rider_id))
+        return Settings(trainer=known.trainer, lead_time=known.lead_time)
+
+    def _accounts(self) -> dict[str, Account]:
+        accounts = {}
+        for rider in self.riders.riders:
+            secrets = load_secrets(self.riders.home(rider.rider_id))
+            if secrets is not None:
+                accounts[rider.rider_id] = self._account_factory(secrets)
+        return accounts
+
+    def _provider(self, rider_id: str) -> WorkoutProvider | None:
+        account = self._given_provider or self._icu.get(rider_id)
         if account is None:
             logger.info("no intervals.icu account: built-in workouts only")
         return account
 
-    def _uploader(self) -> ActivityUploader | None:
-        return self._account()
+    def _icu_account(self, rider_id: str) -> ActivityUploader | None:
+        return self._uploader or self._icu.get(rider_id)
 
-    def _account(self) -> IntervalsIcu | None:
-        secrets = load_secrets(self.config.data)
-        if secrets is None:
+    def _garmin_account(self, rider_id: str) -> ActivityUploader | None:
+        if self._garmin is not None:
+            return self._garmin
+        if self.riders.find(rider_id) is None:
             return None
-        return self._account_factory(secrets)
+        if rider_id not in self._garmin_accounts:
+            self._garmin_accounts[rider_id] = self._garmin_factory(
+                garmin_tokens(self.riders.home(rider_id)))
+        return self._garmin_accounts[rider_id]
 
     def _use_account(self, secrets: Secrets) -> None:
         client = self._account_factory(secrets)
-        self.catalog.set_provider(client)
-        self.uploads.set_uploader(client)
+        self._icu[self._shown] = client
+        if self._given_provider is None:
+            self.catalog.set_provider(client)
+        self.uploads.accounts_changed()
         self.catalog.request_refresh()
 
+    def _use_rider(self, rider: Rider) -> None:
+        self._profiles[self._shown] = self.settings.settings
+        self._shown = rider.rider_id
+        home = self.riders.home(rider.rider_id)
+        settings = self._profiles[rider.rider_id]
+        self.settings.switch(home, settings, rider.rider_id in self._icu)
+        self.catalog.switch(self._provider(rider.rider_id), cache_of(home))
+        choice = self._choice(settings)
+        self._spawn(self.devices.choose(DeviceKind.TRAINER, choice.trainer))
+        self._spawn(self.devices.choose(DeviceKind.HRM, choice.hrm))
+
     def _finished(self, summary: Summary) -> None:
+        rider = self.riders.owner({"rider": summary.rider})
         if summary.upload == UploadState.PENDING:
-            self.uploads.queue(summary.ride_id)
+            self.uploads.queue(summary.ride_id, rider)
         if summary.garmin_upload == UploadState.PENDING:
-            self.garmin_uploads.queue(summary.ride_id)
+            self.garmin_uploads.queue(summary.ride_id, rider)
 
     def _free_level(self, pct: int) -> None:
         self.settings.keep_free_ride_level(pct)
@@ -273,14 +333,18 @@ class App:
     def _spawn(self, work: Coroutine[Any, Any, None]) -> None:
         self._tasks.append(asyncio.get_running_loop().create_task(work))
 
+    def _choice(self, settings: Settings) -> DeviceChoice:
+        trainer, hrm = _address(settings.trainer), _address(settings.hrm)
+        if self._sim_choice:
+            return DeviceChoice(trainer or D100_ADDRESS, hrm or HRM_ADDRESS)
+        return DeviceChoice(trainer, hrm)
+
     def _bluetooth(self, settings: Settings, sim_pedal_after: float
                    ) -> tuple[GattConnector, DeviceChoice]:
-        chosen = DeviceChoice(
-            None if settings.trainer is None else settings.trainer.address,
-            None if settings.hrm is None else settings.hrm.address)
+        self._sim_choice = self._replay is not None or self.config.simulate
+        chosen = self._choice(settings)
         if self._replay is not None:
-            return self._logged(self._replay), DeviceChoice(
-                chosen.trainer or D100_ADDRESS, chosen.hrm or HRM_ADDRESS)
+            return self._logged(self._replay), chosen
         if self.config.simulate:
             faults = self._faults
             scheduler = self.scheduler = SimScheduler(self.clock)
@@ -297,8 +361,7 @@ class App:
                 server.traffic.keep_sent = False
             self.sim = SimConnector(self.clock, servers,
                                     Faults(faults.adapter))
-            return self._logged(self.sim), DeviceChoice(
-                chosen.trainer or D100_ADDRESS, chosen.hrm or HRM_ADDRESS)
+            return self._logged(self.sim), chosen
         bleak = BleakConnector(self.config.adapter)
         connector = self._logged(bleak)
         bleak.on_stale_release = connector.stale_release
@@ -307,6 +370,10 @@ class App:
     def _logged(self, inner: GattConnector) -> LoggingConnector:
         return LoggingConnector(inner, self.clock, self.recorder.ble,
                                 lambda address: self.devices.role_of(address))
+
+
+def _address(ref: DeviceRef | None) -> str | None:
+    return None if ref is None else ref.address
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:

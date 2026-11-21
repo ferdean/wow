@@ -72,6 +72,7 @@ class CommandName(StrEnum):
     RECOVERY_CONTINUE = "recovery_continue"
     RECOVERY_FINISH = "recovery_finish"
     SET_ROUTE = "set_route"
+    RIDER_CHOOSE = "rider_choose"
 
 
 class UploadState(StrEnum):

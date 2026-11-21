@@ -52,7 +52,7 @@ sudo -u wow /opt/wow/venv/bin/wow-garmin login
 sudo -u wow /opt/wow/venv/bin/wow-garmin check
 ```
 
-Run `wow-garmin` as `wow`, so the tokens belong to the service (`install.sh` also fixes their owner). On the laptop: `uv run wow-garmin --config wow.toml login`.
+Run `wow-garmin` as `wow`, so the tokens belong to the service (`install.sh` also fixes their owner). On the laptop: `uv run wow-garmin --config wow.toml login`. From 0.8.2, with a `[riders]` table in `wow.toml`, every call names the rider (`--rider anna login`) and the tokens go to `riders/<id>/garmin/` (`docs/riders.md`).
 
 Back to main: `git checkout main && sudo deploy/install.sh`. The `garmin_upload_on` setting and the `garmin_*` keys in `meta.json` are ignored there, and `/var/lib/wow/garmin` can be deleted.
 

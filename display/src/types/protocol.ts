@@ -45,6 +45,9 @@ export type Warning =
   | { kind: "spindown_requested" }
   | { kind: "workouts_offline"; downloaded_utc: string };
 
+// Only with a [riders] table in wow.toml: who rides now, at which FTP.
+export interface Riders { active: string; ftp: number; list: { id: string; name: string }[] }
+
 export interface View {
   type: "view"; seq: number; sent_mono_ms: number;
   data_mono_ms: number | null;
@@ -52,6 +55,7 @@ export interface View {
   hrm_battery_pct: number | null;
   warnings: Warning[];
   screen: Screen;
+  riders?: Riders;
 }
 
 export type Screen =
@@ -143,7 +147,8 @@ export type CommandName =
   | "free_ride_power" | "finish" | "discard" | "back" | "open_history" | "open_ride"
   | "upload_retry" | "garmin_upload_retry" | "delete_ride" | "open_calibration" | "calibration_start"
   | "calibration_cancel" | "open_settings" | "settings_set" | "intervals_account_set"
-  | "device_scan" | "device_choose" | "recovery_continue" | "recovery_finish" | "set_route";
+  | "device_scan" | "device_choose" | "recovery_continue" | "recovery_finish" | "set_route"
+  | "rider_choose";
 
 export interface Command {
   type: "command"; id: number; name: CommandName; args?: Record<string, unknown>;

@@ -14,7 +14,7 @@ from aiohttp import web
 from tests.support.app_rig import ERG_CHECK, AppSession
 from wow.adapters.clock_stepped import SteppedClock
 from wow.adapters.intervals_icu import IntervalsIcu, outcome_of
-from wow.app.upload_worker import UploadWorker
+from wow.app.upload_worker import UploadWorker, one_account
 from wow.core.upload import Outcome
 
 RIDE = "2026-11-10T174048Z"
@@ -59,7 +59,8 @@ class Running:
 
     def __init__(self, clock: SteppedClock, uploader: FakeUploader,
                  rides: Path) -> None:
-        self.worker = UploadWorker(clock, uploader, rides, lambda: None)
+        self.worker = UploadWorker(clock, one_account(uploader), rides,
+                                   lambda: None)
         self.worker.load()
         self.task = asyncio.get_running_loop().create_task(self.worker.run())
 

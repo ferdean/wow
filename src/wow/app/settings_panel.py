@@ -4,7 +4,8 @@ The Settings screen's commands (ICD IF-06, 4.6.5: `settings_set`,
 `intervals_account_set`, `device_scan`, `device_choose`): values of
 table S inside their ranges, the intervals.icu account, and the trainer
 and strap chosen from a scan (APP-114, APP-701 to APP-708, APP-706,
-APP-817). Files are written by the recorder's thread (IF-10).
+APP-817), all of the rider riding now (riders.md). Files are written by
+the recorder's thread (IF-10).
 """
 
 import asyncio
@@ -77,6 +78,12 @@ class SettingsPanel:
     def account_set(self) -> bool:
         """Return whether an intervals.icu account is stored."""
         return self._account_set
+
+    def switch(self, home: Path, settings: Settings,
+               account_set: bool) -> None:
+        """Show and keep another rider's settings from now on."""
+        self._data, self._settings = home, settings
+        self._account_set, self._scan = account_set, None
 
     @property
     def garmin_signed_in(self) -> bool:
@@ -168,7 +175,8 @@ class SettingsPanel:
         scan = self._scan
         assert scan is not None
         found = await self._devices.scan()
-        self._scan = _Scan(scan.kind, False, tuple(found))
+        if self._scan is scan:
+            self._scan = _Scan(scan.kind, False, tuple(found))
         self._on_change()
 
     def _store(self, settings: Settings) -> None:

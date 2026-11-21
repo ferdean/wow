@@ -105,6 +105,18 @@ sudo -u wow /opt/wow/venv/bin/wow-garmin check
 
 `docs/garmin-upload.md` has the design, the assumptions and the Pi checks to pass before merging.
 
+## Riders who share the trainer (experimental branch, 0.8.2)
+
+On `feature/garmin-upload`, several riders can share the trainer, each with their own settings, intervals.icu account, Garmin Connect sign-in and workouts. Name them in `/etc/wow/wow.toml`, the rider who rode before first:
+
+```toml
+[riders]
+ferran = "Ferran"
+anna = "Anna"
+```
+
+The page then asks who's riding, and each ride uploads to its own rider's accounts. `wow-garmin` takes the rider with `--rider anna`. `docs/riders.md` has the design, the setup and the Pi checks to pass before merging.
+
 ## Routes
 
 A ride can be ridden along a GPX route. The trainer is controlled as without a route (ERG or resistance; there is no slope mode). Every second wow moves you along the route with your power (your weight from Settings plus a 9 kg bike, on the cycling power model of Martin et al., 1998); at Finish the same track goes into `ride.fit` with speed, distance, altitude and position, marked as a virtual ride. A ride longer than the route starts it again from the beginning.

@@ -36,6 +36,17 @@ done
 # The Garmin Connect tokens of `wow-garmin login`: wow's alone.
 [ ! -d /var/lib/wow/garmin ] || chown -R wow:wow /var/lib/wow/garmin
 [ ! -d /var/lib/wow/garmin ] || chmod 0700 /var/lib/wow/garmin
+# Each rider's own files (riders.md): the same rules inside riders/<id>/.
+if [ -d /var/lib/wow/riders ]; then
+    chown -R wow:wow /var/lib/wow/riders
+    chmod 0750 /var/lib/wow/riders
+    for home in /var/lib/wow/riders/*/; do
+        [ -d "$home" ] || continue
+        chmod 0750 "$home"
+        [ ! -f "${home}secrets.json" ] || chmod 0600 "${home}secrets.json"
+        [ ! -d "${home}garmin" ] || chmod 0700 "${home}garmin"
+    done
+fi
 install -d -m 0755 /etc/wow /opt/wow
 [ -f /etc/wow/wow.toml ] || install -m 0644 deploy/wow.pi.toml /etc/wow/wow.toml
 

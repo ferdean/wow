@@ -3,7 +3,7 @@
   import App from "../App.svelte";
   import type { LinkView } from "../link/link.svelte";
   import type { Plan, RouteMap, View } from "../types/protocol";
-  import { galleryStates, stateOf } from "./states";
+  import { START, galleryStates, stateOf } from "./states";
 
   interface Props {
     views: Record<string, View>;
@@ -15,6 +15,7 @@
   let hash = $state(location.hash);
   const states = $derived(galleryStates(views));
   const shown = $derived(stateOf(hash, views));
+  const greet = $derived(hash.startsWith(`${START}`));
 
   function still(view: View): LinkView {
     const planId = "plan_id" in view.screen ? view.screen.plan_id : null;
@@ -56,7 +57,7 @@
   </div>
 {:else}
   {#key shown}
-    <App link={still(shown)} />
+    <App link={still(shown)} {greet} />
   {/key}
 {/if}
 

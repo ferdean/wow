@@ -13,7 +13,7 @@ from tests.support.app_rig import ERG_CHECK, AppSession, app_config
 from wow.adapters.clock_stepped import SteppedClock
 from wow.app.config import GARMIN_TOKEN_FILE, garmin_tokens
 from wow.app.main import App
-from wow.app.upload_worker import GARMIN, UploadWorker
+from wow.app.upload_worker import GARMIN, UploadWorker, one_account
 from wow.core.upload import Outcome
 from wow.core.vocab import UploadState
 
@@ -64,7 +64,8 @@ async def test_the_garmin_worker_keeps_its_own_fields(tmp_path: Path) -> None:
     data["garmin_upload"] = "pending"
     (ride_dir / "meta.json").write_text(json.dumps(data))
     garmin = FakeUploader(clock, Outcome.TRY_AGAIN, Outcome.CREATED)
-    worker = UploadWorker(clock, garmin, tmp_path, lambda: None, GARMIN)
+    worker = UploadWorker(clock, one_account(garmin), tmp_path,
+                          lambda: None, GARMIN)
     worker.load()
     task = asyncio.get_running_loop().create_task(worker.run())
     await clock.advance(1000.0)
@@ -85,7 +86,8 @@ async def test_rides_without_garmin_fields_are_left_alone(
     clock = SteppedClock()
     make_ride(tmp_path)
     garmin = FakeUploader(clock, Outcome.CREATED)
-    worker = UploadWorker(clock, garmin, tmp_path, lambda: None, GARMIN)
+    worker = UploadWorker(clock, one_account(garmin), tmp_path,
+                          lambda: None, GARMIN)
     worker.load()
     assert worker.state(RIDE) is None
     icu = await running(clock, FakeUploader(clock, Outcome.CREATED),

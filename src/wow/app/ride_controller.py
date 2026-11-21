@@ -79,6 +79,7 @@ class RideSetup:
     block_modes: tuple[Mode, ...] = ()
     route: RouteChoice | None = None
     rider_kg: int = DEFAULT_RIDER_KG
+    rider: str | None = None
 
 
 @dataclass(frozen=True)
@@ -101,6 +102,7 @@ class Summary:
     upload: UploadState
     route: RouteSummary | None = None
     garmin_upload: UploadState = UploadState.OFF
+    rider: str | None = None
 
 
 @dataclass(frozen=True)
@@ -339,6 +341,8 @@ class RideController:
             "boot_id": self._recorder.boot_id, "metrics": None,
             "upload": upload, "garmin_upload": garmin,
         }
+        if setup.rider is not None:
+            meta["rider"] = setup.rider
         self._record = _Record(ride_dir, setup, meta)
         self._sampler = Sampler()
         self._sampling.close()
@@ -439,7 +443,8 @@ class RideController:
             None if route is None else RouteSummary(
                 route.name, None if track is None else track.distance_m,
                 None if track is None else track.ascent_m),
-            UploadState(str(meta.get("garmin_upload", UploadState.OFF))))
+            UploadState(str(meta.get("garmin_upload", UploadState.OFF))),
+            None if meta.get("rider") is None else str(meta["rider"]))
         ride_dir, writer, clock = current.ride_dir, self._fit, self._clock
 
         def write_files() -> None:

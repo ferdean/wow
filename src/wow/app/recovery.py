@@ -131,7 +131,8 @@ def _read(ride_dir: Path, meta: dict[str, Any]) -> Interrupted | None:
                                   UploadState.OFF) != UploadState.OFF,
         block_modes=tuple(Mode(m) for m in armed.get("block_modes", [])),
         route=_route(ride_dir, meta),
-        rider_kg=int(meta.get("rider_kg", DEFAULT_RIDER_KG)))
+        rider_kg=int(meta.get("rider_kg", DEFAULT_RIDER_KG)),
+        rider=None if meta.get("rider") is None else str(meta["rider"]))
     return Interrupted(ride_dir, meta, records, samples, setup, crash_mono,
                        crash_utc, str(last.get("boot_id", "")))
 

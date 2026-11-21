@@ -15,6 +15,7 @@ from wow.core.ride import (
     RIDING, Pause, PowerSeen, ResistanceStep, Ride, Start, SwitchMode, Tick,
     TrainerLink,
 )
+from wow.core.riders import Rider
 from wow.core.route import Route, read_route
 from wow.core.settings import DeviceRef, Settings
 from wow.core.view import (
@@ -32,6 +33,7 @@ from wow.core.view import (
     ridden_route,
     ride_screen,
     ride_warnings,
+    riders_view,
     route_live,
     route_map,
     route_option,
@@ -470,6 +472,24 @@ def sl14_scenes() -> dict[str, dict[str, Any]]:
     }
 
 
+def rider_scenes() -> dict[str, dict[str, Any]]:
+    riders = (Rider("ferran", "Ferran"), Rider("anna", "Anna"))
+    shared = riders_view(riders, riders[1], 205)
+    plan = make_plan(THIRTY_THIRTY, 205)
+    card = workout_card(THIRTY_THIRTY, plan, "builtin", THIRTY_THIRTY.ref,
+                        THIRTY_THIRTY.name)
+    home = envelope(view_state(home_screen([card]), LinkState.CONNECTED,
+                               LinkState.NOT_CONFIGURED, None, [], None,
+                               shared))
+    until = "2036-11-09T06:27:56.000Z"
+    settings = envelope(view_state(
+        settings_screen(Settings(ftp=205), False, until, None),
+        LinkState.NOT_FOUND, LinkState.NOT_CONFIGURED, None, [], None,
+        shared))
+    return {"home_riders": home, "start_riders": home,
+            "settings_riders": settings}
+
+
 def scenes() -> dict[str, dict[str, Any]]:
     plan = make_plan(THIRTY_THIRTY, 250)
     card = workout_card(THIRTY_THIRTY, plan, "builtin", THIRTY_THIRTY.ref,
@@ -579,4 +599,5 @@ def scenes() -> dict[str, dict[str, Any]]:
         **garmin_scenes(),
         **sl13_scenes(),
         **sl14_scenes(),
+        **rider_scenes(),
     }

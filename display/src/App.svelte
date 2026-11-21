@@ -65,11 +65,13 @@
 {/if}
 <main class:stale={!link.live && !greeting} class:prompted={prompt}>
   {#if greeting}
-    <StartScreen connected={view !== null} start={() => (started = true)} />
+    <StartScreen connected={view !== null} riders={view?.riders ?? null} start={() => (started = true)}
+      choose={(rider) => link.send("rider_choose", { rider })} />
   {:else if view === null}
     <div class="page"><p class="label">Connecting to the Pi…</p></div>
   {:else if view.screen.name === "home"}
-    <HomeScreen screen={view.screen} warnings={view.warnings} send={(n, a) => link.send(n, a)} />
+    <HomeScreen screen={view.screen} warnings={view.warnings} send={(n, a) => link.send(n, a)}
+      riders={view.riders ?? null} switchRider={() => (started = false)} />
   {:else if view.screen.name === "pre_ride"}
     <PreRideScreen screen={view.screen} plan={link.plan} links={view.links} battery={view.hrm_battery_pct}
       warnings={view.warnings} send={(n, a) => link.send(n, a)} />
@@ -84,7 +86,7 @@
   {:else if view.screen.name === "calibration"}
     <CalibrationScreen screen={view.screen} send={(n, a) => link.send(n, a)} />
   {:else if view.screen.name === "settings"}
-    <SettingsScreen screen={view.screen} send={(n, a) => link.send(n, a)} />
+    <SettingsScreen screen={view.screen} send={(n, a) => link.send(n, a)} riders={view.riders ?? null} />
   {/if}
 </main>
 {#if view !== null && !link.live && !greeting}

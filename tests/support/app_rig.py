@@ -2,6 +2,7 @@
 with the simulated D100 and HRM 200, the test certificate and a data
 directory of the test's own."""
 
+import dataclasses
 import json
 from datetime import date, tzinfo
 from pathlib import Path
@@ -11,6 +12,7 @@ from wow.adapters.ble_sim import SimFaults
 from wow.adapters.clock_stepped import SteppedClock
 from wow.app.config import Config
 from wow.app.main import App
+from wow.core.riders import Rider
 from wow.ports.upload import ActivityUploader
 from wow.ports.workouts import ProviderError, WorkoutProvider
 
@@ -106,9 +108,11 @@ class AppSession:
                  sim_pedal_after: float = 3.0,
                  sim_faults: SimFaults = SimFaults(),
                  uploader: ActivityUploader | None = None,
-                 clock: SteppedClock | None = None, **extra: Any) -> None:
+                 clock: SteppedClock | None = None,
+                 riders: tuple[Rider, ...] = (), **extra: Any) -> None:
         self.clock = clock or SteppedClock()
-        self.app = App(app_config(tmp), self.clock, provider=provider,
+        config = dataclasses.replace(app_config(tmp), riders=riders)
+        self.app = App(config, self.clock, provider=provider,
                        sim_pedal_after=sim_pedal_after, sim_faults=sim_faults,
                        uploader=uploader, **extra)
         self.app.recorder.start()

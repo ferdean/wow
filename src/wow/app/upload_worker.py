@@ -4,13 +4,15 @@ The upload worker (3A, app/upload_worker; ICD 4.8.3; APP-607 to
 APP-609): uploads each finished ride once without the rider, retries
 every 15 minutes for 7 days, waits for the rider after a refused key,
 and keeps the state in the ride's `meta.json`, so it survives restarts.
-Each destination has its own worker and its own `meta.json` fields.
+Each destination has its own worker and its own `meta.json` fields. A
+ride goes to its own rider's account (riders.md); a rider without one
+keeps their rides waiting.
 """
 
 import asyncio
 import contextlib
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -46,19 +48,34 @@ GARMIN: Final[Target] = Target(
     "Garmin Connect", "garmin_upload", "garmin_upload_first_utc",
     "garmin_upload_last_utc", "garmin_upload_attempts")
 
+Accounts = Callable[[str], ActivityUploader | None]
+Owner = Callable[[Mapping[str, Any]], str]
+
+
+def one_account(uploader: ActivityUploader | None) -> Accounts:
+    """Return the accounts of a single rider's uploader."""
+    return lambda _rider: uploader
+
+
+def no_owner(_meta: Mapping[str, Any]) -> str:
+    """Return the rider of every ride when there is only one."""
+    return ""
+
 
 class UploadWorker:
     """Uploads rides in the background."""
 
-    def __init__(self, clock: Clock, uploader: ActivityUploader | None,
-                 rides: Path, on_change: Callable[[], None],
-                 target: Target = INTERVALS) -> None:
+    def __init__(self, clock: Clock, accounts: Accounts, rides: Path,
+                 on_change: Callable[[], None], target: Target = INTERVALS,
+                 owner: Owner = no_owner) -> None:
         self._clock = clock
-        self._uploader = uploader
+        self._accounts = accounts
         self._rides = rides
         self._on_change = on_change
         self._target = target
+        self._owner = owner
         self._uploads: dict[str, Upload] = {}
+        self._riders: dict[str, str] = {}
         self._wake = asyncio.Event()
 
     def state(self, ride_id: str) -> UploadState | None:
@@ -76,10 +93,12 @@ class UploadWorker:
                 upload = _upload(meta, self._target)
                 if wait(upload, self._clock.utc()) is not None:
                     self._uploads[ride_dir.name] = upload
+                    self._riders[ride_dir.name] = self._owner(meta)
 
-    def queue(self, ride_id: str) -> None:
+    def queue(self, ride_id: str, rider: str = "") -> None:
         """Upload a ride whose files are being written."""
         self._uploads[ride_id] = Upload(UploadState.PENDING)
+        self._riders[ride_id] = rider
         self._wake.set()
 
     def retry(self, ride_id: str) -> bool:
@@ -87,29 +106,28 @@ class UploadWorker:
         if self.state(ride_id) == UploadState.UPLOADING:
             return False
         ride_dir = ride_path(self._rides, ride_id)
-        if ride_dir is None:
+        meta = None if ride_dir is None else read_meta(ride_dir)
+        if ride_dir is None or meta is None:
             return False
+        self._riders[ride_id] = self._owner(meta)
         self._uploads[ride_id] = asked_again()
         self._save(ride_dir, self._uploads[ride_id])
         self._wake.set()
         return True
 
-    def set_uploader(self, uploader: ActivityUploader) -> None:
-        """Upload through a new account from now on (APP-706)."""
-        self._uploader = uploader
+    def accounts_changed(self) -> None:
+        """Look at the accounts again: one was entered (APP-706)."""
         self._wake.set()
 
     async def run(self) -> None:
         """Upload whatever is due, until cancelled.
 
-        Without an account nothing is sent and the rides stay pending
-        until an account is entered.
+        A ride whose rider has no account isn't sent and stays pending
+        until the account is entered.
         """
-        if self._uploader is None:
-            logger.info("no %s account: uploads wait", self._target.name)
         while True:
             now = self._clock.utc()
-            due = None if self._uploader is None else self._next(now)
+            due = self._next(now)
             if due is not None and due[1] <= 0.0:
                 await self._attempt(due[0])
                 continue
@@ -130,6 +148,8 @@ class UploadWorker:
     def _next(self, now: datetime) -> tuple[str, float] | None:
         best: tuple[str, float] | None = None
         for ride_id, upload in list(self._uploads.items()):
+            if self._account(ride_id) is None:
+                continue
             ended = given_up(upload, now)
             if ended != upload:
                 self._uploads[ride_id] = ended
@@ -150,16 +170,20 @@ class UploadWorker:
         if meta.get("state") != "finished" or not fit.exists():
             await self._clock.sleep_until(self._clock.monotonic() + 1.0)
             return
+        uploader = self._account(ride_id)
+        assert uploader is not None
         upload = started(self._uploads[ride_id], self._clock.utc())
         self._uploads[ride_id] = upload
         self._save(ride_dir, upload)
-        assert self._uploader is not None
-        outcome = await self._uploader.upload(fit, str(meta.get("title")))
+        outcome = await uploader.upload(fit, str(meta.get("title")))
         logger.info("%s upload of %s: %s", self._target.name, ride_id,
                     outcome)
         upload = finished(upload, outcome, self._clock.utc())
         self._uploads[ride_id] = upload
         self._save(ride_dir, upload)
+
+    def _account(self, ride_id: str) -> ActivityUploader | None:
+        return self._accounts(self._riders.get(ride_id, ""))
 
     def _store(self, ride_id: str, upload: Upload) -> None:
         ride_dir = ride_path(self._rides, ride_id)

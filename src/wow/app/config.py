@@ -4,7 +4,9 @@ The installation's configuration (`wow.toml`), and the rider's settings
 and intervals.icu account in the data directory (ICD IF-10; APP-706,
 APP-707, APP-708, APP-817): both files are replaced atomically, and
 `secrets.json` is created readable by the app's user only. The Garmin
-Connect tokens live in `garmin/`, written by `wow-garmin login`.
+Connect tokens live in `garmin/`, written by `wow-garmin login`. With a
+`[riders]` table each rider keeps these in their own directory
+(riders.md).
 """
 
 import json
@@ -17,6 +19,7 @@ from pathlib import Path
 from typing import Final
 
 from wow.adapters.store_files import write_atomic
+from wow.core.riders import Rider, riders_of
 from wow.core.settings import SCHEMA, Settings, settings_json, settings_of
 
 logger = logging.getLogger(__name__)
@@ -44,6 +47,7 @@ class Config:
     static: Path
     listen: str | None = None
     led: Path | None = None
+    riders: tuple[Rider, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -79,6 +83,7 @@ def load_config(path: Path) -> Config:
         static=Path(web["static"]) if "static" in web else default_static(),
         listen=web.get("listen"),
         led=Path(system["led"]) if "led" in system else None,
+        riders=riders_of(raw["riders"]) if "riders" in raw else (),
     )
 
 

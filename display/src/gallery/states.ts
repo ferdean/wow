@@ -2,6 +2,9 @@ import type { View } from "../types/protocol";
 
 const PREFIX = "#gallery/";
 
+// States shown on the start screen first, as a page load shows them.
+export const START = `${PREFIX}start_`;
+
 export interface StateGroup {
   screen: string;
   names: string[];

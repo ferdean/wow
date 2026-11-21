@@ -3,7 +3,8 @@
 The workout catalog (3A, app/workout_catalog; ICD IF-08; APP-201,
 APP-202, APP-208, APP-210, APP-211): today's planned workouts and the
 library from intervals.icu, kept in a cache with its download time, and
-the built-in workouts.
+the built-in workouts; each rider has their own account and cache
+(riders.md).
 """
 
 import asyncio
@@ -133,6 +134,7 @@ class WorkoutCatalog:
         self._offline = False
         self._last_try: float | None = None
         self._task: asyncio.Task[None] | None = None
+        self._generation = 0
         self._read_cache()
 
     @property
@@ -165,6 +167,20 @@ class WorkoutCatalog:
         self._provider = provider
         self._last_try = None
 
+    def switch(self, provider: WorkoutProvider | None, cache: Path) -> None:
+        """Show another rider's workouts: their account and their cache.
+
+        A download still running for the rider before is stopped, and
+        its answer dropped should it still come.
+        """
+        if self._task is not None:
+            self._task.cancel()
+        self._generation += 1
+        self._provider, self._cache = provider, cache
+        self._events, self._workouts = [], []
+        self._downloaded, self._offline, self._last_try = None, False, None
+        self._read_cache()
+
     def request_refresh(self) -> None:
         """Start a download unless one ran in the last minute."""
         now = self._clock.monotonic()
@@ -178,7 +194,7 @@ class WorkoutCatalog:
 
     async def refresh(self) -> None:
         """Download the planned and library workouts, or use the cache."""
-        provider = self._provider
+        provider, generation = self._provider, self._generation
         if provider is None:
             return
         today = self._today()
@@ -189,8 +205,12 @@ class WorkoutCatalog:
                 provider.library())
         except ProviderError as error:
             logger.warning("workouts offline: %s", error)
-            self._offline = True
-            self._on_change()
+            if generation == self._generation:
+                self._offline = True
+                self._on_change()
+            return
+        if generation != self._generation:
+            logger.info("workouts of the rider before dropped")
             return
         self._events, self._workouts = events, workouts
         self._downloaded = utc_text(self._clock.utc())

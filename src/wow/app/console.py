@@ -9,13 +9,14 @@ with the route choice, the ride screen from Start to Finish, the Summary
 after Finish, past rides, Calibration and Settings; the devices are kept
 while Pre-ride, a ride or Calibration is open (APP-110). Rides on
 simulated devices are never uploaded (APP-613), to intervals.icu or to
-Garmin Connect.
+Garmin Connect. With several riders, the rider riding now is chosen
+outside a ride and calibration; past rides are theirs (riders.md).
 """
 
 import logging
 from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 from wow.app.calibration_controller import CalibrationController
 from wow.app.device_manager import DeviceManager
@@ -24,6 +25,7 @@ from wow.app.history import (
 )
 from wow.app.housekeeping import CertificateWatch, FreeSpace
 from wow.app.recovery import Interrupted, outage, resumption
+from wow.app.riders import Riders
 from wow.app.ride_controller import (
     RideController, RideSetup, RouteSummary, Summary,
 )
@@ -34,12 +36,13 @@ from wow.app.workout_catalog import Entry, Source, WorkoutCatalog
 from wow.core.devices import HrSample, LinkState, TrainerSample
 from wow.core.plan import Plan, make_plan
 from wow.core.numbers import round_half_up
+from wow.core.riders import Rider
 from wow.core.view import (
     Json, Latest, PowerAverage, battery_warning, calibration_screen,
     certificate_warning, clock_warning, history_entry, history_screen,
     home_screen, plan_message, pre_ride_screen, recovery_offer, ridden_route,
-    ride_screen, ride_warnings, route_live, route_map, route_option,
-    summary_screen, view_state, workout_card,
+    ride_screen, ride_warnings, riders_view, route_live, route_map,
+    route_option, summary_screen, view_state, workout_card,
 )
 from wow.ports.clock import Clock
 from wow.core.ride import ACTIVE, RidePhase
@@ -50,6 +53,8 @@ from wow.core.vocab import (
 from wow.core.workout import free_ride_workout
 
 logger = logging.getLogger(__name__)
+
+NO_RIDERS: Final[Riders] = Riders(Path("."), (), lambda _work: None)
 
 
 class Console:
@@ -62,7 +67,10 @@ class Console:
                  space: FreeSpace,
                  rides_dir: Path, calibration: CalibrationController,
                  certificate: CertificateWatch, routes: RouteCatalog,
-                 uploads_allowed: bool = True) -> None:
+                 uploads_allowed: bool = True,
+                 riders: Riders = NO_RIDERS,
+                 on_rider: Callable[[Rider], None] = lambda _rider: None
+                 ) -> None:
         self._clock = clock
         self._devices = devices
         self._rides = rides
@@ -91,6 +99,8 @@ class Console:
         self._uploads_allowed = uploads_allowed
         self._garmin_uploads = garmin_uploads
         self._map: Json | None = None
+        self._riders = riders
+        self._on_rider = on_rider
 
     @property
     def screen(self) -> str:
@@ -126,7 +136,8 @@ class Console:
         hrm = self._devices.hrm.link()
         battery = self._devices.hrm.battery_pct()
         return view_state(self._screen_state(now, trainer), trainer, hrm,
-                          battery, self._warnings(), data_ms)
+                          battery, self._warnings(), data_ms,
+                          self._riders_view())
 
     def command(self, name: str, args: Mapping[str, Any]) -> str | None:
         """Carry out a command; return the problem, if any."""
@@ -268,6 +279,13 @@ class Console:
     def _ride_active(self) -> bool:
         return self._rides.ride.phase in ACTIVE
 
+    def _riders_view(self) -> Json | None:
+        riders = self._riders
+        if not riders.configured:
+            return None
+        return riders_view(riders.riders, riders.active,
+                           self._panel.settings.ftp)
+
     def _upload(self, ride_id: str, known: str) -> str:
         return self._uploads.state(ride_id) or known
 
@@ -279,7 +297,10 @@ class Console:
     def _history(self) -> list[Json]:
         entries = []
         signed_in = self._panel.garmin_signed_in
+        rider = self._riders.active.rider_id
         for meta in kept_rides(self._rides_dir):
+            if self._riders.owner(meta) != rider:
+                continue
             ride_id = str(meta["ride_id"])
             metrics = meta.get("metrics")
             entries.append(history_entry(
@@ -355,6 +376,7 @@ class Console:
         gone = self._outage(found, now)
         if keep_riding and gone is None:
             return Problem.INVALID_STATE
+        self._use(self._riders.find(self._riders.owner(found.meta)))
         self._interrupted = None
         workout = found.setup.workout
         source = Source(found.setup.source)
@@ -516,7 +538,7 @@ class Console:
                               and self._uploads_allowed),
             block_modes=tuple(self._block_modes),
             route=None if route is None else route.choice(),
-            rider_kg=settings.rider_kg))
+            rider_kg=settings.rider_kg, rider=self._riders.stamp()))
         if refused is not None:
             logger.info("start refused: %s", refused)
             return Problem.INVALID_STATE
@@ -525,6 +547,37 @@ class Console:
             logger.warning("ride started with the clock not synchronised")
         self._screen = Screen.RIDE
         return None
+
+    def _home_rider_choose(self, args: Mapping[str, Any]) -> str | None:
+        return self._choose_rider(args)
+
+    def _pre_ride_rider_choose(self, args: Mapping[str, Any]) -> str | None:
+        return self._choose_rider(args)
+
+    def _summary_rider_choose(self, args: Mapping[str, Any]) -> str | None:
+        return self._choose_rider(args)
+
+    def _history_rider_choose(self, args: Mapping[str, Any]) -> str | None:
+        return self._choose_rider(args)
+
+    def _settings_rider_choose(self, args: Mapping[str, Any]) -> str | None:
+        return self._choose_rider(args)
+
+    def _choose_rider(self, args: Mapping[str, Any]) -> str | None:
+        rider = self._riders.find(args.get("rider"))
+        if not self._riders.configured or rider is None:
+            return Problem.BAD_REQUEST
+        if self._ride_active():
+            return Problem.INVALID_STATE
+        self._use(rider)
+        self._past = None
+        self.open_home()
+        return None
+
+    def _use(self, rider: Rider | None) -> None:
+        if rider is not None and rider != self._riders.active:
+            self._riders.choose(rider)
+            self._on_rider(rider)
 
     def _home_open_settings(self, _args: Mapping[str, Any]) -> str | None:
         self._screen = Screen.SETTINGS

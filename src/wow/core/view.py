@@ -7,7 +7,7 @@ Home with planned, library and built-in workouts, Pre-ride with the
 routes to choose from, the ride screen while armed, during steps and
 after the last one (with the live ride along a route, and the route's
 map message), the Summary, the ride history, Calibration and Settings,
-and the warnings they carry.
+and the warnings they carry; with several riders, who rides now.
 """
 
 import math
@@ -20,6 +20,7 @@ from wow.core.devices import FoundDevice, LinkState
 from wow.core.metrics import Metrics
 from wow.core.numbers import DEFAULT_ZONES_PCT, exact, round_half_up, zone_of
 from wow.core.plan import Plan
+from wow.core.riders import Rider
 from wow.core.ride import Ride, RidePhase
 from wow.core.route import Route
 from wow.core.settings import DeviceRef, Settings
@@ -443,11 +444,21 @@ def settings_screen(settings: Settings, account_set: bool,
     }
 
 
+def riders_view(riders: Sequence[Rider], active: Rider, ftp: int) -> Json:
+    """Return the riders and the one riding now, with their FTP."""
+    return {"active": active.rider_id, "ftp": ftp,
+            "list": [{"id": r.rider_id, "name": r.name} for r in riders]}
+
+
 def view_state(screen: Json, trainer: LinkState, hrm: LinkState,
                battery_pct: int | None, warnings: Sequence[Json],
-               data_mono_ms: float | None) -> Json:
-    """Return the complete view state."""
-    return {"data_mono_ms": data_mono_ms,
-            "links": {"trainer": trainer, "hrm": hrm},
-            "hrm_battery_pct": battery_pct, "warnings": list(warnings),
-            "screen": screen}
+               data_mono_ms: float | None,
+               riders: Json | None = None) -> Json:
+    """Return the complete view state; riders only when they are set."""
+    view: Json = {"data_mono_ms": data_mono_ms,
+                  "links": {"trainer": trainer, "hrm": hrm},
+                  "hrm_battery_pct": battery_pct,
+                  "warnings": list(warnings), "screen": screen}
+    if riders is not None:
+        view["riders"] = riders
+    return view

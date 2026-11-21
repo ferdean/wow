@@ -1,14 +1,18 @@
 <script lang="ts">
-  import type { CommandName, HomeScreen, Warning, WorkoutCard } from "../types/protocol";
-  import { FREE_RIDE_SHARE, dateTime, gone, listDuration, shape } from "../format";
+  import type { CommandName, HomeScreen, Riders, Warning, WorkoutCard } from "../types/protocol";
+  import { FREE_RIDE_SHARE, dateTime, gone, listDuration, shape, sharedRider } from "../format";
   import Banner from "../ui/Banner.svelte";
 
   interface Props {
     screen: HomeScreen;
     warnings: Warning[];
     send: (name: CommandName, args?: Record<string, unknown>) => void;
+    riders?: Riders | null;
+    switchRider?: () => void;
   }
-  let { screen, warnings, send }: Props = $props();
+  let { screen, warnings, send, riders = null, switchRider = () => undefined }: Props = $props();
+
+  const rider = $derived(sharedRider(riders));
 
   const offline = $derived(warnings.find((w) => w.kind === "workouts_offline"));
   const storage = $derived(warnings.find((w) => w.kind === "storage_low"));
@@ -45,6 +49,12 @@
 
 <div class="page fixed">
   <h1>WitchesOnWheels</h1>
+  {#if rider !== null && riders}
+    <div class="row rider">
+      <span class="grow"><span class="who">{rider}</span> <span class="label">FTP {riders.ftp} W</span></span>
+      <button class="secondary small" onclick={switchRider}>Switch rider</button>
+    </div>
+  {/if}
   {#if offline && offline.kind === "workouts_offline"}
     <Banner tone="warning" text={`intervals.icu out of reach. Workouts from ${dateTime(offline.downloaded_utc)}.`} />
   {/if}
@@ -144,5 +154,9 @@
   .recovery h2,
   .recovery p {
     margin: 0;
+  }
+  .who {
+    font-size: 20px;
+    font-weight: 700;
   }
 </style>

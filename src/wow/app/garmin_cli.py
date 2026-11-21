@@ -10,6 +10,10 @@ Run it as the user the service runs as, with the service's wow.toml, so
 the tokens land in its data directory:
 
     sudo -u wow /opt/wow/venv/bin/wow-garmin --config /etc/wow/wow.toml login
+
+With a [riders] table in wow.toml, name the rider (riders.md):
+
+    sudo -u wow /opt/wow/venv/bin/wow-garmin --rider anna login
 """
 
 import argparse
@@ -20,7 +24,8 @@ from pathlib import Path
 from typing import Final
 
 from wow.adapters.garmin_connect import GarminConnect, GarminError
-from wow.app.config import garmin_tokens, load_config
+from wow.app.config import Config, garmin_tokens, load_config
+from wow.app.riders import Riders
 from wow.core.upload import Outcome
 
 DEFAULT_CONFIG: Final[Path] = Path("/etc/wow/wow.toml")
@@ -35,6 +40,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="wow-garmin", description=__doc__.splitlines()[0])
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument("--rider", help="the rider's ID in [riders]")
     actions = parser.add_subparsers(dest="action", required=True)
     actions.add_parser("login", help="sign in and store the tokens")
     actions.add_parser("check", help="sign in from the stored tokens")
@@ -50,7 +56,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def run(args: argparse.Namespace, account: Account, ask: Ask,
         secret: Ask) -> int:
     """Carry out one action; return the exit code."""
-    tokens = garmin_tokens(load_config(args.config).data)
+    home = _home(load_config(args.config), args.rider)
+    if home is None:
+        return 2
+    tokens = garmin_tokens(home)
     garmin = account(tokens)
     try:
         match args.action:
@@ -70,6 +79,19 @@ def run(args: argparse.Namespace, account: Account, ask: Ask,
         print(f"Garmin Connect: {error}", file=sys.stderr)
         return 1
     return 0
+
+
+def _home(config: Config, rider_id: str | None) -> Path | None:
+    riders = Riders(config.data, config.riders, lambda work: work())
+    known = ", ".join(r.rider_id for r in riders.riders)
+    if riders.configured and riders.find(rider_id) is None:
+        print(f"name the rider with --rider: {known}", file=sys.stderr)
+        return None
+    if not riders.configured and rider_id is not None:
+        print("wow.toml has no [riders]: leave --rider out", file=sys.stderr)
+        return None
+    riders.prepare()
+    return riders.home(rider_id or riders.active.rider_id)
 
 
 def _upload(garmin: GarminConnect, fit: Path, as_import: bool) -> int:
