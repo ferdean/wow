@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "id": "intervals-30-30",
+  "id": "s2-30-30",
   "name": "30/30 and a surge",
   "description": "The Phase 2 S2 session: 5 min at 150 W, 6 x (30 s at 330 W, 30 s at 140 W), 2 min at 220 W, 1 min at 325 W (130 % FTP), 2 min at 220 W, 3 min at 140 W.",
-  "protocol_source": "Phase 2, spike S2 (6 Nov 2026)",
+  "protocol_source": "Phase 2, spike S2 (6 Nov 2026); a built-in until 25 Nov 2026, now the tests' 30/30 workout in watts",
   "workout_doc": {
     "steps": [
       {"duration": 300, "power": {"units": "w", "value": 150}, "warmup": true, "text": "Warm-up"},

@@ -1,5 +1,5 @@
 """Workouts as intervals.icu sends them (S6 files of 13 Nov 2026) and the
-built-in ramp test, parsed and planned (L1)."""
+built-in workouts, parsed and planned (L1)."""
 
 import json
 from fractions import Fraction
@@ -18,6 +18,11 @@ from wow.core.workout import PowerTarget, PowerUnit, StepKind, Workout
 EVENTS: list[dict[str, Any]] = load_json("intervals/events.json")
 LIBRARY: list[dict[str, Any]] = load_json("intervals/workouts.json")
 PLANS = sorted((TESTDATA / "workouts").glob("*.plan.json"))
+BUILT_IN_SECONDS: dict[str, int] = {
+    "endurance-1h": 3600, "erg-check": 360, "ftp-test-20min": 4560,
+    "ramp-test": 2700, "recovery-30min": 1800, "sweet-spot-3x15": 4800,
+    "threshold-2x20": 4200, "vo2max-30-15": 3675, "vo2max-30-30": 3300,
+    "vo2max-4x4": 3180}
 
 
 def workout(items: list[dict[str, Any]], item_id: int) -> Workout:
@@ -158,3 +163,33 @@ def test_the_ramp_test_runs_as_designed() -> None:
     assert {s.duration for s in plan.steps[3:28]} == {60}
     assert plan.steps[-1].kind == StepKind.FREE_RIDE
     assert plan.steps[-1].duration == 300 and plan.duration == 2700
+
+
+@pytest.mark.case("S-WKO-02")
+@pytest.mark.req("APP-211")
+def test_every_built_in_targets_percent_of_ftp() -> None:
+    files = sorted((f for f in resources.files("wow.builtin").iterdir()
+                    if f.name.endswith(".json")), key=lambda f: f.name)
+    assert [f.name.removesuffix(".json") for f in files] == list(
+        BUILT_IN_SECONDS)
+    for item in files:
+        form = json.loads(item.read_text("utf-8"))
+        built_in = parse_builtin(form)
+        assert form["id"] == item.name.removesuffix(".json")
+        assert form["description"] and form["protocol_source"]
+        steps = [s for block in built_in.blocks for s in block.steps]
+        assert StepKind.UNSUPPORTED not in {s.kind for s in steps}
+        units = {t.units for s in steps for t in (s.target, s.end) if t}
+        assert units == {PowerUnit.PERCENT_FTP}, form["id"]
+        assert make_plan(built_in, 250).duration == BUILT_IN_SECONDS[
+            form["id"]]
+
+
+@pytest.mark.case("S-WKO-02")
+@pytest.mark.req("APP-211", "APP-302")
+def test_the_ramp_test_follows_the_riders_ftp() -> None:
+    ramp = parse_builtin(json.loads(resources.files("wow.builtin").joinpath(
+        "ramp-test.json").read_text("utf-8")))
+    plan = make_plan(ramp, 200)
+    assert [s.power for s in plan.steps[:3]] == [96, 120, 80]
+    assert [s.power for s in plan.steps[3:28]] == list(range(96, 481, 16))

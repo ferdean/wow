@@ -1,6 +1,6 @@
 # Phase 3B — Interface Control Document (ICD)
 
-**Status:** approved; revision 5, 18 Nov 2026. Revision 5 applies the changes Ferran approved during Phase 5 (Phase 5 sections 13.6, 16.5, 22.5, 29.5, 35.5, 41.5 and 47.5): the trainer session's retry and release rules and its spin-down events, the simulator's server methods, the ride state machine's events and actions as built, the journal's and `meta.json`'s fields, the display messages as built (among them the route message, `set_route`, `viewport` and `rtt_ms`), the HTTP details, header-based authentication and the upload fields, `settings.json` with the rider's weight and the route, the `routes` folder, `[web] listen` and `[system] led`, and the FIT fields of a ride along a route. Approved by Ferran, 11 Nov 2026, as part of Phase 3; revision 4, 11 Nov 2026, applied the changes Ferran approved with the Phase 4 findings: the idle finish of a paused ride, how a free ride starts, the `Clock` port with `sleep_until`, the timing messages of the display and the ride's `timing.jsonl`, `due_mono_ms` in the journal, rounding with halves up, the simulator's adapter fault, and display qualification by inspection. Revision 3 restructured Part 3B as an Interface Control Document at Ferran's request and applied his comments of 11 Nov: the unit-naming rule (AD-20), GATT client and server names (AD-21), recording that starts at the first pedal stroke (APP-301), and his ramp-test protocol (IF-13). Builds on the Phase 3A architecture (revision 6), the Phase 1 requirements (revision 8) and the Phase 2 record (revision 14).
+**Status:** draft; revision 6, 25 Nov 2026. Revision 6 sets every built-in workout's targets in percent of FTP and adds eight built-ins (IF-13, 4.13), at Ferran's request of 25 Nov 2026; a draft until he approves it. Revision 5, approved on 18 Nov 2026, applies the changes Ferran approved during Phase 5 (Phase 5 sections 13.6, 16.5, 22.5, 29.5, 35.5, 41.5 and 47.5): the trainer session's retry and release rules and its spin-down events, the simulator's server methods, the ride state machine's events and actions as built, the journal's and `meta.json`'s fields, the display messages as built (among them the route message, `set_route`, `viewport` and `rtt_ms`), the HTTP details, header-based authentication and the upload fields, `settings.json` with the rider's weight and the route, the `routes` folder, `[web] listen` and `[system] led`, and the FIT fields of a ride along a route. Approved by Ferran, 11 Nov 2026, as part of Phase 3; revision 4, 11 Nov 2026, applied the changes Ferran approved with the Phase 4 findings: the idle finish of a paused ride, how a free ride starts, the `Clock` port with `sleep_until`, the timing messages of the display and the ride's `timing.jsonl`, `due_mono_ms` in the journal, rounding with halves up, the simulator's adapter fault, and display qualification by inspection. Revision 3 restructured Part 3B as an Interface Control Document at Ferran's request and applied his comments of 11 Nov: the unit-naming rule (AD-20), GATT client and server names (AD-21), recording that starts at the first pedal stroke (APP-301), and his ramp-test protocol (IF-13). Builds on the Phase 3A architecture (revision 6), the Phase 1 requirements (revision 9) and the Phase 2 record (revision 14).
 
 ## 1 Scope
 
@@ -59,7 +59,7 @@ WitchesOnWheels runs structured workouts on a Van Rysel D100 smart trainer, read
 | RD-07 | Garmin, FIT Activity File; Encoding FIT Activity Files | as read 10 Nov 2026 | developer.garmin.com/fit |
 | RD-08 | Garmin FIT Python SDK, with its profile as installed | 21.221.0 | pypi.org/project/garmin-fit-sdk |
 | RD-09 | Phase 0 record | revision 2 | `docs/phase0-discovery.md` |
-| RD-10 | Phase 1 requirements | revision 8 | `docs/phase1-requirements.md` |
+| RD-10 | Phase 1 requirements | revision 9 | `docs/phase1-requirements.md` |
 | RD-11 | Phase 2 record (findings F-1 to F-50) | revision 14 | `docs/phase2-spikes.md` |
 | RD-12 | Phase 3A architecture | revision 6 | `docs/phase3-arch.md` |
 | RD-13 | Phase 3C display design | revision 3 | `docs/phase3-display.md` |
@@ -67,6 +67,10 @@ WitchesOnWheels runs structured workouts on a Van Rysel D100 smart trainer, read
 | RD-15 | Phase 4 test plan | revision 5 | `docs/phase4-test-plan.md` |
 | RD-16 | Phase 5 implementation (decisions IM-01 to IM-151, findings SF-1 to SF-44) | revision 15 | `docs/phase5-implementation.md` |
 | RD-17 | GPX 1.1 schema (`trk`, `trkseg`, `trkpt`, `rte`, `rtept`, `lat` and `lon` in WGS84 decimal degrees, `ele` in metres, `name`) | 1.1 | topografix.com/GPX/1/1 |
+| RD-18 | Allen and Coggan's 20-minute FTP test (20 min at 65 %, 3 × 1 min fast pedaling with 1 min between, 5 min at 65 %, 5 min all out, 10 min at 65 %, 20 min all out, 10–15 min at 65 %; FTP = 95 % of the 20-minute average), as replicated in Table 1 of a study on PubMed Central | as read 25 Nov 2026 | pmc.ncbi.nlm.nih.gov/articles/PMC6886609 |
+| RD-19 | Coggan's power levels in % of FTP (1 below 55, 2 56–75, 3 76–90, 4 91–105, 5 106–120, 6 121–150); sweet spot at 88–94 % | as read 25 Nov 2026 | trainingpeaks.com |
+| RD-20 | Rønnestad, Hansen, Nygaard and Lundby, Scand J Med Sci Sports 30(5):849–857: short intervals of 3 series of 13 × (30 s on, 15 s off) with 3 min between series | 2020 | pubmed.gov/31977120 |
+| RD-21 | Helgerud et al., Med Sci Sports Exerc 39(4):665–671: 4 × 4 min at 90–95 % of HRmax with 3 min active recovery at 70 % of HRmax | 2007 | pubmed.ncbi.nlm.nih.gov/17414804 |
 
 ## 3 Interface identification
 
@@ -1470,17 +1474,19 @@ Built-in workouts use intervals.icu's `workout_doc` structure, so one parser (`c
 | `protocol_source` | text | Where the protocol comes from |
 | `workout_doc.steps[]` | — | Keys as intervals.icu sends them (F-18, F-36; A-55): `duration` (s), `power` with `units` (`w` or `%ftp`) and `value`, or `start` and `end`; `ramp`, `freeride`, `warmup`, `cooldown`, `text`; a repeat block is `{"reps": n, "steps": [...]}` |
 
+Every built-in the app ships gives its targets in `%ftp`, so it follows the FTP set in the app for the rider (APP-302) (**design**, Ferran, 25 Nov 2026). The parser still reads `w`; the tests' own 30/30 workout uses it (`testdata/workouts/s2-30-30.builtin.json`). Home lists the built-ins in the order of their file names. An all-out effort is a `freeride` step: it runs in resistance mode, and the rider sets the load with + and − (APP-306, APP-308), because ERG would cap the effort at its target.
+
 #### 4.13.2 Ramp test (APP-211)
 
-Protocol defined by Ferran on 11 Nov 2026. All steps run in ERG except the cool-down.
+Protocol defined by Ferran on 11 Nov 2026, in percent of FTP since 25 Nov 2026; at FTP 250 the steps are the watts of the original protocol. All steps run in ERG except the cool-down.
 
-| Part | Steps | Total |
-|------|-------|-------|
-| Warm-up | 10 min at 120 W, 3 min at 150 W, 2 min at 100 W | 15 min |
-| Ramp | 1-minute steps from 120 W, +20 W each step, up to the trainer's maximum: 120, 140, … 600 W on the D100 (25 steps) | up to 25 min |
-| Cool-down | 5 min free ride | 5 min |
+| Part | Steps | Watts at FTP 250 | Total |
+|------|-------|------------------|-------|
+| Warm-up | 10 min at 48 %, 3 min at 60 %, 2 min at 40 % | 120, 150, 100 W | 15 min |
+| Ramp | 1-minute steps from 48 %, +8 % of FTP each step, to 240 % (25 steps) | 120, 140, … 600 W, the D100's maximum | up to 25 min |
+| Cool-down | 5 min free ride | — | 5 min |
 
-The ramp's 1-minute, 20 W steps are those of Zwift's ramp test (RD-14), which matters if the FTP estimate in the later-versions list uses Zwift's rule (75 % of the best minute).
+At FTP 250 the ramp's 1-minute, 20 W steps are those of Zwift's ramp test (RD-14), which matters if the FTP estimate in the later-versions list uses Zwift's rule (75 % of the best minute); at another FTP each step is 8 % of it (**design**). Above FTP 250 the last steps lie above the D100's 600 W and are limited to it (APP-303).
 
 `src/wow/builtin/ramp-test.json` (the 25 ramp steps abbreviated):
 
@@ -1489,19 +1495,19 @@ The ramp's 1-minute, 20 W steps are those of Zwift's ramp test (RD-14), which ma
   "schema": 1,
   "id": "ramp-test",
   "name": "Ramp test",
-  "description": "15 min warm-up, then +20 W every minute from 120 W until you can't hold it. Tap Ride by resistance, Pause or Finish when you stop.",
-  "protocol_source": "Ferran, 11 Nov 2026; 1-minute, 20 W steps as in Zwift's ramp test",
+  "description": "15 min warm-up, then the target rises by 8 % of FTP every minute from 48 % until you can't hold it. Tap Ride by resistance, Pause or Finish when you stop. Your FTP is about 75 % of your best minute.",
+  "protocol_source": "Ferran, 11 Nov 2026; in % of FTP since 25 Nov 2026: at FTP 250 the original 120 W start and 20 W a minute, Zwift's ramp rate (ICD RD-14)",
   "workout_doc": {
     "steps": [
-      {"duration": 600, "power": {"units": "w", "value": 120}, "warmup": true, "text": "Warm-up"},
-      {"duration": 180, "power": {"units": "w", "value": 150}, "warmup": true, "text": "Warm-up: a little harder"},
-      {"duration": 120, "power": {"units": "w", "value": 100}, "warmup": true, "text": "Warm-up: easy before the ramp"},
+      {"duration": 600, "power": {"units": "%ftp", "value": 48}, "warmup": true, "text": "Warm-up"},
+      {"duration": 180, "power": {"units": "%ftp", "value": 60}, "warmup": true, "text": "Warm-up: a little harder"},
+      {"duration": 120, "power": {"units": "%ftp", "value": 40}, "warmup": true, "text": "Warm-up: easy before the ramp"},
       {"reps": 1, "text": "Ramp: hold each step as long as you can", "steps": [
-        {"duration": 60, "power": {"units": "w", "value": 120}},
-        {"duration": 60, "power": {"units": "w", "value": 140}},
-        {"duration": 60, "power": {"units": "w", "value": 160}},
-        "… one step per 20 W …",
-        {"duration": 60, "power": {"units": "w", "value": 600}}
+        {"duration": 60, "power": {"units": "%ftp", "value": 48}},
+        {"duration": 60, "power": {"units": "%ftp", "value": 56}},
+        {"duration": 60, "power": {"units": "%ftp", "value": 64}},
+        "… one step per 8 % …",
+        {"duration": 60, "power": {"units": "%ftp", "value": 240}}
       ]},
       {"duration": 300, "freeride": true, "cooldown": true, "text": "Cool-down"}
     ]
@@ -1510,6 +1516,24 @@ The ramp's 1-minute, 20 W steps are those of Zwift's ramp test (RD-14), which ma
 ```
 
 **Why the ramp is one repeat block with `reps: 1`:** a mode switch applies to the rest of the current block (APP-307). With all 25 steps in one block, one tap on "Ride by resistance" when the rider fails ends ERG for the rest of the ramp; he then spins at the free-ride level into the cool-down. Without the block, every following step would put ERG back on. The other ways to stop are Pause (lowest resistance at once, APP-311) and Finish (ends the ride without the recorded cool-down). The best 1-minute power shows in intervals.icu after the upload; the Summary shows the metrics of table M.
+
+#### 4.13.3 The other built-ins (APP-211)
+
+Real sessions for a rider without intervals.icu at hand, at Ferran's request of 25 Nov 2026 (a 20-minute test, a 4 × 4 and more): tests, VO2max, threshold, sweet spot and easy rides. The structure comes from the source; a value the source doesn't give in percent of FTP is **design**, placed inside the Coggan level the source's intensity belongs to (RD-19). Unless the table says otherwise, the warm-up is a 10-minute ramp from 50 to 75 % and the cool-down a ramp down from 55 to 40 %; recoveries are ERG steps.
+
+| File | Name | Main set | Warm-up, cool-down | Total | Source |
+|------|------|----------|--------------------|-------|--------|
+| `endurance-1h` | Endurance 1 h | 45 min at 65 % | 10-min ramp 50→65 %; 5-min ramp 65→50 % | 60 min | Level 2, 56–75 % (RD-19); 65 % **design** |
+| `erg-check` | ERG check | 2 × (30 s at 88 %, 60 s at 52 %) | 2 min at 48 %; 1 min at 48 % | 6 min | The SL-02 check (IM-23), the same watts at FTP 250 |
+| `ftp-test-20min` | FTP test 20 min | 5 min all out (free ride), 10 min at 65 %, 20 min all out (free ride); FTP = 95 % of the 20-minute lap | 20 min at 65 %, 3 × (1 min fast pedaling at 65 %, 1 min at 50 %), 5 min at 65 %; 10 min at 65 % | 76 min | RD-18; the 1-minute recoveries at 50 % and the 10-minute cool-down **design** |
+| `recovery-30min` | Recovery 30 min | 20 min at 50 % | 5-min ramps 40→50 % and 50→40 % | 30 min | Level 1, below 55 % (RD-19) |
+| `sweet-spot-3x15` | Sweet spot 3 × 15 | 3 × (15 min at 90 %, 5 min at 55 %) | ramp, then 5 min at 60 %; 5 min | 80 min | Sweet spot 88–94 % (RD-19); 90 % and the set **design** |
+| `threshold-2x20` | Threshold 2 × 20 | 2 × (20 min at 95 %, 5 min at 55 %) | ramp, 2 min at 90 %, 3 min at 55 %; 5 min | 70 min | Level 4, 91–105 % (RD-19); 95 % and the set **design** |
+| `vo2max-30-15` | VO2max 30/15 | 3 series of 13 × (30 s at 120 %, 15 s at 60 %), 3 min at 50 % between series | ramp, 2 × (1 min at 115 %, 2 min at 55 %); 10 min | 61 min 15 s | Structure RD-20; 120 % (top of level 5) and the off steps at half of it **design** |
+| `vo2max-30-30` | VO2max 30/30 | 3 sets of 6 × (30 s at 132 %, 30 s at 56 %), 5 min at 55 % between sets | ramp, 4-min ramp 85→105 %, 3 min at 55 %; 10 min | 55 min | The targets of Phase 2's S2 session (330 and 140 W at FTP 250); the sets **design** |
+| `vo2max-4x4` | VO2max 4 × 4 | 4 × (4 min at 112 %, 3 min at 60 %) | ramp, 1 min at 105 %, 4 min at 55 %; 10 min | 53 min | Structure RD-21; 112 % (level 5) and 60 % **design** |
+
+Each series, set or repeat is one block, so "Ride by resistance" during it lasts to the end of that block only (APP-307): the way out when ERG can't follow the short steps of the 30/15 and the 30/30. The 30/15's 15-second off steps last about ten times the D100's ERG step response (T90 about 1.5 s, Phase 2 F-25). The 20-minute test's fast pedaling is judged by the rider: the D100 reports no cadence (Phase 0, D-05).
 
 ## 5 Qualification provisions
 
@@ -1529,7 +1553,7 @@ The Phase 4 test plan (RD-15) maps every requirement to the tests, ride checks, 
 | IF-10 | Test, inspection | Validation tests; file modes inspected (APP-817); route files built in the tests, refusals checked one by one |
 | IF-11 | Test | Round trip: log a simulated ride, replay it, no differences |
 | IF-12 | Test, demonstration | Decode our file with the SDK's `Decoder`; import into intervals.icu and Garmin Connect (F-35), on a route as a virtual ride with its map |
-| IF-13 | Test | Parse every built-in file; the ramp test's plan matches its expected timeline |
+| IF-13 | Test | Parse every built-in file; the ramp test's plan matches its expected timeline at FTP 250 and follows the FTP at 200; every shipped target is in percent of FTP and every total is that of 4.13.3 (S-WKO-02) |
 
 ## 6 Requirements traceability
 
@@ -1585,6 +1609,7 @@ Statuses as of revision 4. Phase 5 confirmed A-55 (16.3), A-60 (13.1) and A-61 (
 | 3 | 11 Nov 2026 | Ferran's comments: restructured as an ICD (identification, referenced documents, interface list with provider, consumer and type, data element tables, error handling, qualification provisions, notes); unit-naming rule applied to every constant and field (AD-20); GATT client and server names (`GattConnector`, `GattClient`, simulator `GattServer`, AD-21); armed state and start on the first power (APP-301, new A-60); ramp test with Ferran's warm-up, 120 W start and 5-minute cool-down, without diagrams. File renamed `phase3-icd.md`. Approved by Ferran as part of Phase 3. |
 | 4 | 11 Nov 2026 | Phase 4 findings, approved by Ferran: idle finish from Paused (4.4.3); free ride defined, with `power` in `SwitchMode` (4.4.2); `Clock` port with `sleep_until` (4.4.1); timing messages `ping`, `pong`, `painted`, with `data_mono_ms` and `tap_mono_ms` (4.6.3, 4.6.5, new 4.6.7); `due_mono_ms` in `trainer_command` and new `timing.jsonl` (4.9.2, new 4.9.5); rounding with halves up (1.4); simulator fault "adapter failing" (4.3.4); IF-06 qualified by Pi-side tests and by inspection on the iPhone (5); A-61 and A-63; RD-15. |
 | 5 | 18 Nov 2026 | Phase 5 changes, approved by Ferran with the slices (Phase 5 sections 13.6, 16.5, 22.5, 29.5, 35.5, 41.5 and 47.5): Request Control every 2 s from the previous request, results 03 and 04, release clears the command (4.1.5, 4.1.6); `SpinDown` and `SpinDownAnswered` (4.1.5); simulator server methods (4.3); ride events and actions as built, `Recovered`, `ABANDON_AFTER` checked by readings (4.4.2); the plan and route messages, the display types as built with `set_route`, `viewport`, `rtt_ms`, `invalid_value` and the route fields (4.6); redirect port, 503 and caching (4.7); header-based authentication, the upload fields and the waiting rule, simulated rides with upload off (4.8); journal and `meta.json` fields, `route.gpx`, logs outside rides (4.9); `settings.json` with `rider_kg` and `route`, `secrets.json` written 0600 first, `[web] listen`, `[system] led`, the `routes` folder (4.10); `outcome` and `dev` values (4.11); FIT fields of a ride along a route and the target power field (4.12); RD-16, RD-17; routes in the traceability table. Moved from the project into the repository as `docs/phase3-icd.md`. |
+| 6 | 25 Nov 2026 | At Ferran's request: every built-in workout in percent of FTP (4.13.1); the ramp test in percent of FTP, the same watts at FTP 250 (4.13.2); eight new built-ins, and the S2 session "30/30 and a surge" moved to the tests (new 4.13.3); IF-13's qualification (5); RD-18 to RD-21; Phase 1 revision 9. Draft until Ferran approves it. |
 
 ## Sources
 
@@ -1605,10 +1630,15 @@ Statuses as of revision 4. Phase 5 confirmed A-55 (16.3), A-60 (13.1) and A-61 (
 - Garmin FIT SDK 21.221.0 profile as installed (Record `position_lat`/`position_long` in semicircles, `distance`, `speed`, `enhanced_speed`, `altitude`, `enhanced_altitude`; Session `total_ascent`, `total_descent`; `sub_sport` 58 `virtual_activity`, 6 `indoor_cycling`), as quoted in Phase 5: https://pypi.org/project/garmin-fit-sdk/
 - GPX 1.1 schema: https://www.topografix.com/GPX/1/1/
 - Zwift Insider, Zwift's ramp test: https://zwiftinsider.com/?p=43816 and https://zwiftinsider.com/group-ramp-test/
+- Allen and Coggan's 20-minute FTP test protocol, Table 1: https://pmc.ncbi.nlm.nih.gov/articles/PMC6886609
+- TrainingPeaks, power training levels (Coggan): https://www.trainingpeaks.com/learn/articles/power-training-levels/
+- TrainingPeaks, how to get started training with power (sweet spot at 88–94 % of FTP): https://www.trainingpeaks.com/blog/how-to-get-started-training-with-power/
+- Rønnestad et al. 2020, short intervals in elite cyclists (abstract): https://www.pubmed.gov/31977120/
+- Helgerud et al. 2007, aerobic high-intensity intervals (abstract): https://pubmed.ncbi.nlm.nih.gov/17414804/
 - Phase 5 implementation, revision 15: `docs/phase5-implementation.md`
 - Phase 4 test plan, revision 5: `docs/phase4-test-plan.md`
 - Phase 3A architecture, revision 6: `docs/phase3-arch.md`
 - Phase 3C display design, revision 3: `docs/phase3-display.md`
 - Phase 2 record, revision 14: `docs/phase2-spikes.md`
-- Phase 1 requirements, revision 8: `docs/phase1-requirements.md`
+- Phase 1 requirements, revision 9: `docs/phase1-requirements.md`
 - Phase 0 record, revision 2: `docs/phase0-discovery.md`

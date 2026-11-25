@@ -12,13 +12,13 @@ from tests.support.app_rig import (
     ride_dirs,
 )
 from tests.support.timeline import TESTDATA, load_json
+from tests.support.workouts import THIRTY_THIRTY, thirty_thirty
 from wow.adapters.clock_stepped import SteppedClock
 from wow.app.config import load_settings
 from wow.app.main import App
 from wow.core.metrics import ride_metrics
 
 TEST_WORKOUT = "library:2"
-THIRTY_THIRTY = "builtin:intervals-30-30"
 RAMP_TEST = "builtin:ramp-test"
 WRITES = TESTDATA / "timelines" / "e2e" / "T-E2E-01.writes.json"
 
@@ -93,7 +93,7 @@ async def test_the_free_ride_level_survives_a_restart(tmp_path: Path) -> None:
 @pytest.mark.req("APP-316")
 @pytest.mark.asyncio
 async def test_discard_and_cancel_write_no_fit(tmp_path: Path) -> None:
-    session = AppSession(tmp_path)
+    session = AppSession(tmp_path, workouts=[thirty_thirty()])
     await session.begin(THIRTY_THIRTY)
     await session.until(30.0)
     assert session.command("discard") is None
@@ -151,7 +151,7 @@ async def test_uc01_a_planned_workout_from_start_to_summary(
                  "APP-313")
 @pytest.mark.asyncio
 async def test_uc02_every_control_of_a_thirty_thirty(tmp_path: Path) -> None:
-    session = AppSession(tmp_path)
+    session = AppSession(tmp_path, workouts=[thirty_thirty()])
     await session.begin(THIRTY_THIRTY)
     actions: list[tuple[float | None, str, dict[str, Any]]] = [
         (300.0, "pause", {}), (None, "resume", {}),

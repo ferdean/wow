@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "id": "vo2max-30-15",
+  "name": "VO2max 30/15",
+  "description": "Rønnestad's short intervals: 3 series of 13 × (30 s at 120 %, 15 s at 60 % of FTP) with 3 min easy between series. If ERG can't follow, tap Ride by resistance for the rest of a series.",
+  "protocol_source": "Rønnestad et al. 2020, Scand J Med Sci Sports 30:849 (ICD RD-20): 3 series of 13 × (30 s on, 15 s off), 3 min between series; on at 120 %, the top of Coggan's level 5 (RD-19), and off at half of it are design",
+  "workout_doc": {
+    "steps": [
+      {"duration": 600, "ramp": true, "power": {"units": "%ftp", "start": 50, "end": 75}, "warmup": true, "text": "Warm-up"},
+      {"reps": 2, "text": "Openers", "steps": [
+        {"duration": 60, "power": {"units": "%ftp", "value": 115}, "text": "Opener"},
+        {"duration": 120, "power": {"units": "%ftp", "value": 55}, "text": "Easy"}
+      ]},
+      {"reps": 13, "text": "Series 1 of 3", "steps": [
+        {"duration": 30, "power": {"units": "%ftp", "value": 120}},
+        {"duration": 15, "power": {"units": "%ftp", "value": 60}}
+      ]},
+      {"duration": 180, "power": {"units": "%ftp", "value": 50}, "text": "Easy"},
+      {"reps": 13, "text": "Series 2 of 3", "steps": [
+        {"duration": 30, "power": {"units": "%ftp", "value": 120}},
+        {"duration": 15, "power": {"units": "%ftp", "value": 60}}
+      ]},
+      {"duration": 180, "power": {"units": "%ftp", "value": 50}, "text": "Easy"},
+      {"reps": 13, "text": "Series 3 of 3", "steps": [
+        {"duration": 30, "power": {"units": "%ftp", "value": 120}},
+        {"duration": 15, "power": {"units": "%ftp", "value": 60}}
+      ]},
+      {"duration": 600, "ramp": true, "power": {"units": "%ftp", "start": 55, "end": 40}, "cooldown": true, "text": "Cool-down"}
+    ]
+  }
+}

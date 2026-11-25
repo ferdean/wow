@@ -1,6 +1,6 @@
 # Phase 1 — Requirements
 
-**Status:** approved, revision 8, 18 Nov 2026. Revision 8 applies the changes Ferran approved during Phase 5 (Phase 5 sections 13.6, 35.5, 41.5 and 47.5, marked P5): the lead time default of 1.0 s and the zone range in table S, and the route requirements of SL-13 and SL-14: UC-09, APP-613, APP-709 and APP-901 to APP-910 (APP-903 as changed with SL-14), the rider's weight in table S, simulated speed, distance and altitude taken off the later-versions list, and slope mode as the first V2 to-do. Revision 7 applied the changes Ferran approved with the Phase 4 findings on 11 Nov 2026 (APP-317, APP-825, rationales of APP-302 and APP-405). Revision 6 applied the changes approved with Phase 3 on 11 Nov 2026 (APP-211, APP-301, APP-802, APP-822, APP-823, new APP-830, landscape in the later-versions list). Revision 5 applied the changes from Phase 2's last spikes (S5 and S8), approved when Phase 2 closed on 10 Nov 2026; revision 4 applied the earlier Phase 2 changes (8 Nov 2026); revision 3 was approved on 3 Nov 2026. Builds on the Phase 0 record, revision 2 (approved 3 Nov 2026).
+**Status:** draft, revision 9, 25 Nov 2026. Revision 9 rewords APP-211's rationale: the built-in workouts, the ramp test among them, give their targets in percent of FTP, at Ferran's request of 25 Nov 2026 (ICD revision 6, IF-13); a draft until he approves it. Revision 8, approved on 18 Nov 2026, applies the changes Ferran approved during Phase 5 (Phase 5 sections 13.6, 35.5, 41.5 and 47.5, marked P5): the lead time default of 1.0 s and the zone range in table S, and the route requirements of SL-13 and SL-14: UC-09, APP-613, APP-709 and APP-901 to APP-910 (APP-903 as changed with SL-14), the rider's weight in table S, simulated speed, distance and altitude taken off the later-versions list, and slope mode as the first V2 to-do. Revision 7 applied the changes Ferran approved with the Phase 4 findings on 11 Nov 2026 (APP-317, APP-825, rationales of APP-302 and APP-405). Revision 6 applied the changes approved with Phase 3 on 11 Nov 2026 (APP-211, APP-301, APP-802, APP-822, APP-823, new APP-830, landscape in the later-versions list). Revision 5 applied the changes from Phase 2's last spikes (S5 and S8), approved when Phase 2 closed on 10 Nov 2026; revision 4 applied the earlier Phase 2 changes (8 Nov 2026); revision 3 was approved on 3 Nov 2026. Builds on the Phase 0 record, revision 2 (approved 3 Nov 2026).
 
 ## How to read this
 
@@ -104,7 +104,7 @@ Requirements refer to these screens by name. Phase 3 designed their layouts; scr
 | APP-208 | The system shall store the workout as downloaded, and the FTP used, with each ride's files. | Lets a ride be reproduced and turned into a test case. | should | I | UC-05, UC-08; D-17 |
 | APP-209 | While a step that has a text cue is running, the display shall show the cue. | intervals.icu steps can carry text cues. | could | D | UC-01; P1 |
 | APP-210 | When the Home screen opens, the system shall also list the workouts in the rider's intervals.icu workout library. | A workout worth repeating is saved once in the intervals.icu library and ridden from there without planning it. A second library inside the app would duplicate that. | should | T, D | UC-01; P1, A-35 |
-| APP-211 | The system shall offer built-in workouts stored on the Pi, including a ramp FTP test, next to the intervals.icu workouts. | A test works without intervals.icu or the network. The ramp protocol is the one Ferran defined on 11 Nov 2026 (15 min warm-up, 1-minute steps from 120 W in 20 W steps, 5 min free-ride cool-down), fixed in the ICD, IF-13. | should | T, D | UC-01; P1, P3 |
+| APP-211 | The system shall offer built-in workouts stored on the Pi, including a ramp FTP test, next to the intervals.icu workouts. | A test works without intervals.icu or the network. The built-ins give their targets in percent of FTP, so they suit any rider's FTP. The ramp protocol is the one Ferran defined on 11 Nov 2026 (15 min warm-up, 1-minute steps from 48 % of FTP rising by 8 % of FTP, which is 120 W and 20 W at FTP 250, 5 min free-ride cool-down); the protocols and their sources are fixed in the ICD, IF-13. | should | T, D | UC-01; P1, P3 |
 
 ### 3 Running a ride
 
@@ -440,6 +440,10 @@ All five were answered on 3 Nov 2026 with the defaults: battery warning at 20 % 
 - Later versions: slope mode is the first V2 to-do; simulated speed, distance and altitude leave the list for v1 (41.5, 47.5).
 - 128 requirements in all.
 
+**Changed in revision 9 (25 Nov 2026), at Ferran's request:**
+
+- APP-211, rationale: the built-ins in percent of FTP; the ramp protocol in percent of FTP, the same watts at FTP 250; the list of built-ins in the ICD, IF-13. Requirement text unchanged; 128 requirements in all.
+
 ## Change log
 
 | Rev. | Date | Change |
@@ -453,6 +457,7 @@ All five were answered on 3 Nov 2026 with the defaults: battery warning at 20 % 
 | 6 | 11 Nov 2026 | Phase 3 changes, approved by Ferran with Phase 3: APP-301 (start on the first power), APP-802 (pending-procedure clause), APP-822 and APP-823 (TypeScript display), new APP-830 (certificate warning), APP-211 rationale (Ferran's ramp protocol), APP-412 rationale (digit height), landscape in the later-versions list, terms "Ride" and "Ride time", new A-60, P3 marks, D-03 coverage. |
 | 7 | 11 Nov 2026 | Phase 4 changes, approved by Ferran with the Phase 4 findings: APP-317 (how a free ride starts), APP-825 (paused rides count), rationales of APP-302 (halves round up) and APP-405 (when a dropout shows), the note on verifying the display by looking at it, P4 marks, A-61 to A-63 named. |
 | 8 | 18 Nov 2026 | Phase 5 changes, approved by Ferran with the slices (Phase 5 sections 13.6, 35.5, 41.5 and 47.5): table S lead time 1.0 s, zone range, rider weight; UC-09, the term "Route" and the Ride, route screen; new section 9 with APP-901 to APP-910; new APP-613 and APP-709; later-versions list with slope mode as the first V2 to-do and without simulated speed, distance and altitude; P5 marks; A-64 to A-72 named. Moved from the project into the repository as `docs/phase1-requirements.md`. |
+| 9 | 25 Nov 2026 | At Ferran's request: APP-211's rationale with the built-ins in percent of FTP (ICD revision 6, IF-13). Draft until Ferran approves it. |
 
 ## Sources
 
@@ -475,7 +480,7 @@ All five were answered on 3 Nov 2026 with the defaults: battery warning at 20 % 
 - Phase 0 record, revision 2: `docs/phase0-discovery.md`
 - Phase 2 record, revision 14 (findings F-1 to F-50, assumptions A-37 to A-44): `docs/phase2-spikes.md`
 - Phase 3A architecture, revision 6: `docs/phase3-arch.md`
-- Phase 3B Interface Control Document, revision 5: `docs/phase3-icd.md`
+- Phase 3B Interface Control Document, revision 6: `docs/phase3-icd.md`
 - Phase 3C display design, revision 3: `docs/phase3-display.md`
 - Phase 4 test plan, revision 5: `docs/phase4-test-plan.md`
 - Phase 5 implementation, revision 15 (sections 13.6, 35.5, 39, 41.5, 45, 47.5: the changes of revision 8; its sources cover GPX and the power model of the routes): `docs/phase5-implementation.md`

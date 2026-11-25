@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "endurance-1h",
+  "name": "Endurance 1 h",
+  "description": "An hour of steady level 2: 10 min warm-up, 45 min at 65 % of FTP, 5 min cool-down.",
+  "protocol_source": "Coggan's power levels, level 2 (endurance), 56–75 % of FTP: TrainingPeaks, 'Power training levels' (ICD RD-19)",
+  "workout_doc": {
+    "steps": [
+      {"duration": 600, "ramp": true, "power": {"units": "%ftp", "start": 50, "end": 65}, "warmup": true, "text": "Warm-up"},
+      {"duration": 2700, "power": {"units": "%ftp", "value": 65}, "text": "Steady endurance"},
+      {"duration": 300, "ramp": true, "power": {"units": "%ftp", "start": 65, "end": 50}, "cooldown": true, "text": "Cool-down"}
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "id": "ftp-test-20min",
+  "name": "FTP test 20 min",
+  "description": "Allen and Coggan's 20-minute test: 45 min warm-up with a 5-minute all-out effort, then 20 minutes all out. Both efforts run by resistance: set the load with + and −. Your FTP is 95 % of the 20-minute lap's average power.",
+  "protocol_source": "Allen and Coggan, Training and Racing with a Power Meter, protocol table as replicated in PMC6886609, Table 1 (ICD RD-18): 20 min at 65 %, 3 × 1 min fast pedaling, 5 min at 65 %, 5 min all out, 10 min at 65 %, 20 min all out, 10–15 min at 65 %; FTP = 95 % of the 20-minute average",
+  "workout_doc": {
+    "steps": [
+      {"duration": 1200, "power": {"units": "%ftp", "value": 65}, "warmup": true, "text": "Warm-up at endurance pace"},
+      {"reps": 3, "text": "Fast pedaling", "steps": [
+        {"duration": 60, "power": {"units": "%ftp", "value": 65}, "text": "Fast pedaling, about 100 rpm"},
+        {"duration": 60, "power": {"units": "%ftp", "value": 50}, "text": "Easy"}
+      ]},
+      {"duration": 300, "power": {"units": "%ftp", "value": 65}, "text": "Easy"},
+      {"duration": 300, "freeride": true, "text": "5 min all out: set the load with + and −"},
+      {"duration": 600, "power": {"units": "%ftp", "value": 65}, "text": "Easy"},
+      {"duration": 1200, "freeride": true, "text": "20 min all out, evenly paced"},
+      {"duration": 600, "power": {"units": "%ftp", "value": 65}, "cooldown": true, "text": "Cool-down"}
+    ]
+  }
+}

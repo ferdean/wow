@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "recovery-30min",
+  "name": "Recovery 30 min",
+  "description": "Easy spin below level 2: 20 min at 50 % of FTP between 5-minute ramps.",
+  "protocol_source": "Coggan's power levels, level 1 (active recovery), below 55 % of FTP (ICD RD-19)",
+  "workout_doc": {
+    "steps": [
+      {"duration": 300, "ramp": true, "power": {"units": "%ftp", "start": 40, "end": 50}, "warmup": true, "text": "Warm-up"},
+      {"duration": 1200, "power": {"units": "%ftp", "value": 50}, "text": "Easy spin"},
+      {"duration": 300, "ramp": true, "power": {"units": "%ftp", "start": 50, "end": 40}, "cooldown": true, "text": "Cool-down"}
+    ]
+  }
+}

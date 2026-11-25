@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from tests.support.app_rig import AppSession, read_jsonl, ride_erg_check
+from tests.support.workouts import THIRTY_THIRTY, thirty_thirty
 from wow.adapters.ble_sim import Fault, FaultKind, SimFaults
 from wow.adapters.clock_stepped import DEFAULT_START
 from tools import check_ride
@@ -180,8 +181,9 @@ async def test_pauses_skips_and_dropouts_keep_the_checks_true(
         tmp_path: Path) -> None:
     faults = SimFaults(trainer=(Fault(FaultKind.LINK_LOSS, DEFAULT_START
                                       + 200.0, DEFAULT_START + 215.0),))
-    session = AppSession(tmp_path, sim_faults=faults)
-    await session.begin("builtin:intervals-30-30")
+    session = AppSession(tmp_path, sim_faults=faults,
+                         workouts=[thirty_thirty()])
+    await session.begin(THIRTY_THIRTY)
     await session.until(100.0)
     assert session.command("pause") is None
     await session.clock.advance(30.0)

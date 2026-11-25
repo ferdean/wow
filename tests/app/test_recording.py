@@ -11,15 +11,15 @@ import pytest
 from garmin_fit_sdk import Decoder, Stream
 
 from tests.support.app_rig import (
-    RecordedProvider, app_config, read_jsonl, ride_dirs, ride_ref,
+    ERG_CHECK, RecordedProvider, app_config, read_jsonl, ride_dirs, ride_ref,
 )
 from tests.support.timeline import load_json
+from tests.support.workouts import THIRTY_THIRTY, thirty_thirty
 from wow.adapters.ble_sim import HRM_ADDRESS
 from wow.adapters.clock_stepped import SteppedClock
 from wow.app.main import App
 from wow.core.workout import Block, PowerTarget, PowerUnit, Step, Workout
 
-THIRTY_THIRTY = "builtin:intervals-30-30"
 ZURICH = timezone(timedelta(hours=1))
 
 
@@ -34,7 +34,8 @@ def fit_messages(ride: Path) -> Any:
 @pytest.mark.req("APP-601")
 @pytest.mark.asyncio
 async def test_a_simulated_twenty_minute_ride_decodes(tmp_path: Path) -> None:
-    _, ride = await ride_ref(tmp_path, THIRTY_THIRTY, 1200.0)
+    _, ride = await ride_ref(tmp_path, THIRTY_THIRTY, 1200.0,
+                             workouts=[thirty_thirty()])
     messages = fit_messages(ride)
     samples = read_jsonl(ride / "samples.jsonl")
     assert messages["file_id_mesgs"][0]["type"] == "activity"
@@ -106,10 +107,10 @@ async def test_workout_json_is_the_download_and_meta_names_the_ride(
     assert (meta["ftp"], meta["zones_pct"]) == (250, [55, 75, 90, 105, 120])
     assert meta["app_version"] and meta["source"] == "plan"
     assert meta["title"] == "Test workout" and meta["state"] == "finished"
-    builtin_app, builtin_ride = await ride_ref(tmp_path / "b", THIRTY_THIRTY,
+    builtin_app, builtin_ride = await ride_ref(tmp_path / "b", ERG_CHECK,
                                                30.0)
     original = resources.files("wow.builtin").joinpath(
-        "intervals-30-30.json").read_bytes()
+        "erg-check.json").read_bytes()
     assert (builtin_ride / "workout.json").read_bytes() == original
     assert builtin_app.recorder.boot_id == json.loads(
         (builtin_ride / "meta.json").read_text())["boot_id"]
@@ -120,7 +121,8 @@ async def test_workout_json_is_the_download_and_meta_names_the_ride(
 @pytest.mark.asyncio
 async def test_finish_writes_the_files_and_shows_the_summary(
         tmp_path: Path) -> None:
-    app, ride = await ride_ref(tmp_path, THIRTY_THIRTY, 300.0)
+    app, ride = await ride_ref(tmp_path, THIRTY_THIRTY, 300.0,
+                               workouts=[thirty_thirty()])
     meta = json.loads((ride / "meta.json").read_text(encoding="utf-8"))
     assert (ride / "ride.fit").stat().st_size > 1000
     assert meta["state"] == "finished" and meta["upload"] == "pending"
@@ -135,7 +137,8 @@ async def test_finish_writes_the_files_and_shows_the_summary(
 @pytest.mark.asyncio
 async def test_the_summary_shows_every_metric_and_the_upload_state(
         tmp_path: Path) -> None:
-    app, ride = await ride_ref(tmp_path, THIRTY_THIRTY, 300.0)
+    app, ride = await ride_ref(tmp_path, THIRTY_THIRTY, 300.0,
+                               workouts=[thirty_thirty()])
     screen = app.console.view()["screen"]
     assert screen["name"] == "summary" and screen["ride_id"] == ride.name
     assert set(screen["metrics"]) == {

@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "id": "vo2max-30-30",
+  "name": "VO2max 30/30",
+  "description": "3 sets of 6 × (30 s at 132 %, 30 s at 56 % of FTP) with 5 min easy between sets. If ERG can't follow, tap Ride by resistance for the rest of a set.",
+  "protocol_source": "The 30/30 targets of the Phase 2 S2 session (330 W and 140 W at FTP 250 are 132 % and 56 %); 3 sets of 6 with 5 min between are design",
+  "workout_doc": {
+    "steps": [
+      {"duration": 600, "ramp": true, "power": {"units": "%ftp", "start": 50, "end": 75}, "warmup": true, "text": "Warm-up"},
+      {"duration": 240, "ramp": true, "power": {"units": "%ftp", "start": 85, "end": 105}, "warmup": true, "text": "Warm-up: build"},
+      {"duration": 180, "power": {"units": "%ftp", "value": 55}, "warmup": true, "text": "Easy"},
+      {"reps": 6, "text": "Set 1 of 3", "steps": [
+        {"duration": 30, "power": {"units": "%ftp", "value": 132}},
+        {"duration": 30, "power": {"units": "%ftp", "value": 56}}
+      ]},
+      {"duration": 300, "power": {"units": "%ftp", "value": 55}, "text": "Easy"},
+      {"reps": 6, "text": "Set 2 of 3", "steps": [
+        {"duration": 30, "power": {"units": "%ftp", "value": 132}},
+        {"duration": 30, "power": {"units": "%ftp", "value": 56}}
+      ]},
+      {"duration": 300, "power": {"units": "%ftp", "value": 55}, "text": "Easy"},
+      {"reps": 6, "text": "Set 3 of 3", "steps": [
+        {"duration": 30, "power": {"units": "%ftp", "value": 132}},
+        {"duration": 30, "power": {"units": "%ftp", "value": 56}}
+      ]},
+      {"duration": 600, "ramp": true, "power": {"units": "%ftp", "start": 55, "end": 40}, "cooldown": true, "text": "Cool-down"}
+    ]
+  }
+}

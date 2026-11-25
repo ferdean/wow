@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "id": "vo2max-4x4",
+  "name": "VO2max 4 × 4",
+  "description": "The Norwegian 4 × 4: 4 min at 112 % of FTP, 3 min easy at 60 %, four times, after a 15-minute warm-up with an opener.",
+  "protocol_source": "Helgerud et al. 2007, Med Sci Sports Exerc 39:665 (ICD RD-21): 4 × 4 min at 90–95 % of HRmax with 3 min active recovery at 70 % of HRmax; 112 % of FTP (Coggan's level 5, 106–120 %, RD-19) and 60 % are design",
+  "workout_doc": {
+    "steps": [
+      {"duration": 600, "ramp": true, "power": {"units": "%ftp", "start": 50, "end": 75}, "warmup": true, "text": "Warm-up"},
+      {"duration": 60, "power": {"units": "%ftp", "value": 105}, "warmup": true, "text": "Opener"},
+      {"duration": 240, "power": {"units": "%ftp", "value": 55}, "warmup": true, "text": "Easy"},
+      {"reps": 4, "text": "4 min hard, 3 min easy", "steps": [
+        {"duration": 240, "power": {"units": "%ftp", "value": 112}, "text": "Hard"},
+        {"duration": 180, "power": {"units": "%ftp", "value": 60}, "text": "Recover"}
+      ]},
+      {"duration": 600, "ramp": true, "power": {"units": "%ftp", "start": 55, "end": 40}, "cooldown": true, "text": "Cool-down"}
+    ]
+  }
+}

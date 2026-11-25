@@ -55,12 +55,13 @@ async def ride_erg_check(tmp: Path, finish_after: float = 400.0
 async def ride_ref(tmp: Path, ref: str, finish_after: float,
                    provider: WorkoutProvider | None = None,
                    clock: SteppedClock | None = None,
-                   zone: tzinfo | None = None) -> tuple[App, Path]:
+                   zone: tzinfo | None = None, **extra: Any
+                   ) -> tuple[App, Path]:
     """Rides a workout of the catalog from Home to Finish on the stepped
     clock and shuts down: the files of the ride."""
     clock = clock or SteppedClock()
     app = App(app_config(tmp), clock, provider=provider, zone=zone,
-              upload_simulated=True)
+              upload_simulated=True, **extra)
     app.recorder.start()
     try:
         if provider is not None:

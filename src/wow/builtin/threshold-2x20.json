@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "id": "threshold-2x20",
+  "name": "Threshold 2 × 20",
+  "description": "2 × 20 min at 95 % of FTP with 5 min easy between them, after a 15-minute warm-up with a short opener.",
+  "protocol_source": "Coggan's power levels, level 4 (lactate threshold), 91–105 % of FTP (ICD RD-19); 95 % and 2 × 20 min with 5 min between are design",
+  "workout_doc": {
+    "steps": [
+      {"duration": 600, "ramp": true, "power": {"units": "%ftp", "start": 50, "end": 75}, "warmup": true, "text": "Warm-up"},
+      {"duration": 120, "power": {"units": "%ftp", "value": 90}, "warmup": true, "text": "Opener"},
+      {"duration": 180, "power": {"units": "%ftp", "value": 55}, "warmup": true, "text": "Easy"},
+      {"reps": 2, "text": "Threshold: 20 min on, 5 min easy", "steps": [
+        {"duration": 1200, "power": {"units": "%ftp", "value": 95}},
+        {"duration": 300, "power": {"units": "%ftp", "value": 55}, "text": "Easy"}
+      ]},
+      {"duration": 300, "ramp": true, "power": {"units": "%ftp", "start": 55, "end": 40}, "cooldown": true, "text": "Cool-down"}
+    ]
+  }
+}

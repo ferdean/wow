@@ -45,8 +45,10 @@ def test_command_line_and_built_ins(tmp_path: Path) -> None:
     assert args.config == Path("x.toml") and args.sim
     assert app_version()
     refs = [w.ref for w in load_builtin()]
-    assert refs == ["builtin:erg-check", "builtin:intervals-30-30",
-                    "builtin:ramp-test"]
+    assert refs == [f"builtin:{name}" for name in (
+        "endurance-1h", "erg-check", "ftp-test-20min", "ramp-test",
+        "recovery-30min", "sweet-spot-3x15", "threshold-2x20",
+        "vo2max-30-15", "vo2max-30-30", "vo2max-4x4")]
     (tmp_path / "bad.json").write_text('{"schema": 2}', encoding="utf-8")
     (tmp_path / "notes.txt").write_text("x", encoding="utf-8")
     assert load_builtin(tmp_path) == []
